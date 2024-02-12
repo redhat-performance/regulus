@@ -1,0 +1,12 @@
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetwork
+metadata:
+  name: mlx-west-testpmd-sriov-network
+  namespace: openshift-sriov-network-operator
+spec:
+  ipam: |
+    { }
+  spoofChk: "on"
+  trust: "on"
+  resourceName: mlxnic_west
+  networkNamespace: default

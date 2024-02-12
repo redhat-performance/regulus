@@ -1,0 +1,23 @@
+---
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: $VENDOR-$DIR-sriov-node-policy 
+  namespace: openshift-sriov-network-operator
+spec:
+  resourceName: ${VENDOR}nic_$DIR
+  nodeSelector:
+    node-role.kubernetes.io/$MCP: "" 
+  priority: 5
+  mtu: ${SRIOV_MTU}
+  numVfs: 4
+  nicSelector:
+    deviceID: "101d"
+    vendor: "15b3"
+    rootDevices:
+    - ${INTERFACE_PCI}
+    pfNames:
+    - ${INTERFACE}
+  deviceType: netdevice
+  isRdma: true
+  eSwitchMode: "switchdev"

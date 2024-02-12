@@ -1,0 +1,47 @@
+{
+  "global-options": [
+    {
+      "name": "common-params",
+      "params": [
+        { "arg": "time", "vals": ["10"] }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "include": "common-params",
+      "enabled": "yes",
+      "params": [
+        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" },
+        { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
+
+        { "arg": "protocol", "vals": ["udp"], "id": "21" },
+        { "arg": "bitrate", "vals": ["200M"], "id": "21" },
+        { "arg": "length", "vals": ["256"], "id": "21" },
+
+        { "arg": "protocol", "vals": ["udp"], "id": "22" },
+        { "arg": "bitrate", "vals": ["400M"], "id": "22" },
+        { "arg": "length", "vals": ["512"], "id": "22" },
+
+        { "arg": "protocol", "vals": ["udp"], "id": "23" },
+        { "arg": "bitrate", "vals": ["200M"], "id": "23" },
+        { "arg": "length", "vals": ["256"], "id": "23" },
+
+        { "arg": "protocol", "vals": ["udp"], "id": "24" },
+        { "arg": "bitrate", "vals": ["400M"], "id": "24" },
+        { "arg": "length", "vals": ["512"], "id": "24" },
+
+        { "arg": "protocol", "vals": ["udp"], "id": "25" },
+        { "arg": "bitrate", "vals": ["200M"], "id": "25" },
+        { "arg": "length", "vals": ["256"], "id": "25" },
+
+        { "arg": "protocol", "vals": ["udp"], "id": "26" },
+        { "arg": "bitrate", "vals": ["400M"], "id": "26" },
+        { "arg": "length", "vals": ["512"], "id": "26" }
+
+      ]
+    }
+  ]
+}
+
+

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: w0-pod
+  annotations:
+    k8s.v1.cni.cncf.io/networks: |-
+      [
+        {
+          "name": "east-sriov-net"
+        }
+      ]
+spec:
+  nodeSelector: {"kubernetes.io/hostname": "worker000-r650"}
+  containers:
+  - name: appcntr1
+    image: centos/tools
+    imagePullPolicy: IfNotPresent
+    command: [ "/bin/bash", "-c", "--" ]
+    args: [ "while true; do sleep 300000; done;" ]
+    resources:
+      requests:
+        openshift.io/mlxnic_east: '1'
+      limits:
+        openshift.io/mlxnic_east: '1'
+

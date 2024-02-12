@@ -1,0 +1,8 @@
+[root@f24-h03-000-r630:bastion5 templates]$ diff net-attach-def.yaml.template net-attach-def.yaml.template.bad
+15a16,18
+>     "routes": [{
+>       "dst": "0.0.0.0/0"
+>     }],
+
+multus will fail to set routes.
+

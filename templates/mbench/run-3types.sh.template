@@ -1,0 +1,73 @@
+#!/bin/bash
+
+num_samples=$NUM_SAMPLES
+config=$1
+placement=./pairs.placement
+if [ -z "$config" ]; then
+    echo "config file not specified.  Use ./run.sh <your-config-file>"
+    exit 1
+fi
+if [ ! -e $config ]; then
+    echo "Could not find $config, exiting"
+    exit 1
+fi
+
+if [ ! -e $placement ]; then
+    echo "Could not find $placement, exiting"
+    exit 1
+fi
+. $placement
+. $config
+
+if [ -z "$tags" ]; then
+    echo "You must define tags in your config file"
+    exit 1
+fi
+
+if [ -z "$ocp_host" ]; then
+    echo "You must define ocp_host in your config file"
+    exit 1
+fi
+
+if [ -z "${num_samples}" ]; then
+    echo "You must define num_samples in your config file"
+    exit 1
+fi
+
+if [ ! -z "${OCP_PROJECT}" ]; then
+    endpoint_opt+="unique-project:${OCP_PROJECT}"
+fi
+if [ "${DRY_RUN}" == 1  ]; then
+    echo DRY=true
+    endpoint_opt+=",dry-run:true"
+fi
+
+    
+if [ "${TPL_SRIOV}" == 1  ]; then
+    DEST=$REG_KNI_USER@$REG_OCPHOST
+    ssh ${DEST} "kubectl delete ns $OCP_PROJECT"  2> /dev/null
+    ssh ${DEST} "kubectl create ns $OCP_PROJECT"
+    # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
+    ssh ${DEST} "kubectl apply -f ${REG_SRIOV_NAD}"
+fi
+
+time crucible run iperf,uperf\
+ --mv-params iperf-mv-params.json,uperf-mv-params.json\
+ --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\
+ --tags $tags\
+ --num-samples=$NUM_SAMPLES --max-sample-failures=1\
+ --endpoint k8s,user:$k8susr,host:$ocp_host,$endpoint_opt,\
+\
+nodeSelector:client-${worker1_clients}:$pwd/nodeSelector-$worker1.json,\
+nodeSelector:server-${worker1_servers}:$pwd/nodeSelector-$worker1.json,\
+\
+nodeSelector:client-${worker2_clients}:$pwd/nodeSelector-$worker2.json,\
+nodeSelector:server-${worker2_servers}:$pwd/nodeSelector-$worker2.json,\
+\
+nodeSelector:client-${worker3_clients}:$pwd/nodeSelector-$worker3.json,\
+nodeSelector:server-${worker3_servers}:$pwd/nodeSelector-$worker3.json,\
+userenv:fedora38,\
+masters-tool-collect:0,\
+client:1-32,\
+server:1-32${annotation_opt}${resources_opt}
+

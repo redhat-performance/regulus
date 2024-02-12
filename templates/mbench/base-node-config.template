@@ -1,0 +1,22 @@
+pwd=`/bin/pwd`
+ocp_host=$REG_OCPHOST
+k8susr=$REG_KNI_USER
+tags=lab:scale,datapath:$REG_DP
+
+#NAME       STATUS   ROLES                  AGE   VERSION
+#master-0   Ready    control-plane,master   21h   v1.27.6+98158f9
+#master-1   Ready    control-plane,master   21h   v1.27.6+98158f9
+#master-2   Ready    control-plane,master   21h   v1.27.6+98158f9
+#worker-0   Ready    worker                 21h   v1.27.6+98158f9
+#worker-1   Ready    worker                 21h   v1.27.6+98158f9
+#worker-2   Ready    worker                 21h   v1.27.6+98158f9
+#worker-3   Ready    worker                 21h   v1.27.6+98158f9
+#worker-4   Ready    worker                 21h   v1.27.6+98158f9
+
+
+# regular worker nodes
+worker1=worker-1  # Tester 1
+worker2=worker-2  # Tester 2
+worker3=worker-0  # system-under-test
+
+resources_opt="$TPL_RESOURCES"

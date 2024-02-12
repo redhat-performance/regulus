@@ -1,0 +1,18 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: ${MCP}
+  namespace: openshift-machine-config-operator
+  labels:
+    machineconfiguration.openshift.io/role: ${MCP}
+spec:
+  maxUnavailable: 100%
+  paused: false 
+  machineConfigSelector:
+    matchExpressions:
+      - key: machineconfiguration.openshift.io/role
+        operator: In
+        values: [worker,${MCP}]
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/${MCP}: ""

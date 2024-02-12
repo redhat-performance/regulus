@@ -1,0 +1,3 @@
+# We need start from run.sh to accomodate "this-run" script that harcodes "run.sh"
+# This file is auto-generated. DO NOT edit.
+bash run-3types.sh $TPL_NODE_CONF

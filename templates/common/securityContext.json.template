@@ -1,0 +1,7 @@
+"securityContext": {
+  "privileged": true,
+  "capabilities": {
+    "add": [ "SYS_ADMIN", "IPC_LOCK", "SYS_NICE", "SYS_ADMIN" ]
+  }
+}
+
