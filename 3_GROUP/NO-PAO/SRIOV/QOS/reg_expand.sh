@@ -21,6 +21,10 @@ envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types.sh.template > ${MANIFEST_DI
 export TPL_RESOURCES=
 envsubst '$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-pao-node-config.template > ${MANIFEST_DIR}/node-config 
 
+# generate custom CPU resources and set to 2 CPUs
+export TPL_NUMCPUS=1
+envsubst '$TPL_NUMCPUS' < ${REG_TEMPLATES}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
+
 # gen annotations
 envsubst '' < ${REG_COMMON}/annotations-sriov.json.template  > ${MANIFEST_DIR}/annotations.json
 

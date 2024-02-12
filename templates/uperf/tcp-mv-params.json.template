@@ -6,7 +6,7 @@
         { "arg": "duration", "vals": ["10"] },
         { "arg": "protocol", "vals": ["tcp"] },
         { "arg": "nthreads", "vals": ["1", "64"] },
-        { "arg": "ifname", "vals": ["$TPL_INTF""], "role": "server" }
+        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
       ]
     }
   ],

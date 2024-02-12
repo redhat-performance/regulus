@@ -1,0 +1,21 @@
+Start from fresh workspace:
+==========================
+
+1. First step, you should "source botstrap.sh"
+2. Next, you should fix the lab.config to match your lab.
+3. Third you should decide your custom arguments for your jobs.list.
+4. Last you can "make init-jobs; make run-jobs", or "make init-all; make run-all"
+
+Considerations:
+	1. Time, Most jobs take 20 minutes, An iperf3 drop-hunter job can take several hours.
+
+
+Usage scenarios:
+================
+1. To run one jobs e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
+	cd ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
+	make init
+	make run 
+
+
+

@@ -8,10 +8,13 @@ init:
 	./reg_expand.sh
 
 run:
-	. ~/REGULUS/lab.config && DRY_RUN=1 NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan this-run --label DRY
+	. ${REG_ROOT}/lab.config && this-run --label DRY
+
+dry-run:
+	. ${REG_ROOT}/lab.config && DRY_RUN=1 NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan this-run --label DRY
 
 wet-run:
-	. ~/REGULUS/lab.config && NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan this-run --label DRY
+	. ${REG_ROOT}/lab.config && NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan this-run --label DRY
 
 clean:
 	find . -maxdepth 1 \( -type f -o -type l \) ! \( -name "makefile" -o -name "reg_expand.sh" \) -exec rm -v {} +
