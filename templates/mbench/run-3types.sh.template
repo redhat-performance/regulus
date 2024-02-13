@@ -1,5 +1,7 @@
 #!/bin/bash
 
+NUM_SAMPLES=${NUM_SAMPLES:-1}
+
 num_samples=$NUM_SAMPLES
 config=$1
 placement=./pairs.placement

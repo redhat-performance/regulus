@@ -1,0 +1,3 @@
+. run.sh.num_cpus - we want to compute it live
+. duration		- we want to set it per job
+. this-run		- should be packed with regulus
