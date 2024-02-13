@@ -1,21 +1,69 @@
-Start from fresh workspace:
-==========================
+This is the Regulus workspace, the repo that contains a collection of crucible test 
+configurations (./1_GROUP, ./2_GROUP and ./3_GROUP), performance add-on config util 
+(./PAO), and SRIOV config util (./SRIOV-config)
 
-1. First step, you should "source botstrap.sh"
-2. Next, you should fix the lab.config to match your lab.
-3. Third you should decide your custom arguments for your jobs.list.
-4. Last you can "make init-jobs; make run-jobs", or "make init-all; make run-all"
+The tests are to be run on a Crucible controller.
+The PAO and SRIOV_config are to be run on the bastion.
+
+Assumption: 
+===========
+Your Crucible controller is working correctly with your testbed before,
+
+Running a pilot test on a fresh Regulus workspace:
+====================================================
+ 
+1. First, "source ./bootstrap.sh"
+2. You should adapt the ./lab.config to match your lab.
+3. Add one job to ./jobs.config. Or use the default config which has "./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD" job.
+4. Next, "make init-jobs; make run-jobs". If lab.config is OK, the job will run to completion.
+5. See examine result sections
+5. Last, "make clean-jobs"
 
 Considerations:
 	1. Time, Most jobs take 20 minutes, An iperf3 drop-hunter job can take several hours.
 
 
-Usage scenarios:
+Testing scenarios:
 ================
-1. To run one jobs e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
+1. To run one job e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD in debug mode
 	cd ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
 	make init
 	make run 
+	make clean	<== clean artifacts and DRY runs, Use rmrun --label to gracefully rm run.
+
+2. To run a number of jobs e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD+2-POD ...  etc in job mode.
+	edit the jobs,config to add you job into the $JOBS list
+	make init-jobs
+	make run-jobs
+	make clean-jobs
+
+2. To run all jobs under Regulus. Warning it can take multi hours if not days.
+	make init-all
+	make run-all
+	make clean-all
+
+Examine results
+=================
+	cd to job/test dir e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD.
+	you should find th result and all artifects in latest dir
+	
+Configure PAO and SRIOV
+=======================
+Assuming you have pulled this repo on your bsstion.
+You should config PAO and SRIOV at the necessary time. The reason being, a test 
+means to be run in non-PAO env, should not be run after PAO has been configured,  
+
+Similarly, SRIOV can also impact the number of queues of the PF. So non SRIOV tests 
+may be impacted by SRIOV config even though the test does not use SRIOV.
 
 
+Customization:
+==============
+You can changes many things in:
+./lab.config
+./jobs.config
+./templates/...
+
+
+--- done ---
 

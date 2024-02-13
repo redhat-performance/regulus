@@ -36,6 +36,7 @@ run-jobs:
 		$(MAKE) -C $$dir run; \
 	done
 
+# Also can be done with setting jobs.config.DRY_RUN=1; make run-jobs
 dry-run-jobs:
 	echo JOBS=$JOBS
 	@for dir in $(JOBS); do \
@@ -47,27 +48,25 @@ confirm_execute:
 	@echo "Are you sure you want to execute the target? [y/N] " && read ans && [ $${ans:-N} = y ]
 
 init-all: confirm_execute
-	@directory=$$(dirname $$(find . -type f -name reg_expand.sh )); \
+	@dirs=$$(find . -type f -name reg_expand.sh -exec dirname {} \;); \
 	for dir in $$dirs; do \
 		echo "Entering directory $$dir"; \
 		$(MAKE) -C $$dir init; \
-		popd; \
 	done
 
 run-all: confirm_execute
-	@directory=$$(dirname $$(find . -type f -name reg_expand.sh )); \
+	@dirs=$$(find . -type f -name reg_expand.sh -exec dirname {} \;); \
 	for dir in $$dirs; do \
 		echo "Entering directory $$dir"; \
 		$(MAKE) -C $$dir run; \
-		popd; \
 	done
 
+# Also can be done with setting jobs.config.DRY_RUN=1; make run-all
 dry-run-all: confirm_execute
 	@dirs=$$(find . -type f -name reg_expand.sh -exec dirname {} \;); \
 	for dir in $$dirs; do \
 		echo "Entering directory $$dir"; \
 		$(MAKE) -C $$dir dry-run; \
-		popd; \
 	done
 
 clean-all: confirm_execute
