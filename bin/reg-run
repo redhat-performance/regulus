@@ -1,0 +1,147 @@
+#!/bin/bash
+
+# Usage: reg-run [--label LABEL]
+# Ex: this-run --label MY-RUN
+#  1. Invoke run.sh
+#  2. Move the results to under current dir i.e ./run-MY-RUN-2021-11-27-05:02:26/
+#  4. Generate summary :
+#        show-summary-MY-RUN--2021-11-27_05:02:31--b50b3953-2aa8-4b31-b22b-2fd49254cfcb.txt
+#        summary-MY-RUN--2021-11-27_05:02:31--b50b3953-2aa8-4b31-b22b-2fd49254cfcb.txt
+#  5. Tar the result blob
+#
+
+source functions.sh
+
+export DRY_RUN=${DRY_RUN:-false}
+
+function f_help {
+    me=`basename "$0"` 
+    echo Usage: $me "[--label <day-label>]"
+}
+
+function f_check_error {
+    local file=$1
+    if !  grep "Benchmark summary is complete" $file > /dev/null ; then
+        echo error run $file
+        echo rename $file to $file.error
+        mv $file $file.error
+    else
+        echo no-error run $file
+    fi
+}
+
+
+function f_save_extra_artifacts {
+    local dest=$1
+    cp run.sh $dest
+    cp run.sh $dest/run.txt
+    
+    if grep "crucible run" run.sh; then
+        # single-bench
+        cp *.json $dest  2>/dev/null
+        return
+    fi
+    if grep "run-3types" run.sh; then
+        # mbench
+        FILES=$(cat run.sh)
+        for f in $FILES; do
+           if  [ -e $f ] ; then
+              cp $f $dest
+           fi
+        done
+        FILES="uperf-mv-params.json iperf-mv-params.json tool-params.json *3types* *placement* *lab*"
+        for f in $FILES; do
+            if [ -e $f ]; then
+              cp $f $dest
+            fi
+        done
+        cp *.json $dest
+        return;
+    fi
+    # standalone 
+    cp *.json $dest  2>/dev/null
+    if [ -d generated ]; then
+        cp ./generated/* $dest
+    fi
+    return
+}
+
+
+
+LABEL=""
+longopts="label:,dryrun,help"
+opts=$(getopt -q -o "" --longoptions "$longopts" -n "getopt.sh" -- "$@");
+if [ $? -ne 0 ]; then
+    echo "Unrecognized option specified"
+    exit
+fi
+eval set -- "$opts";
+while true; do
+    case "$1" in
+        --label)
+            shift;
+            LABEL=$1
+            shift;
+            ;;
+        --dryrun)
+            shift;
+            DRY_RUN=true
+            ;;
+        --)
+            shift;
+            break
+            ;;
+        --help)
+            shift;
+            f_help
+            exit
+            ;;
+
+        *)
+            echo "Invalid option: $1"
+            exit
+    esac
+done
+
+if [ "$LABEL" == "" ]; then
+    f_help
+    exit
+
+fi
+
+DIR="run-${LABEL}-$(date "+%Y-%m-%d-%T")"
+echo $DIR
+
+if [ ! -d  $DIR ]; then
+    mkdir $DIR
+fi
+
+echo "working dir" $(pwd)
+# crucible es init
+if [ $DRY_RUN == false ]; then
+  bash run.sh 2>&1 | tee $DIR.log
+else
+   #DRY_RUN=$DRY_RUN run.sh 2>&1 | tee $DIR.log
+   DRY_RUN=$DRY_RUN bash run.sh 
+fi
+result_path=$(realpath /var/lib/crucible/run/latest)
+mv $result_path $DIR/
+rm -f latest
+ln -sf $DIR latest
+pushd $DIR
+
+reg-gen-summary 
+
+# before tar pull the result-summary.txt here so rmrun can run
+find . -name result-summary.txt -exec cp {} . \;
+
+echo tar-result iperf
+#reg-tar-result iperf
+#reg-tar-result uperf
+
+popd
+
+f_check_error $DIR.log
+f_save_extra_artifacts  $DIR
+# EOF
+

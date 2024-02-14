@@ -7,21 +7,23 @@
 ifndef REG_ROOT
 $(error REG_ROOT is not set. Please 'source ./bootstrap.sh')
 endif
+include ${REG_ROOT}/jobs.config
 
 # default TAG to "DRY". For make directly at the dir, but not from jobs.
 TAG ?= DRY
+RUN=reg-run
 
 init:
 	./reg_expand.sh
 
 run:
-	. ${REG_ROOT}/lab.config && this-run --label ${TAG}
+	. ${REG_ROOT}/lab.config && ${RUN} --label ${TAG}
 
 dry-run:
-	. ${REG_ROOT}/lab.config && DRY_RUN=1 NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan this-run --label DRY
+	. ${REG_ROOT}/lab.config && DRY_RUN=1 NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label DRY
 
 wet-run:
-	. ${REG_ROOT}/lab.config && NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan this-run --label ${TAG}
+	. ${REG_ROOT}/lab.config && NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label ${TAG}
 
 clean:
 	find . -maxdepth 1 \( -type f -o -type l \) ! \( -name "makefile" -o -name "reg_expand.sh" \) -exec rm -v {} +

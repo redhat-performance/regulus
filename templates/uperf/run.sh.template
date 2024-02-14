@@ -224,7 +224,7 @@ for num_pods in $scale_up_factor; do
     if [ ! -z ${OCP_PROJECT}  ]; then
         endpoint_opt+=",unique-project:${OCP_PROJECT}"
     fi
-    if [ "$DRY_RUN" == 1  ]; then
+    if [ "$DRY_RUN" == true  ]; then
         echo DRY=true
         endpoint_opt+=",dry-run:true"
     fi
