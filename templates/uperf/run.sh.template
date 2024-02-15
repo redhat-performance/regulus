@@ -37,7 +37,7 @@ ocphost=$REG_OCPHOST
 k8susr=$REG_KNI_USER # Might be "root" or "kni" for some installations
 
 if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ]; then
-    annotations=`/bin/pwd`/annotations.json 
+    annotations=`/bin/pwd`/annotations.json  &> /dev/null
     securityContext_file="`/bin/pwd`/securityContext.json"
 fi
 if [ "$TPL_PAO" == 1 ] ; then
