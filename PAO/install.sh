@@ -12,6 +12,14 @@ export WORKER_LIST=${WORKER_LIST:-}
 
 parse_args $@
 
+# Step 0  analyzer 
+OTHER_MCPS=$(oc get mcp  --no-headers | awk '{print $1}' | grep -v "worker\|master")
+if [ ! -z "$OTHER_MCPS" ] && [ "${OTHER_MCPS}" != "${MCP}" ];  then
+    echo "Other mcp(s) $OTHER_MCPS exist(s)."
+    echo "Fix it before continue"
+    exit
+fi
+
 # step 1 - label workers
 for worker in $WORKER_LIST; do
    oc label --overwrite node ${worker} node-role.kubernetes.io/${MCP}=""
