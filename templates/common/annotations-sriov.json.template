@@ -1,1 +1,1 @@
-"annotations": { "k8s.v1.cni.cncf.io/networks": "east-sriov-net" }
+"annotations": { "k8s.v1.cni.cncf.io/networks": "regulus-sriov-net" }

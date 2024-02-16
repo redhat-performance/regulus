@@ -47,10 +47,12 @@ fi
     
 if [ "${TPL_SRIOV}" == 1  ]; then
     DEST=$REG_KNI_USER@$REG_OCPHOST
-    ssh ${DEST} "kubectl delete ns $OCP_PROJECT"  2> /dev/null
+    ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
     ssh ${DEST} "kubectl create ns $OCP_PROJECT"
     # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
     ssh ${DEST} "kubectl apply -f ${REG_SRIOV_NAD}"
+    # sometime the network-attachment takes a few seconds to be ready.
+    sleep 5
 fi
 
 time crucible run iperf,uperf\

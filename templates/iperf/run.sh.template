@@ -96,7 +96,7 @@ if [ ! -z "$missing_bins" ]; then
 fi
     
 if [ "$TPL_SRIOV" == 1 ] ; then
-    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT"
+    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
     ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
 
     # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
