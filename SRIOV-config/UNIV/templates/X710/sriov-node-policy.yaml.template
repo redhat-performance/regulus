@@ -2,10 +2,10 @@
 apiVersion: sriovnetwork.openshift.io/v1
 kind: SriovNetworkNodePolicy
 metadata:
-  name: $DIR-sriov-node-policy 
+  name: regulus-sriov-node-policy 
   namespace: openshift-sriov-network-operator
 spec:
-  resourceName: intelnic_$DIR
+  resourceName: regulus_nic
   nodeSelector:
     node-role.kubernetes.io/$MCP: "" 
   priority: 5
@@ -13,7 +13,7 @@ spec:
   numVfs: 32 
   nicSelector:
     rootDevices:
-    - ${INTEL_INTERFACE_PCI}
+    - ${REGULUS_INTERFACE_PCI}
     pfNames:
-    - ${INTEL_INTERFACE}
+    - ${REGULUS_INTERFACE}
   deviceType: netdevice
