@@ -26,7 +26,7 @@ for worker in $WORKER_LIST; do
 done
 
 # step 2 - create a new MCP
-if ! oc get mcp $MCP 2>/dev/null; then
+if ! oc get mcp $MCP &>/dev/null; then
     echo "create mcp for $MCP ..."
     mkdir -p ${MANIFEST_DIR}
     envsubst < templates/mcp-worker-cnf.yaml.template > ${MANIFEST_DIR}/mcp-${MCP}.yaml
@@ -35,7 +35,7 @@ if ! oc get mcp $MCP 2>/dev/null; then
 fi
 
 # make sure MCP is labeled
-if oc get mcp ${MCP} ; then
+if oc get mcp ${MCP} &> /dev/null ; then
    oc label --overwrite mcp ${MCP} machineconfiguration.openshift.io/role=${MCP}
 fi
 
@@ -65,10 +65,16 @@ echo "generating ${MANIFEST_DIR}/performance_profile.yaml ..."
 envsubst < templates/performance_profile.yaml.template > ${MANIFEST_DIR}/performance_profile.yaml
 echo "generating ${MANIFEST_DIR}/performance_profile.yaml: done"
 
+
+if oc get mcp PerformanceProfile &>/dev/null; then
+    echo "Skip. A performanceprofile exists"
+    exit
+fi
+echo "next is is applying performance_profile"
+prompt_continue 
+
 echo "apply ${MANIFEST_DIR}/performance_profile.yaml ..."
 oc apply -f ${MANIFEST_DIR}/performance_profile.yaml
-
-sleep 10
 
 if [[ "${WAIT_MCP}" == "true" ]]; then
     wait_mcp ${MCP}
