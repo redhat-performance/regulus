@@ -5,7 +5,7 @@ configurations (./1_GROUP, ./2_GROUP and ./3_GROUP), performance add-on config u
 The tests are to be run on a Crucible controller.
 The PAO and SRIOV_config are to be run on the bastion.
 
-Assumption: 
+Assumptions: 
 ===========
 Your Crucible controller is working correctly with your testbed before,
 
@@ -63,6 +63,22 @@ You can changes many things in:
 ./lab.config
 ./jobs.config
 ./templates/...
+
+
+Enable SRIOV for SRIOV test cases
+===================================
+On the bastion, fo to SRIOV-config/UVIV
+	make init; make install
+To remove/uninstall SRIOV
+	make cleanup
+
+
+Enable performance-profile for PAO test cases
+==============================================
+On the bastion, fo to PAO
+	make init; make install
+To remove/uninstall PAO
+	make cleanup
 
 
 --- done ---
