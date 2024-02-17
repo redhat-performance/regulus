@@ -10,7 +10,7 @@ export TPL_SCALE_UP_FACTOR=1
 export TPL_TOPO=internode
 export TPL_PAO=1
 export TPL_SRIOV=1
-envsubst '$TPL_SCALE_UP_FACTOR,$TPL_TOPO,$TPL_PAO,$TPL_SRIOV' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
+envsubst '$MCP,$TPL_SCALE_UP_FACTOR,$TPL_TOPO,$TPL_PAO,$TPL_SRIOV' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 
 export TPL_INTF=net1
 export TPL_IPV=6

@@ -9,7 +9,7 @@ source $REG_ROOT/lab.config    # for worker node names
 
 # generate run.sh with custom-param "node-config"
 export TPL_NODE_CONF="node-config"
-envsubst '$TPL_NODE_CONF' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
+envsubst '$MCP,$TPL_NODE_CONF' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 
 # generate run-3types.sh. No custom params
 export TPL_SRIOV=1

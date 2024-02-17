@@ -14,7 +14,7 @@ TAG ?= DRY
 RUN=reg-run
 
 init:
-	./reg_expand.sh
+	 . ${REG_ROOT}/lab.config && ./reg_expand.sh
 
 run:
 	. ${REG_ROOT}/lab.config && ${RUN} --label ${TAG}

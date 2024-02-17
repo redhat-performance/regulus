@@ -41,7 +41,7 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ]; then
     securityContext_file="`/bin/pwd`/securityContext.json"
 fi
 if [ "$TPL_PAO" == 1 ] ; then
-    runtimeClassNameOpt=",runtimeClassName:performance-mcp-mlx-vf"
+    runtimeClassNameOpt=",runtimeClassName:performance-${MCP}"
 fi
 
 # Use to disable or enable IRQs, comment out if you are not using Performance Addon Operator
