@@ -19,4 +19,13 @@ worker1=worker-1  # Tester 1
 worker2=worker-2  # Tester 2
 worker3=worker-0  # system-under-test
 
+# SRIOV requires network-attachement annotation
+
+if [ "$TPL_SRIOV" == 1 ] ; then
+   annotation_opt=",annotations:server-${worker1_servers}:$pwd/annotations.json,annotations:client-${worker1_clients}:$pwd/annotations.json"
+   annotation_opt+=",annotations:server-${worker2_servers}:$pwd/annotations.json,annotations:client-${worker2_clients}:$pwd/annotations.json"
+   annotation_opt+=",annotations:server-${worker3_servers}:$pwd/annotations.json,annotations:client-${worker3_clients}:$pwd/annotations.json"
+   annotation_opt+=",runtimeClassName:performance-${MCP}"
+fi
+
 resources_opt="$TPL_RESOURCES"

@@ -1,0 +1,6 @@
+worker1_clients=1+3+5
+worker1_servers=
+worker2_clients=
+worker2_servers=2+4+6
+worker3_clients=2+4+6
+worker3_servers=1+3+5

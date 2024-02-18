@@ -4,7 +4,7 @@
       "name": "common-params",
       "params": [
         { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" },
-        { "arg": "time", "vals": ["120"] },
+        { "arg": "time", "vals": ["10"] },
         { "arg": "omit", "vals": ["3"] },
         { "arg": "protocol", "vals": ["udp"] },
         { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
@@ -17,7 +17,7 @@
       "include": "common-params",
       "params": [
         { "arg": "max-loss-pct", "vals": ["0.01"], "role": "client" },
-        { "arg": "bitrate-range", "vals": ["100M-3500M"], "role": "client" }
+        { "arg": "bitrate-range", "vals": ["100M-150M"], "role": "client" }
       ]
     }
  ]

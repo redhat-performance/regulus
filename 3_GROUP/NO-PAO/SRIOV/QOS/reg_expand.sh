@@ -19,17 +19,17 @@ envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types.sh.template > ${MANIFEST_DI
 
 # generate node-config with null TPL_RESOURCES
 export TPL_RESOURCES=
-envsubst '$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-pao-node-config.template > ${MANIFEST_DIR}/node-config 
+envsubst '$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-node-config.template > ${MANIFEST_DIR}/node-config 
 
 # generate custom CPU resources and set to 2 CPUs
-export TPL_NUMCPUS=1
+export TPL_NUMCPUS=2
 envsubst '$TPL_NUMCPUS' < ${REG_TEMPLATES}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
 
 # gen annotations
 envsubst '' < ${REG_COMMON}/annotations-sriov.json.template  > ${MANIFEST_DIR}/annotations.json
 
 # generate placement.
-envsubst '' < ${REG_TEMPLATES}/10pairs.placement.template  > ${MANIFEST_DIR}/pairs.placement
+envsubst '' < ${REG_TEMPLATES}/std.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
 # generate security.
 envsubst < ${REG_COMMON}/securityContext.json.template > ${MANIFEST_DIR}/securityContext.json

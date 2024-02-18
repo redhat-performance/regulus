@@ -1,0 +1,30 @@
+{
+  "global-options": [
+    {
+      "name": "common-params",
+      "params": [
+        { "arg": "time", "vals": ["10"] }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "include": "common-params",
+      "enabled": "yes",
+      "params": [
+        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" },
+        { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
+
+        { "arg": "protocol", "vals": ["udp"], "id": "1" },
+        { "arg": "bitrate", "vals": ["200M"], "id": "1" },
+        { "arg": "length", "vals": ["256"], "id": "1" },
+
+        { "arg": "protocol", "vals": ["udp"], "id": "2" },
+        { "arg": "bitrate", "vals": ["400M"], "id": "2" },
+        { "arg": "length", "vals": ["512"], "id": "2" }
+      ]
+    }
+  ]
+}
+
+

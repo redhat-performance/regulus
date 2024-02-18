@@ -1,0 +1,10 @@
+"resources": {
+    "requests": {
+        "cpu": "$TPL_NUMCPUS",
+        "memory": "1000Mi"
+    },
+    "limits": {
+        "cpu": "$TPL_NUMCPUS",
+        "memory": "1000Mi"
+    }
+}

@@ -16,13 +16,13 @@ export TPL_SRIOV=0
 envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types.sh.template > ${MANIFEST_DIR}/run-3types.sh
 
 # generate node-config w/o custom resources. 
-envsubst '$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-pao-node-config.template > ${MANIFEST_DIR}/node-config
+envsubst '$TPL_RESOURCES,$TPL_SRIOV,$MCP' < ${REG_TEMPLATES}/base-pao-node-config.template > ${MANIFEST_DIR}/node-config
 
 # generate annotation. Use hardcopy
 envsubst '' < ${REG_COMMON}/annotations-pao.json.template  > ${MANIFEST_DIR}/annotations.json
 
 # generate placement. standard-32pairs.placement.template. Use hardcopy
-envsubst '' < ${REG_TEMPLATES}/10pairs.placement.template  > ${MANIFEST_DIR}/pairs.placement
+envsubst '' < ${REG_TEMPLATES}/std.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
 # generate mv-params
 export TPL_INTF=eth0
@@ -32,6 +32,7 @@ envsubst '$TPL_INTF,$TPL_IPV' < ${REG_TEMPLATES}/uperf-mv-params.json.template >
 
 # generta tools params. No custom params
 envsubst '' < ${REG_COMMON}/tool-params.json.template >  ${MANIFEST_DIR}/tool-params.json
+cp ${REG_COMMON}/securityContext.json.template  ${MANIFEST_DIR}/securityContext.json
 
 # generate worker node mapping
 export TPL_WORKER=$OCP_WORKER_0

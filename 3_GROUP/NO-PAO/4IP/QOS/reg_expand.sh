@@ -1,7 +1,7 @@
 #!/bin/bash
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
-REG_TEMPLATES=${REG_ROOT}/templates/mbench
+REG_TEMPLATES=${REG_ROOT}/templates/mbench-small
 REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
 
@@ -19,11 +19,11 @@ export TPL_RESOURCES=',resources:default:$pwd/resource-static-Ncpu.json'
 envsubst '$TPL_RESOURCES' < ${REG_TEMPLATES}/base-node-config.template > ${MANIFEST_DIR}/node-config
 
 # generate custom CPU resources
-export TPL_NUMCPUS=1
+export TPL_NUMCPUS=2
 envsubst '$TPL_NUMCPUS' < ${REG_TEMPLATES}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
 
-# generate placement. standard-32pairs.placement.template. Use hardcopy
-envsubst '' < ${REG_TEMPLATES}/10pairs.placement.template  > ${MANIFEST_DIR}/pairs.placement
+# generate placement. standard-32pairs.placement.template 
+envsubst '' < ${REG_TEMPLATES}/std.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
 # generate mv-params
 export TPL_INTF=eth0

@@ -36,9 +36,13 @@ pod_qos=burstable # static = guaranteed pod, burstable = default pos qos
 ocphost=$REG_OCPHOST
 k8susr=$REG_KNI_USER # Might be "root" or "kni" for some installations
 
+
+if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; then
+    securityContext_file="`/bin/pwd`/securityContext.json"
+fi
+
 if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ]; then
     annotations=`/bin/pwd`/annotations.json  &> /dev/null
-    securityContext_file="`/bin/pwd`/securityContext.json"
 fi
 if [ "$TPL_PAO" == 1 ] ; then
     runtimeClassNameOpt=",runtimeClassName:performance-mcp-mlx-vf"

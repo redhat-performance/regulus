@@ -17,5 +17,5 @@ envsubst '$TPL_INTF,$TPL_IPV' < ${REG_TEMPLATES}/udp-mv-params.json.template >  
 
 cp ${REG_COMMON}/tool-params.json.template  ${MANIFEST_DIR}/tool-params.json
 cp ${REG_COMMON}/securityContext.json.template  ${MANIFEST_DIR}/securityContext.json
-cp ${REG_COMMON}/annotations-sriovjson.template  ${MANIFEST_DIR}/annotations.json
+cp ${REG_COMMON}/annotations-sriov.json.template  ${MANIFEST_DIR}/annotations.json
 

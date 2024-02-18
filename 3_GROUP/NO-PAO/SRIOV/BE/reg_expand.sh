@@ -17,13 +17,13 @@ envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types.sh.template > ${MANIFEST_DI
 
 # generate node-config with null TPL_RESOURCES
 export TPL_RESOURCES=
-envsubst '$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-pao-node-config.template > ${MANIFEST_DIR}/node-config
+envsubst '$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-node-config.template > ${MANIFEST_DIR}/node-config
 
 # gen annotations
 envsubst '' < ${REG_COMMON}/annotations-sriov.json.template  > ${MANIFEST_DIR}/annotations.json
 
 # generate placement.
-envsubst '' < ${REG_TEMPLATES}/10pairs.placement.template  > ${MANIFEST_DIR}/pairs.placement
+envsubst '' < ${REG_TEMPLATES}/std.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
 # generate security.
 envsubst < ${REG_COMMON}/securityContext.json.template > ${MANIFEST_DIR}/securityContext.json
@@ -36,6 +36,7 @@ envsubst '$TPL_INTF,$TPL_IPV' < ${REG_TEMPLATES}/uperf-mv-params.json.template >
 
 # generta tools params. No custom params
 envsubst '' < ${REG_COMMON}/tool-params.json.template >  ${MANIFEST_DIR}/tool-params.json
+cp ${REG_COMMON}/securityContext.json.template  ${MANIFEST_DIR}/securityContext.json
 
 # generate worker node mapping
 export TPL_WORKER=$OCP_WORKER_0

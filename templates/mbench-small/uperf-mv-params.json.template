@@ -1,0 +1,36 @@
+{
+  "global-options": [
+    {
+      "name": "common-params",
+      "params": [
+        { "arg": "duration", "vals": ["10"] },
+        { "arg": "protocol", "vals": ["tcp"] },
+        { "arg": "nthreads", "vals": ["1"] },
+        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "test-type", "vals": ["stream"], "id": "3" },
+        { "arg": "wsize", "vals": ["512"], "id": "3" },
+        { "arg": "nthreads", "vals": ["16"], "id": "3" },
+
+        { "arg": "test-type", "vals": ["stream"], "id": "4" },
+        { "arg": "wsize", "vals": ["512"], "id": "4" },
+        { "arg": "nthreads", "vals": ["16"], "id": "4" },
+
+        { "arg": "test-type", "vals": ["crr"], "id": "5" },
+        { "arg": "wsize", "vals": ["512"], "id": "5" },
+        { "arg": "rsize", "vals": ["2048"], "id": "5" },
+
+        { "arg": "test-type", "vals": ["crr"], "id": "6" },
+        { "arg": "wsize", "vals": ["512"], "id": "6" },
+        { "arg": "rsize", "vals": ["2048"], "id": "6" }
+
+      ]
+    }
+  ]
+}

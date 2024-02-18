@@ -18,4 +18,4 @@ envsubst '$TPL_INTF,$TPL_IPV' < ${REG_TEMPLATES}/udp-mv-params.json.template >  
 envsubst < ${REG_COMMON}/tool-params.json.template > ${MANIFEST_DIR}/tool-params.json
 # PAO needs
 envsubst < ${REG_COMMON}/securityContext.json.template > ${MANIFEST_DIR}/securityContext.json
-envsubst < ${REG_COMMON}/annotations-pao.json.template > ${MANIFEST_DIR}/pao-annotations.json
+envsubst < ${REG_COMMON}/annotations-pao.json.template > ${MANIFEST_DIR}/annotations.json
