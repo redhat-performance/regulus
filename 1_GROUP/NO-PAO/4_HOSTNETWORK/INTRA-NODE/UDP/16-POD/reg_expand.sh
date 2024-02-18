@@ -11,7 +11,7 @@ export TPL_HOSTNETWORK=1
 
 envsubst '$TPL_SCALE_UP_FACTOR,$TPL_TOPO,$TPL_HOSTNETWORK' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 export TPL_INTF=br-ex
-envsubst '$TPL_INTF' <  ${REG_TEMPLATES}/ucp-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
+envsubst '$TPL_INTF' <  ${REG_TEMPLATES}/udp-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
 
 cp ${REG_COMMON}/tool-params.json.template  ${MANIFEST_DIR}/tool-params.json
 cp ${REG_COMMON}/securityContext.json.template  ${MANIFEST_DIR}/securityContext.json
