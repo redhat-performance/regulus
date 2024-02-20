@@ -3,6 +3,8 @@
 # vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=bash
 # -*- mode: sh; indent-tabs-mode: nil; sh-basic-offset: 4 -*-
 
+DURATION=${DURATION:-0}
+
 scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair
 
 # Variables which apply to all test environments
@@ -119,6 +121,14 @@ if [ ! -z "$annotations" ]; then
     fi
 else
     anno_opt=""
+fi
+
+if [ "$DURATION" != 0 ]; then
+	# There is env-defined duration. Use it.
+	FILES=$(ls *mv*.json)
+	for file in $FILES; do
+       	sed -i 's/\({ "arg": "time", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
+   	done
 fi
 
 for num_pods in $scale_up_factor; do

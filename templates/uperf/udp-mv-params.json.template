@@ -3,9 +3,9 @@
     {
       "name": "common-params",
       "params": [
-        { "arg": "duration", "vals": ["10"] },
+        { "arg": "duration", "vals": ["120"] },
         { "arg": "protocol", "vals": ["udp"] },
-        { "arg": "nthreads", "vals": ["1", "64"] },
+        { "arg": "nthreads", "vals": ["64"] },
         { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
       ]
     }
@@ -15,7 +15,7 @@
       "include": "common-params",
       "params": [
         { "arg": "test-type", "vals": ["stream"] },
-        { "arg": "wsize", "vals": ["512", "32768"] }
+        { "arg": "wsize", "vals": ["32768"] }
       ]
     },
     {

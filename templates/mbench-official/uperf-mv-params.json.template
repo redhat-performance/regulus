@@ -3,7 +3,7 @@
     {
       "name": "common-params",
       "params": [
-        { "arg": "duration", "vals": ["10"] },
+        { "arg": "duration", "vals": ["120"] },
         { "arg": "protocol", "vals": ["tcp"] },
         { "arg": "nthreads", "vals": ["1"] },
         { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
