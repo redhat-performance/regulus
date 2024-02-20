@@ -8,7 +8,7 @@
         { "arg": "omit", "vals": ["3"] },
         { "arg": "protocol", "vals": ["udp"] },
         { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
-        { "arg": "length", "vals": ["576"] }
+        { "arg": "length", "vals": ["576","1200"] }
       ]
     }
   ],
