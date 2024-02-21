@@ -49,7 +49,7 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ]; then
     annotations=`/bin/pwd`/annotations.json  &> /dev/null
 fi
 if [ "$TPL_PAO" == 1 ] ; then
-    runtimeClassNameOpt=",runtimeClassName:performance-mcp-mlx-vf"
+    runtimeClassNameOpt=",runtimeClassName:performance-${MCP}"
 fi
 
 if [ "$TPL_SRIOV" == 1 ] ; then
