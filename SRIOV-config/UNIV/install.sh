@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# do not ceate new MCP if available
+# do not remove Operator
+# allow no confirm mode
+source ${REG_ROOT}/lab.config
+source ${REG_ROOT}/SRIOV-config/config.env
+
+SINGLE_STEP=${SINGLE_STEP:-true}
 PAUSE=${PAUSE:-false}
 
 if [ $PAUSE == true ]; then
@@ -12,7 +19,6 @@ source ./setting.env
 source ./functions.sh
 
 parse_args $@
-
 
 mkdir -p ${MANIFEST_DIR}/
 
@@ -89,6 +95,9 @@ function add_label {
 }
 add_label
 
+# MCP goes to UPDATING after add label
+wait_mcp
+
 # add this if necessary
 function add_mc_realloc {
     if  oc get mc 99-pci-realloc-$MCP &>/dev/null ; then
@@ -112,7 +121,7 @@ if [ $PAUSE == true ]; then
   pause_mcp
 fi
 
-# step 5  - SiovNetworkNodePolicy. Tell it what SRIOV devices (mlx, 710 etc) to be activated.
+# step 5  - SriovNetworkNodePolicy. Tell it what SRIOV devices (mlx, 710 etc) to be activated.
 
 function config_SriovNetworkNodePolicy {
     ##### Configuring the SR-IOV network node policy
@@ -145,6 +154,7 @@ function config_SriovNetworkNodePolicy {
         oc create -f ${MANIFEST_DIR}/sriov-node-policy.yaml
         echo "create SriovNetworkNodePolicy: done"
         if [ $PAUSE == false ]; then
+           # MCP may not go to UPDATING after apply SriovNetworkNodePolicy
            wait_mcp
         fi
         # !!!!! node reboot !!!!
@@ -169,6 +179,7 @@ function create_network {
         echo "SriovNetworkexists. Skip creation"
     else
         echo "create network-attachment-definition/ ..."
+        oc new-project ${MCP}  &> /dev/null
         oc create -f ${MANIFEST_DIR}/net-attach-def.yaml
         echo "create NAD /net-attach-def.yaml  done"
     fi

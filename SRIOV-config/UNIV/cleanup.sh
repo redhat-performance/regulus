@@ -1,9 +1,12 @@
 #!/bin/bash
+# allow no confirm mode
+# do not unlabel nodes and remove MCP if PAO exist
+# do not remove Operator
+SINGLE_STEP=${SINGLE_STEP:-false}
 
 #set -euo pipefail
 source ./setting.env
 source ./functions.sh
-
 parse_args $@
 
 PAUSE=${PAUSE:-false}
@@ -41,12 +44,17 @@ fi
 ### We are on delete path. Always resume and wait before mucking the node label, and deleting mcp.
 ### A messed up mcp is harder to fix. Just pay some wait time here is cheaper.
 resume_mcp
+
+# MCP may not go to UPDATING after removing SriovNetworkNodePolicy
 wait_mcp
 
-#echo "short  remove the ${MCP} mcp  ..."; exit
-
-echo "Continue if you want to also remove the ${MCP} mcp  ..."
+echo "Next remove node labels ..."
 prompt_continue
+
+if oc get PerformanceProfile ${MCP} &>/dev/null; then
+    echo "Performance profile is still active. Skip the rest. Done"
+    exit 0
+fi
 
 # step 2 - remove label from nodes
 if [ ! -z "${WORKER_LIST}" ]; then
@@ -61,6 +69,12 @@ else
     done
 fi
 
+# MCP does go to UPDATING after clear label.
+wait_mcp
+
+echo "Next delete the ${MCP} mcp  ..."
+prompt_continue
+
 if oc get mcp ${MCP} -n openshift-sriov-network-operator &>/dev/null; then
     echo "remove mcp ${MCP}  ..."
     oc delete -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
@@ -70,7 +84,8 @@ else
     echo "No mcp ${MCP} to remove."
 fi
 
-echo "HN you don't want to remove web installed SRIOV Operator"; exit
+echo "HN you don't want to remove web installed SRIOV Operator"
+exit
 
 echo "Continue if you want to remove the SRIOV Operator ..."
 prompt_continue

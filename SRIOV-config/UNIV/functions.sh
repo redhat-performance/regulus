@@ -30,12 +30,12 @@ get_mcp_progress_status () {
 
 wait_mcp () {
     resume_mcp
-    printf "waiting 100 sec before checking mcp status "
-    local count=10
+    printf "waiting 30 secs before checking mcp status "
+    local count=30
     while [[ $count -gt 0  ]]; do
         sleep 10
         printf "."
-        count=$((count-1))
+        count=$((count-10))
     done
 
     local status=$(get_mcp_progress_status)
@@ -166,6 +166,9 @@ hn_exit() {
 
 function prompt_continue {
     printf 'Continue next step (y/n)? '
+    if [ "${SINGLE_STEP}" != "true" ]; then
+        return
+    fi
     read answer
     if [ "$answer" != "${answer#[Yy]}" ] ;then 
         echo Yes

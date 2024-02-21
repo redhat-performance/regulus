@@ -9,6 +9,7 @@ set -euo pipefail
 source ./setting.env
 source ./functions.sh
 export WORKER_LIST=${WORKER_LIST:-}
+SINGLE_STEP=${SINGLE_STEP:-false}
 
 parse_args $@
 
@@ -16,7 +17,7 @@ parse_args $@
 OTHER_MCPS=$(oc get mcp  --no-headers | awk '{print $1}' | grep -v "worker\|master")
 if [ ! -z "$OTHER_MCPS" ] && [ "${OTHER_MCPS}" != "${MCP}" ];  then
     echo "Other mcp(s) $OTHER_MCPS exist(s)."
-    echo "Fix it before continue"
+    echo "Fix it before continue installing ${MCP}"
     exit
 fi
 
