@@ -14,18 +14,18 @@ TAG ?= DRY
 RUN=reg-run
 
 init:
-	 . ${REG_ROOT}/lab.config && ./reg_expand.sh
+	./reg_expand.sh
 
 run:
-	. ${REG_ROOT}/lab.config && ${RUN} --label ${TAG}
+	${RUN} --label ${TAG}
 
 dry-run:
-	. ${REG_ROOT}/lab.config && DRY_RUN=1 NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label DRY
+	DRY_RUN=1 NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label DRY
 
 wet-run:
-	. ${REG_ROOT}/lab.config && NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label ${TAG}
+	NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label ${TAG}
 
 clean:
 	find . -maxdepth 1 \( -type f -o -type l \) ! \( -name "makefile" -o -name "reg_expand.sh" \) -exec rm -v {} +
-	rmrun --label DRY
+	rmrun --label ALL
 

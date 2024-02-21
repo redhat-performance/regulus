@@ -1,4 +1,5 @@
 #!/bin/bash
+# iperf PAO, IPv4 UDP, INTER-NODE-HUMTER
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/iperf

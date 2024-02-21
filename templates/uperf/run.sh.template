@@ -3,6 +3,8 @@
 # vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=bash
 # -*- mode: sh; indent-tabs-mode: nil; sh-basic-offset: 4 -*-
 
+source ${REG_ROOT}/lab.config
+
 DURATION=${DURATION:-0
 
 scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair
@@ -48,6 +50,17 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ]; then
 fi
 if [ "$TPL_PAO" == 1 ] ; then
     runtimeClassNameOpt=",runtimeClassName:performance-mcp-mlx-vf"
+fi
+
+if [ "$TPL_SRIOV" == 1 ] ; then
+  	source ${REG_ROOT}/SRIOV-config/config.env
+    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
+
+    # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
+    ssh $k8susr@$ocphost "kubectl apply -f ${REG_SRIOV_NAD}"
+    # sometime network-attachment takes a few seconds to be available
+    sleep 5
 fi
 
 # Use to disable or enable IRQs, comment out if you are not using Performance Addon Operator

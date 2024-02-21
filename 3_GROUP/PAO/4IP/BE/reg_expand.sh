@@ -1,4 +1,5 @@
 #!/bin/bash
+# mbench PAO, IPv4, Best-effort
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/mbench

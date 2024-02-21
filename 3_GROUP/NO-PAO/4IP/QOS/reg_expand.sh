@@ -1,4 +1,5 @@
 #!/bin/bash
+# mbench NO-PAO, IPv4, QoS
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/mbench-small

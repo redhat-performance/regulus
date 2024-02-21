@@ -1,4 +1,5 @@
 #!/bin/bash
+source ${REG_ROOT}/lab.config
 
 NUM_SAMPLES=${NUM_SAMPLES:-1}
 DURATION=${DURATION:-0}
@@ -51,6 +52,7 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; 
 fi
 
 if [ "${TPL_SRIOV}" == 1  ]; then
+    source ${REG_ROOT}/SRIOV-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
     ssh ${DEST} "kubectl create ns $OCP_PROJECT"

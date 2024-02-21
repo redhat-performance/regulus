@@ -1,4 +1,5 @@
 #!/bin/bash
+# uperf NO-PAO, IPv4 UDP, INTRA-NODE, 16 Pods
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/uperf
