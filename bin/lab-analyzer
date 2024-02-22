@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# testbed/cluster discovery and validation
+# 	1. Discover cluster_type, num_workers and num_cpus (per worker)
+# 	2. Confitm the user-intent workers specified in lab.config.
+#
+source ${REG_ROOT}/lab.config
+
+# the number of 
+RESERVED_CPUS=4
+
+# Define the JSON content
+tb_info='{
+    "CLUSTER_TYPE":			"value1",
+    "NUM_WORKERS": 			"value3",
+    "ALLOCATABLE_CPUS": 	"value3",
+    "USEABLE_CPUS": 		"value3"
+}'
+
+function f_update_tb_info {
+	# Read the JSON file
+	json=$tb_info
+	updated_json=$(echo "$json" | jq ".CLUSTER_TYPE = \"$tb_cluster_type\" | .NUM_WORKERS = \"$tb_num_workers\" \
+								 | .ALLOCATABLE_CPUS = \"$tb_alloc_cpus\" |  .USEABLE_CPUS = \"$tb_useable_cpus\"")
+	# Write the JSON content to a file
+	echo "$updated_json" 
+}
+
+function f_get_cluster_type {
+	# number of node is 1 or 3 or more
+	num_node="$(ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get nodes --no-headers" | wc -l)"
+	case $num_node in
+		1)
+			echo "SNO"
+			;;
+		3)
+			echo "COMPACT"
+			;;
+		*)
+			echo "STANDARD"
+			;;
+	esac
+}
+
+function f_validate_worker_nodes {
+	workers="$(ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get nodes --no-headers --selector=node-role.kubernetes.io/worker=")"
+	tb_num_workers=$(echo "$workers" | wc -l)
+	worker_names=$(echo "$workers" | awk '{print $1}')
+	#echo names=$worker_names
+	# verify workers in lab.conf
+	if [[ "$worker_names" != *"$OCP_WORKER_0"* ]]; then
+		echo "Please correct OCP_WORKER_0=\"$OCP_WORKER_0\" var in lab.config. Worker nodes are $worker_names" >&2
+		exit 1
+	fi
+	if [[ "$worker_names" != *"$OCP_WORKER_1"* ]]; then
+		echo "Please correct OCP_WORKER_1=\"$OCP_WORKER_1\" var in lab.config. Worker nodes are $worker_names" >&2
+		exit 1
+	fi
+	if [[ "$worker_names" != *"$OCP_WORKER_2"* ]]; then
+		echo "Please correct OCP_WORKER_2=\"$OCP_WORKER_2\" var in lab.config. Worker nodes are $worker_names" >&2
+		exit 1
+	fi
+}
+
+# Let's go 
+tb_cluster_type=$(f_get_cluster_type)
+f_validate_worker_nodes
+first_worker="$(echo $worker_names | awk '{print $1}')"
+tb_alloc_cpus="$(ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get node/$first_worker -ojsonpath='{.status.allocatable.cpu}'")"
+tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
+f_update_tb_info
+
+# done

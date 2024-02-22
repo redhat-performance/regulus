@@ -3,6 +3,7 @@
 # vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=bash
 # -*- mode: sh; indent-tabs-mode: nil; sh-basic-offset: 4 -*-
 source ${REG_ROOT}/lab.config
+source ${REG_ROOT}/.LAB/lab.env
 
 DURATION=${DURATION:-0}
 
@@ -31,10 +32,10 @@ mv_params_file=mv-params.json # All benchmark-iterations are built from this fil
 
 # Variables for ocp/k8s environments
 ####################################
-num_cpus=20  # A few fewer than the number of *Allocatable* cpus on each of the workers.
+num_cpus=${USEABLE_CPUS}  # A few fewer than the number of *Allocatable* cpus on each of the workers.
              # as reported by oc describe node/node-name
              # This affects cpu request (and limit for static qos)
-             # TODO: this should be automatically calculated.
+             # This is  automatically calculated by lab-analyzer
 pod_qos=burstable # static = guaranteed pod, burstable = default pos qos
 ocphost=$REG_OCPHOST
 k8susr=$REG_KNI_USER # Might be "root" or "kni" for some installations

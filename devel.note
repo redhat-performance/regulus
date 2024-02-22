@@ -1,0 +1,12 @@
+What are the scattered jobs.config, lab.config and lab.env are for.
+	lab.cconfig contains params that mostly static per cluster. Maybe you can change SRIOV NIC or MTU.	
+	jobs.config contains params can be change from one job to another on the same cluster
+	lab.env is this tool discovered cluster characteristics i.e. num_cpus etc.
+
+Where do we get ALLOCATABLE_CPUS from. See REG_ROOT/lab-analyzer
+  REG_ROOT/lab-analyzer pulls the worker to get num_cpus and substract 4 off.
+
+Where do we learn type i.e SNO, 3-node compact, standard
+  See REG_ROOT/lab-analyzer 
+
+
