@@ -10,7 +10,7 @@ endif
 include ${REG_ROOT}/jobs.config
 include ${REG_ROOT}/lab.config
 
-confirm_bastion: 
+confirm_bastion:
 	@if [ "$$(hostname)" != "$(REG_OCPHOST)" ]; then \
 		@echo "Aborting. Please run this command on the bastion, $${REG_OCPHOST}."; \
 		exit 1; \

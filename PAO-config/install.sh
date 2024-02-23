@@ -13,20 +13,29 @@ SINGLE_STEP=${SINGLE_STEP:-false}
 
 parse_args $@
 
-# Step 0  analyzer 
-OTHER_MCPS=$(oc get mcp  --no-headers | awk '{print $1}' | grep -v "worker\|master")
-if [ ! -z "$OTHER_MCPS" ] && [ "${OTHER_MCPS}" != "${MCP}" ];  then
+# Step 0 - If there is a mcp that is not mcp-regulus-vf, the cluster is not in a known state
+function f_ensure_no_other_mcps {
+  OTHER_MCPS=$(oc get mcp  --no-headers | awk '{print $1}' | grep -v "worker\|master")
+  if [ ! -z "$OTHER_MCPS" ] && [ "${OTHER_MCPS}" != "${MCP}" ];  then
     echo "Other mcp(s) $OTHER_MCPS exist(s)."
     echo "Fix it before continue installing ${MCP}"
     exit
+  fi
+}
+
+if [ "${MCP}" != "master" ]; then
+    # It is  a STANDARD cluster
+    f_ensure_no_other_mcps
 fi
 
-# step 1 - label workers
-for worker in $WORKER_LIST; do
-   oc label --overwrite node ${worker} node-role.kubernetes.io/${MCP}=""
-done
+# step 1 - label workers unless mcp is "master" implying SNO or 3-node compact.
+if [ "${MCP}" != "master" ]; then
+    for worker in $WORKER_LIST; do
+        oc label --overwrite node ${worker} node-role.kubernetes.io/${MCP}=""
+    done
+fi
 
-# step 2 - create a new MCP
+# step 2 - create a new MCP. For SNO and 3-node compact, we will skip this step since mcp master exists
 if ! oc get mcp $MCP &>/dev/null; then
     echo "create mcp for $MCP ..."
     mkdir -p ${MANIFEST_DIR}
@@ -42,9 +51,7 @@ fi
 
 mkdir -p ${MANIFEST_DIR}/
 
-##### Step 3 - SKIP install PAO since version > 4.10 
-
-###### Step 4 - generate performance profile and install ######
+# Step 3 - generate performance profile and install it 
 echo "Acquiring cpu info from first worker node in ${WORKER_LIST} ..."
 FIRST_WORKER=$(echo ${WORKER_LIST} * | head -n1 | awk '{print $1;}')
 all_cpus=$(exec_over_ssh ${FIRST_WORKER} lscpu | awk '/On-line CPU/{print $NF;}')
@@ -65,7 +72,6 @@ echo "Acquiring cpu info from worker node ${FIRST_WORKER}: done"
 echo "generating ${MANIFEST_DIR}/performance_profile.yaml ..."
 envsubst < templates/performance_profile.yaml.template > ${MANIFEST_DIR}/performance_profile.yaml
 echo "generating ${MANIFEST_DIR}/performance_profile.yaml: done"
-
 
 if oc get mcp PerformanceProfile &>/dev/null; then
     echo "Skip. A performanceprofile exists"

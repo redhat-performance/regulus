@@ -1,8 +1,18 @@
 #!/bin/bash
 
-# do not ceate new MCP if available
+
+# FLow:
+#          STANDARD                                                             SNO
+# 1. install SRIOV operator                                     1. install SRIOV operator
+# 2. create a new MCP                                           2. (reuse) MCP=master, label mcp master, machineconfiguration.openshift.io/role=master
+# 3. label to worker node, node-role.kubernetes.io/${MCP}="     3. none
+# 4. config SriovNetworkNodePolicy (applied to node-role $MCP"  4. config SriovNetworkNodePolicy  (applied to node-role:master)
+#
+
+# do not create new MCP if available
 # do not remove Operator
 # allow no confirm mode
+
 source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/SRIOV-config/config.env
 
@@ -29,6 +39,7 @@ fi
 echo Use mcp $MCP 
 
 export OCP_CHANNEL=$(get_ocp_channel)
+OCP_CHANNEL=stable
 
 # step1 - install sriov Operator
 function install_sriov_operator {
@@ -46,7 +57,7 @@ function install_sriov_operator {
     else
         #// Installing SR-IOV Network Operator done
         echo "Installing SRIOV Operator ..."
-        envsubst < templates/sub-sriov.yaml.template > ${MANIFEST_DIR}/sub-sriov.yaml
+        envsubst '$OCP_CHANNEL' < templates/sub-sriov.yaml.template > ${MANIFEST_DIR}/sub-sriov.yaml
         oc create -f ${MANIFEST_DIR}/sub-sriov.yaml
         echo "install SRIOV Operator: done"
         wait_pod_in_namespace openshift-sriov-network-operator
@@ -57,7 +68,8 @@ function install_sriov_operator {
 
 install_sriov_operator
 
-# step 2 - Create mcp-regulus-vf mcp
+# step 2 -Create mcp-regulus-vf mcp for STANDARD cluster
+#         For SNO and 3-node compact, setting.env has MCP=master, hence we do not skip creation.
 
 function configure_mcp {
     if oc get mcp ${MCP}  &>/dev/null; then
@@ -74,17 +86,20 @@ function configure_mcp {
 echo "next is creating ${MCP} mcp"
 prompt_continue
 
-# Create a new MCP, but if cluster is SNO or compact we only have masters, and hence use master MCP.
-if [ ! -z "${WORKER_LIST}" ]; then
+# Create a new MCP, but if cluster is SNO or 3-node compact, only mcp master has nodes, and we must use mcp master.
+#                   Higher level should have set setting.env with "MCP=master" to indicate.
+if [ "${MCP}" != "master" ]; then
     configure_mcp
 else
-    echo "Cluster has no workers. Will use master mcp"
+    echo "Will use master mcp"
+    # Put a label on master mcp so that new MCs can select.
+    oc label --overwrite mcp master machineconfiguration.openshift.io/role=master
 fi
 
 # step 3 - label nodes that needs SRIOV
 
 function add_label {
-    if [ ! -z $WORKER_LIS} ]; then
+    if [ "$MCP}" != "master" ]; then
         for NODE in $WORKER_LIST; do
             echo label $NODE with $MCP
             oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}=""

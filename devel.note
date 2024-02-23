@@ -1,12 +1,17 @@
-What are the scattered jobs.config, lab.config and lab.env are for.
-	lab.cconfig contains params that mostly static per cluster. Maybe you can change SRIOV NIC or MTU.	
-	jobs.config contains params can be change from one job to another on the same cluster
-	lab.env is this tool discovered cluster characteristics i.e. num_cpus etc.
+What are the scattered jobs.config, lab.config and system.config are used.
+o lab.config contains user-provided params of the cluster. User can decide on the SRIOV NIC or MTU etc.
+o jobs.config contains user-defined job params
+o system.config. For devel/internal used only. We need to store the cluster's learned characteristics. 
+                 This file defines the file name i.e GEN_LAB_ENV to store.
+o ${GEN_LAB_ENV}. For devel used only. this file contains the learned cluster characteristics i.e. num_cpus etc.
 
 Where do we get ALLOCATABLE_CPUS from. See REG_ROOT/lab-analyzer
-  REG_ROOT/lab-analyzer pulls the worker to get num_cpus and substract 4 off.
+  REG_ROOT/lab-analyzer pulls the worker to get num_cpus and substract 4 off. This leanred param is store in GEN_LAB_ENV
 
-Where do we learn type i.e SNO, 3-node compact, standard
-  See REG_ROOT/lab-analyzer 
+How do we know cluster type i.e SNO, 3-node compact, standard
+  See REG_ROOT/lab-analyzer. Thi slearned params is store in GEN_LAB_ENV
 
+Where do we set MCP name, "mcp-regulus-vf"
+  See ./SRIOV-config config.env
+  Note for SNO and 3-node compact, we MUST use mcp "master" since we cannot move nodes out of MCP master.
 

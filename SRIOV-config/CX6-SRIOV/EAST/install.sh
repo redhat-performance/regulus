@@ -79,7 +79,7 @@ fi
 # step 3 - label nodes that needs SRIOV
 
 function add_label {
-    if [ ! -z $WORKER_LIS} ]; then
+    if [ ! -z $WORKER_LIST ]; then
         for NODE in $WORKER_LIST; do
             echo label $NODE with $MCP
             oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}=""

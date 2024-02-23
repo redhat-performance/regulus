@@ -79,13 +79,14 @@ clean-all: confirm_execute
 
 # Lab targets
 .PHONY: clean-lab
-LAB_DIR := ${REG_ROOT}/.LAB
-LAB_TARGET := ${LAB_DIR}/lab.json
-LAB_TARGET_ENV := ${LAB_DIR}/lab.env
+
+include ${REG_ROOT}/system.config
+LAB_TARGET := ${GEN_LAB_JSON}
+LAB_TARGET_ENV := ${GEN_LAB_ENV}
+
 LAB_SOURCE := ${REG_ROOT}/lab.config
 
 $(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
-	@mkdir -p ${LAB_DIR}
 	@output=$$(./bin/lab-analyzer); \
 	if [ $$? -ne 0 ]; then \
 		echo "Error: lab-analyzer failed"; \
@@ -102,5 +103,5 @@ init-lab: $(LAB_TARGET)
 .SECONDARY: $(LAB_SOURCE)
 
 clean-lab:
-	@ rm -f $(LAB_TARGET)
+	@ rm -f $(LAB_TARGET) $(LAB_TARGET_ENV)
 

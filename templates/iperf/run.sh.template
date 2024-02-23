@@ -2,8 +2,8 @@
 # This file is auto-generated.
 # vim: autoindent tabstop=4 shiftwidth=4 expandtab softtabstop=4 filetype=bash
 # -*- mode: sh; indent-tabs-mode: nil; sh-basic-offset: 4 -*-
+source ${REG_ROOT}/system.config
 source ${REG_ROOT}/lab.config
-source ${REG_ROOT}/.LAB/lab.env
 
 DURATION=${DURATION:-0}
 

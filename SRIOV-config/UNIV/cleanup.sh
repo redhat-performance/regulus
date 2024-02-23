@@ -2,18 +2,15 @@
 # allow no confirm mode
 # do not unlabel nodes and remove MCP if PAO exist
 # do not remove Operator
-SINGLE_STEP=${SINGLE_STEP:-false}
 
 #set -euo pipefail
 source ./setting.env
 source ./functions.sh
-parse_args $@
 
+SINGLE_STEP=${SINGLE_STEP:-false}
 PAUSE=${PAUSE:-false}
 
-if [ -z "${WORKER_LIST}" ]; then
-    export MCP=master   
-fi
+parse_args $@
 
 if oc get network-attachment-definition/regulus-sriov-net -n openshift-sriov-network-operator &>/dev/null; then
     echo "remove SriovNetwork ..."
@@ -21,12 +18,10 @@ if oc get network-attachment-definition/regulus-sriov-net -n openshift-sriov-net
     echo "remove NAD: done"
 else
     echo "No NAD to remove"
-
 fi
 
 echo "Next remove SriovNetworkNodePolicy ..."
 prompt_continue
-
 
 # step 2 - apply
 #set -uo pipefail
@@ -57,14 +52,9 @@ if oc get PerformanceProfile ${MCP} &>/dev/null; then
 fi
 
 # step 2 - remove label from nodes
-if [ ! -z "${WORKER_LIST}" ]; then
+if [ "${MCP}" != "master" ]; then
     echo "removing worker node labels"
     for NODE in $WORKER_LIST; do
-        oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}-
-    done
-else
-    echo "removing master node labels"
-    for NODE in $MASTER_LIST; do
         oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}-
     done
 fi
@@ -75,13 +65,17 @@ wait_mcp
 echo "Next delete the ${MCP} mcp  ..."
 prompt_continue
 
-if oc get mcp ${MCP} -n openshift-sriov-network-operator &>/dev/null; then
-    echo "remove mcp ${MCP}  ..."
-    oc delete -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
-    rm  -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
-    echo "delete mcp for mcp-regulus-vf: done"
+if [ "${MCP}" != "master" ]; then
+    if oc get mcp ${MCP} -n openshift-sriov-network-operator &>/dev/null; then
+      echo "remove mcp ${MCP}  ..."
+      oc delete -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
+      rm  -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
+      echo "delete mcp for mcp-regulus-vf: done"
+    else
+      echo "No mcp ${MCP} to remove."
+    fi
 else
-    echo "No mcp ${MCP} to remove."
+    oc label --overwrite mcp master machineconfiguration.openshift.io/role-
 fi
 
 echo "HN you don't want to remove web installed SRIOV Operator"
