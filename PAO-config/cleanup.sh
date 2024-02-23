@@ -15,7 +15,7 @@ parse_args $@
 ##### Remove performan-profile ######
 echo "Removing performance profile ..."
 if oc get PerformanceProfile ${MCP} &>/dev/null; then
-  oc delete -f ${MANIFEST_DIR}/performance_profile.yaml 
+  oc delete PerformanceProfile ${MCP}
   echo "deleted performance-profile: done"
 
   if [[ "${WAIT_MCP}" == "true" ]]; then
@@ -45,8 +45,8 @@ fi
 ##### Remove MCP ######
 if [ "${MCP}" != "master" ]; then
     # this is STANDARD cluster. Do it.
-    if oc get mcp $MCP 2>/dev/null; then
-        oc delete -f ${MANIFEST_DIR}/mcp-${MCP}.yaml
+    if oc get mcp ${MCP} 2>/dev/null; then
+        oc delete mcp ${MCP}
         echo "deleted mcp for ${MCP}: done"
     fi
 else

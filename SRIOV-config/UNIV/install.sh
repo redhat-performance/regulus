@@ -16,7 +16,7 @@
 source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/SRIOV-config/config.env
 
-SINGLE_STEP=${SINGLE_STEP:-true}
+SINGLE_STEP=${SINGLE_STEP:-false}
 PAUSE=${PAUSE:-false}
 
 if [ $PAUSE == true ]; then
