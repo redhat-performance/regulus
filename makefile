@@ -80,7 +80,7 @@ clean-all: confirm_execute
 # Lab targets
 .PHONY: clean-lab
 
-include ${REG_ROOT}/system.config
+
 LAB_TARGET := ${GEN_LAB_JSON}
 LAB_TARGET_ENV := ${GEN_LAB_ENV}
 

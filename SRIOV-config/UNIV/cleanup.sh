@@ -14,7 +14,7 @@ parse_args $@
 
 if oc get network-attachment-definition/regulus-sriov-net -n openshift-sriov-network-operator &>/dev/null; then
     echo "remove SriovNetwork ..."
-    oc delete -f ${MANIFEST_DIR}/net-attach-def.yaml
+    oc delete  network-attachment-definition/regulus-sriov-net -n openshift-sriov-network-operator
     echo "remove NAD: done"
 else
     echo "No NAD to remove"
@@ -28,7 +28,7 @@ prompt_continue
 
 if oc get SriovNetworkNodePolicy regulus-sriov-node-policy -n openshift-sriov-network-operator  &>/dev/null; then
     echo "remove SriovNetworkNodePolicy ..."
-    oc delete -f ${MANIFEST_DIR}/sriov-node-policy.yaml
+    oc delete SriovNetworkNodePolicy regulus-sriov-node-policy -n openshift-sriov-network-operator
     echo "remove SriovNetworkNodePolicy: done"
     # !!!! reboot !!!! if not paused
 
@@ -68,7 +68,7 @@ prompt_continue
 if [ "${MCP}" != "master" ]; then
     if oc get mcp ${MCP} -n openshift-sriov-network-operator &>/dev/null; then
       echo "remove mcp ${MCP}  ..."
-      oc delete -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
+      oc delete mcp ${MCP} -n openshift-sriov-network-operator
       rm  -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
       echo "delete mcp for mcp-regulus-vf: done"
     else
@@ -86,7 +86,7 @@ prompt_continue
 
 if oc get Subscription sriov-network-operator-subsription -n openshift-sriov-network-operator &>/dev/null; then
     echo "Remove  SRIOV Operator ..."
-    oc delete -f ${MANIFEST_DIR}/sub-sriov.yaml
+    oc delete Subscription sriov-network-operator-subsription -n openshift-sriov-network-operator
     rm ${MANIFEST_DIR}/sub-sriov.yaml
 fi
 

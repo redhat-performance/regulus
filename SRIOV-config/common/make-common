@@ -12,7 +12,7 @@ include ${REG_ROOT}/lab.config
 
 confirm_bastion:
 	@if [ "$$(hostname)" != "$(REG_OCPHOST)" ]; then \
-		@echo "Aborting. Please run this command on the bastion, $${REG_OCPHOST}."; \
+		echo "Aborting. Please run this command on the bastion, $${REG_OCPHOST}."; \
 		exit 1; \
 	fi
 

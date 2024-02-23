@@ -63,6 +63,11 @@ function f_validate_worker_nodes {
 }
 
 # Let's go 
+if ! ssh $REG_KNI_USER@$REG_OCPHOST pwd  &>/dev/null ; then
+	echo "Error: Please check ssh info in lab.config" >&2
+	exit 1
+fi
+
 tb_cluster_type=$(f_get_cluster_type)
 f_validate_worker_nodes
 first_worker="$(echo $worker_names | awk '{print $1}')"
@@ -74,5 +79,7 @@ fi
 
 tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
 f_update_tb_info
+
+echo "lab-analyzer completed" >&2
 
 # done
