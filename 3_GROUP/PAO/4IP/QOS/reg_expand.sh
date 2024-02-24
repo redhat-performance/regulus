@@ -6,6 +6,7 @@ REG_TEMPLATES=${REG_ROOT}/templates/mbench
 REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
 source $REG_ROOT/lab.config    # for worker node names
+source $REG_ROOT/system.config # for MCP
 
 # PAO + QOS need: runcTimeClass, 2cpu, noirq, no quota
 

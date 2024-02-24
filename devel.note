@@ -1,17 +1,39 @@
-What are the scattered jobs.config, lab.config and system.config are used.
+What are the scattered jobs.config, lab.config and system.config for
 o lab.config contains user-provided params of the cluster. User can decide on the SRIOV NIC or MTU etc.
 o jobs.config contains user-defined job params
-o system.config. For devel/internal used only. We need to store the cluster's learned characteristics. 
-                 This file defines the file name i.e GEN_LAB_ENV to store.
-o ${GEN_LAB_ENV}. For devel used only. this file contains the learned cluster characteristics i.e. num_cpus etc.
+o system.config. For devel/internal use to store cluster's learned characteristics. 
 
-Where do we get ALLOCATABLE_CPUS from. See REG_ROOT/lab-analyzer
-  REG_ROOT/lab-analyzer pulls the worker to get num_cpus and substract 4 off. This leanred param is store in GEN_LAB_ENV
+How do we generate USEABLE_CPUS and ALLOCATABLE_CPUS. See REG_ROOT/lab-analyzer
+  REG_ROOT/lab-analyzer pulls the worker to get num_cpus and substract 4 off. This leanred param is stored in GEN_LAB_ENV
 
 How do we know cluster type i.e SNO, 3-node compact, standard
-  See REG_ROOT/lab-analyzer. Thi slearned params is store in GEN_LAB_ENV
+  See REG_ROOT/lab-analyzer learns the cluster and stores info in GEN_LAB_ENV
 
-Where do we set MCP name, "mcp-regulus-vf"
-  See ./SRIOV-config config.env
-  Note for SNO and 3-node compact, we MUST use mcp "master" since we cannot move nodes out of MCP master.
+Where do we set MCP name, "mcp-regulus-vf" for standard cluster. SNO and compact cluster use "master"
+  See ./SRIOV-config/config.env
+  In SNO and 3-node compact, we MUST use mcp "master" b/c we cannot move nodes out of mcp "master"
+  The bastion expand.sh generates the final mcp in setting.env, and ue it.
+  The crucible controller hacks system.config and override with "master" when cluster-type != STANDARD
+
+
+Example errors during development:
+==================================
+1. "Failed to create pod client-6"
+Reason: Pod annotations and/or resources are not met. Pod spec syntax error.
+Debug: endpoint/k8s/create-pod-output-* 
+Fix: reg_expand.sh generated incorrect objects
+
+2. "An IPV4 address could not be found for net1 in addr_info:"
+Reason: netwwork-attachment-definition issue. There is syntax diff between before and after 4.14
+Debug: look at the sample-1-fail-1/server/1/*server-stderrout.txt
+Fix: somehow the SRIOV-config/install.sh chooses the wrong version
+
+2. "Failed to verify pods are running "
+Reason:  1 Insufficient cpu, 
+Debug: lab-analyzer ran and generated USEABLE_CPUS=ALLOCATABLE-4. However after PAO and SRIOV config, USEABLE is no true anymore.
+Fix: "make clean-lab" , "make init-lab"
+
+2. 
+Reaseon:
+Debug:
 

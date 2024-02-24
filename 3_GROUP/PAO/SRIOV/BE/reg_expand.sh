@@ -5,8 +5,8 @@ REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/mbench
 REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
-
-source $REG_ROOT/lab.config    # for worker node names
+source $REG_ROOT/lab.config    		# for worker node names
+source ${REG_ROOT}/system.config	# for MCP
 
 # generate run.sh with custom-param "node-config"
 export TPL_NODE_CONF="node-config"

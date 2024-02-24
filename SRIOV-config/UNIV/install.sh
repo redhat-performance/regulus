@@ -39,6 +39,8 @@ fi
 echo Use mcp $MCP 
 
 export OCP_CHANNEL=$(get_ocp_channel)
+
+# lately 4.14 onward sriov  operator want channel="stable" and not the actual version number.
 OCP_CHANNEL=stable
 
 # step1 - install sriov Operator
@@ -185,6 +187,7 @@ config_SriovNetworkNodePolicy
 
 function create_network {
     # debug:  oc get SriovNetwork/sriov-node-policy.yaml.template
+    OCP_CHANNEL=$(get_ocp_channel)
     if [ "${OCP_CHANNEL}" == "4.14" ] ||  [ "${OCP_CHANNEL}" == "4.15" ] ; then
     	envsubst < templates/net-attach-def.yaml.415.template > ${MANIFEST_DIR}/net-attach-def.yaml
     else

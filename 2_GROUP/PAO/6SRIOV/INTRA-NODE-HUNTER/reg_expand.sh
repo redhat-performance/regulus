@@ -5,7 +5,7 @@ REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/iperf
 REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
-
+source ${REG_ROOT}/system.config	# for MCP
 
 export TPL_SCALE_UP_FACTOR=1
 export TPL_TOPO=intranode
