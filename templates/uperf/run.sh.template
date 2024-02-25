@@ -59,6 +59,9 @@ if [ "$TPL_SRIOV" == 1 ] ; then
 
     # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
     ssh $k8susr@$ocphost "kubectl apply -f ${REG_SRIOV_NAD}"
+    KNI_HOME=$(ssh $k8susr@$ocphost "pwd")
+    ssh $k8susr@$ocphost "kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
+
     # sometime network-attachment takes a few seconds to be available
     sleep 5
 fi
