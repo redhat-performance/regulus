@@ -29,8 +29,8 @@ envsubst '$TPL_NUMCPUS' < ${REG_TEMPLATES}/resource-static-Ncpu.json.template > 
 # generate annotation. Use hardcopy
 envsubst '' < ${REG_COMMON}/annotations-pao-qos.json.template  > ${MANIFEST_DIR}/annotations.json
 
-# generate placement. standard-32pairs.placement.template. Use hardcopy
-envsubst '' < ${REG_TEMPLATES}/std.placement.template  > ${MANIFEST_DIR}/pairs.placement
+# generate placement. 
+envsubst '' < ${REG_TEMPLATES}/pao-std.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
 # generate mv-params
 export TPL_INTF=eth0

@@ -1,3 +1,4 @@
+# standard-32pairs.placement.template
 worker1_clients=1-7+21-22+27
 worker1_servers=28
 worker2_clients=8-14+30

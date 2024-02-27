@@ -1,3 +1,4 @@
+# 6pairs.placement.template
 worker1_clients=1+3+5
 worker1_servers=
 worker2_clients=

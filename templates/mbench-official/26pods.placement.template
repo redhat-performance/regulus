@@ -1,0 +1,7 @@
+# 26 pods.placement.template - 52 CPUs on single-numa
+worker1_clients=1-7+21-22+27+15-20
+worker1_servers=6-7+28
+worker2_clients=8-14+30
+worker2_servers=8-9+23-24+29+15-20
+worker3_clients=23-24+25-26+28-29+31-32
+worker3_servers=1-5+10-14+21-22+25-26+27+30+31-32
