@@ -46,7 +46,7 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; 
 fi
 
 if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ]; then
-    annotations=`/bin/pwd`/annotations.json  &> /dev/null
+    annotations="`/bin/pwd`/annotations.json"  &> /dev/null
 fi
 if [ "$TPL_PAO" == 1 ] ; then
     runtimeClassNameOpt=",runtimeClassName:performance-${MCP}"
@@ -124,7 +124,8 @@ fi
 if [ ! -z "$annotations" ]; then
     if [ -f "$annotations" ]; then
         echo "Using annotations: $annotations"
-        anno_opt=",annotations:$annotations"
+        anno_opt=",annotations:client-1:$annotations"
+        anno_opt+=",annotations:server-1:$annotations"
     else
         echo "Annoations file missing: $annotations"
         exit
