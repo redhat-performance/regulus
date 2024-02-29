@@ -22,6 +22,7 @@ With Regulus, the workflow is as follows
 
 # Using Regulus Step-by-step
 
+## Prerequisite
 Your Crucible controller has been setup and is working with your testbed in the standard way.
 
 ## Run a pilot test on a fresh Regulus workspace:
@@ -29,13 +30,13 @@ It recommends to run a pilot test to verify your Regulus set up.
  
 1. > First, clone the repo
     <p>git clone https://github.com/HughNhan/regulus.git</p>
-2. > Adapt the ./lab.config to match your lab
-    <p> cd ./regulus && vi lab.config </p>
+2. > Adapt the ./lab.config.template to match your lab>
+    <p> cd ./regulus; cp lab.config.template lab.config; vi lab.config </p>
 
-3. > set REGULUS ROOT variables by sourcing the bootstrap file
+3. > set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
     <p>source ./bootstrap.sh</p>
-4. > set up a simple job.
-    <p> vi job.config </p> Add a simple test case to ./jobs.config such as the "./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD" test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
+4. > set up a simple job with one simple test.
+    <p> cp job.config.tempate job.config; vi job.config </p> Add a simple test case to ./jobs.config such as the "./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD" test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
 5. > Initialize the testbed
     <p> make init-lab </p>
 6. > Initialize the job
@@ -52,17 +53,11 @@ Most test cases take a few minutes, but an iperf3 drop-hunter run can take sever
 
 
 ### A few testing scenarios
-1. Run one test case job e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD in debug mode
-	```
-    cd ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
-	make init
-	make run 
-	make clean
+1. Run a job of one or more test cases e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD + ../2-POD etc.
+Add test cases to your job.
     ```
-
-2. Run several test cases job e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD+2-POD ...  etc in job mode.
- vi jobs.config # add test cases to your job
-    ```
+    cd $REG_ROOT
+    vi jobs.config
 	make init-jobs
 	make run-jobs
 	make clean-jobs
@@ -70,9 +65,18 @@ Most test cases take a few minutes, but an iperf3 drop-hunter run can take sever
 
 2. To run all test cases under Regulus. Warning it can take multi hours if not day.
 	```
+    cd $REG_ROOT
     make init-all
 	make run-all
 	make clean-all
+    ```
+3. Run a test case directly at its directory e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD. 
+Sometime you may have a reason to run a test locally at its directory instead of setting up $REG_ROOT/jobs.config and run a job of one test. Regulus supports this usage.
+	```
+    cd ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
+	make init
+	make run 
+	make clean
     ```
 
 # Examine results
@@ -115,7 +119,7 @@ export TPL_INTF=eth0
 The reg_expand.sh files use templates to expand. If you need to add more templates they are found at:
 
 ```
-cd <your REG_ROOT>/regulus/templates
+cd  $REG_ROOT/regulus/templates
 ```
 
 
