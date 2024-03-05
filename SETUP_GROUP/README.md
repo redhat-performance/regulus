@@ -9,6 +9,6 @@ export JOBS= \
     ./3_GROUP/PAO/SRIOV  \          <== run a SRIOV+PAO test
 ```
 
-##Prerequisite:
-Regulus has been installed and configured (valid lab.config) on the bastion/jumphost.
+## Prerequisite:
+Regulus has been installed and configured (valid lab.config) on the bastion/jump-host.
 Highly recommend to test the operation directly on the bastion/jumphost one-time to verify.
