@@ -17,21 +17,20 @@ SHELL := /bin/bash
 .PHONY: confirm_execute
 
 init-jobs: init-lab
-	echo JOBS=$JOBS
+	echo JOBS=$$JOBS
 	@for dir in $(JOBS); do \
 		echo "Executing script in $$dir"; \
 		$(MAKE) -C $$dir init; \
 	done
 
 clean-jobs: 
-	echo JOBS=$JOBS
 	@for dir in $(JOBS); do \
 		echo "Executing script in $$dir"; \
 		$(MAKE) -C $$dir clean; \
 	done
 
 run-jobs: init-lab
-	echo JOBS=$JOBS
+	@echo JOBS=$$JOBS
 	@for dir in $(JOBS); do \
 		echo "Executing script in $$dir"; \
 		$(MAKE) -C $$dir run; \
@@ -39,7 +38,7 @@ run-jobs: init-lab
 
 # Also can be done with setting jobs.config.DRY_RUN=1; make run-jobs
 dry-run-jobs: init-lab
-	echo JOBS=$JOBS
+	echo JOBS=$$JOBS
 	@for dir in $(JOBS); do \
 		echo "Executing script in $$dir"; \
 		$(MAKE) -C $$dir dry-run; \

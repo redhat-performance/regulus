@@ -76,7 +76,11 @@ irq="bal" # bal by default or rrHost or <something-else> depending on what manua
 bmlhosta=
 bmlhostb=
 
-resource_file="`/bin/pwd`/resource.json"
+if [ -f "${TPL_RESOURCES}" ]; then
+   resource_file="`/bin/pwd`/${TPL_RESOURCES}"
+else
+   resource_file="`/bin/pwd`/resource.json"
+fi
     
 # Create a resource JSON to size the pods
 function gen_resource_file() {
@@ -168,7 +172,12 @@ for num_pods in $scale_up_factor; do
         else
             per_pod_cpu=`echo "1000 * $num_cpus / $num_pods" | bc`m
         fi
-        gen_resource_file $per_pod_cpu
+        if [  -f "${TPL_RESOURCES}" ];then
+            echo "User-provided: $resource_file"
+        else
+            echo "Computing resource file: $resource_file"
+            gen_resource_file $per_pod_cpu
+        fi
         ssh $k8susr@$ocphost "kubectl get nodes/$first_worker -o json" >worker.json
         kernel=`jq -r .status.nodeInfo.kernelVersion worker.json`
         rcos=`jq -r .status.nodeInfo.osImage  worker.json | awk -F"CoreOS " '{print $2}' | awk '{print $1}'`
