@@ -16,6 +16,8 @@ include ./jobs.config
 SHELL := /bin/bash
 .PHONY: confirm_execute
 
+LOG_FILE := jobs.log-$(shell date "+%Y-%m-%d-%H-%M-%S")
+
 init-jobs: init-lab
 	echo JOBS=$$JOBS
 	@for dir in $(JOBS); do \
@@ -43,6 +45,10 @@ dry-run-jobs: init-lab
 		echo "Executing script in $$dir"; \
 		$(MAKE) -C $$dir dry-run; \
 	done
+
+# Lazy aliasing "make run-jobs > log" to "make jobs"
+jobs:
+	@make run-jobs 2>&1 | tee $(LOG_FILE)
 
 confirm_execute:
 	@echo "Are you sure you want to execute the target? [y/N] " && read ans && [ $${ans:-N} = y ]
