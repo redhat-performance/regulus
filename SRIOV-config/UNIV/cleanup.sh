@@ -15,9 +15,9 @@ parse_args $@
 if oc get network-attachment-definition/regulus-sriov-net -n openshift-sriov-network-operator &>/dev/null; then
     echo "remove SriovNetwork ..."
     oc delete  network-attachment-definition/regulus-sriov-net -n openshift-sriov-network-operator
-    echo "remove NAD: done"
+    echo "remove NetworkAttachmentDefinition: done"
 else
-    echo "No NAD to remove"
+    echo "No NetworkAttachmentDefinition to remove"
 fi
 
 echo "Next remove SriovNetworkNodePolicy ..."
@@ -34,6 +34,7 @@ if oc get SriovNetworkNodePolicy regulus-sriov-node-policy -n openshift-sriov-ne
 
 else
     echo "No SriovNetworkNodePolicy to remove"
+    exit 0
 fi
 
 ### We are on delete path. Always resume and wait before mucking the node label, and deleting mcp.
@@ -78,7 +79,7 @@ else
     oc label --overwrite mcp master machineconfiguration.openshift.io/role-
 fi
 
-echo "HN you don't want to remove web installed SRIOV Operator"
+echo "You don't want to remove SRIOV Operator (esp. web console installed)"
 exit
 
 echo "Continue if you want to remove the SRIOV Operator ..."
