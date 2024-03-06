@@ -17,6 +17,63 @@ tb_info='{
     "USEABLE_CPUS": 		"value3"
 }'
 
+function f_verify_lab_config {
+    # Verify a few common missed setup activities.
+    #   REG_KNI_USER (root vs kni)
+    #   All export vars (most likely b/c user forgot to fixup lab.config)
+    #   SRIOV-config (user has not invoked "make init") - we can do it, but let the user do it.
+    #   PAO-config (user has not invoked "make init")
+
+    local DEST="$REG_KNI_USER@$REG_OCPHOST"
+    workers=$(ssh $DEST "oc get nodes --selector='node-role.kubernetes.io/worker' -o jsonpath='{.items[*].metadata.name}'")
+    if [ $? -ne 0 ] ; then
+        echo "Cannot ssh to bastion $DEST" >&2
+        exit 1
+    fi
+    if [[ !  "$workers" == *"$OCP_WORKER_0"* ]]; then
+        echo "OCP_WORKER_0=$OCP_WORKER_0 is NOT in '$workers'"  >&2
+        echo "Check lab.config on both sides"  >&2
+        exit 1
+    fi
+    if [[ !  "$workers" == *"$OCP_WORKER_1"* ]]; then
+        echo "OCP_WORKER_0=$OCP_WORKER_1 is NOT in '$workers'"  >&2
+        echo "Check lab.config on both sides"  >&2
+        exit
+    fi
+    if [[ !  "$workers" == *"$OCP_WORKER_2"* ]]; then
+        echo "OCP_WORKER_0=$OCP_WORKER_2 is NOT in '$workers'"  >&2
+        echo "Check lab.config on both sides"  >&2
+        exit 1
+    fi
+
+    # Check lab.config consistency
+    reg_dir=$(basename "$REG_ROOT")
+    rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export")
+    local_exports=$(cd $REG_ROOT && cat lab.config | grep export)
+    if [ "$rem_exports" != "$local_exports" ]; then
+        echo "ERROR: $reg_dir/lab.config file on controller differs the one on the bastion" >&2
+    fi
+
+    # Check SRIOV-config and PAO-config ready on the bastion
+    file=$(ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && ls setting.env")
+    if [ -z "$file" ] ; then
+        echo "ERROR: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
+        echo "Hint: go to $reg_dir/SRIOV-config/UNIV on the bastion and 'make init'" >&2
+        exit 1
+    fi
+
+    file=$(ssh $DEST "cd $reg_dir && source bootstrap.sh && cd PAO-config && ls setting.env")
+    if [ -z "$file" ] ; then
+        echo "ERROR: PAO-config is not yet initialized on the bastion" >&2
+        echo "Hint: go to $reg_dir/PAO-config on the bastion and 'make init'" >&2
+        exit 1
+    fi
+}
+
+if f_verify_lab_config -ne 0 ; then
+    exit
+fi
+
 function f_update_tb_info {
 	# Read the JSON file
 	json=$tb_info
