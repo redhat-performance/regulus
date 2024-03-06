@@ -12,9 +12,9 @@ PAUSE=${PAUSE:-false}
 
 parse_args $@
 
-if oc get network-attachment-definition/regulus-sriov-net -n openshift-sriov-network-operator &>/dev/null; then
+if oc get network-attachment-definition/regulus-sriov-net -n ${MCP} &>/dev/null; then
     echo "remove SriovNetwork ..."
-    oc delete  network-attachment-definition/regulus-sriov-net -n openshift-sriov-network-operator
+    oc delete  network-attachment-definition/regulus-sriov-net -n  ${MCP}
     echo "remove NetworkAttachmentDefinition: done"
 else
     echo "No NetworkAttachmentDefinition to remove"

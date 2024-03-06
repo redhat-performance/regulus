@@ -13,7 +13,7 @@ spec:
   numVfs: 64 
   nicSelector:
     rootDevices:
-    - ${REGULUSL_INTERFACE_PCI}
+    - ${REGULUS_INTERFACE_PCI}
     pfNames:
     - ${REGULUS_INTERFACE}
   deviceType: netdevice

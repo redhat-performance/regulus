@@ -146,7 +146,7 @@ function config_SriovNetworkNodePolicy {
     WORKER_ARR=(${WORKER_LIST})
     # assuming all worker NICs are in same PCI slot
     export REGULUS_INTERFACE_PCI=$(exec_over_ssh ${WORKER_ARR[0]} "ethtool -i ${REGULUS_INTERFACE}" | awk '/bus-info:/{print $NF;}')
-    echo "Acquiring SRIOV interface PCI info from worker node ${WORKER_LIST}: done"
+    echo "Acquiring SRIOV interface PCI_add= $REGULUS_INTERFACE_PCI from worker node ${WORKER_LIST}: done"
 
     # step 1 - create sriov-node-policy.yaml from template
     # 
@@ -156,7 +156,7 @@ function config_SriovNetworkNodePolicy {
         exit
     fi
  
-    envsubst < templates/${NIC_MODEL}/sriov-node-policy.yaml.template > ${MANIFEST_DIR}/sriov-node-policy.yaml
+    envsubst '$MCP,$REGULUS_INTERFACE_PCI,$REGULUS_INTERFACE,$SRIOV_MTU' < templates/${NIC_MODEL}/sriov-node-policy.yaml.template > ${MANIFEST_DIR}/sriov-node-policy.yaml
     echo "generating ${MANIFEST_DIR}/sriov-node-policy.yaml: done"
     # step 2 - apply
 
@@ -193,7 +193,7 @@ function create_network {
     else
     	envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
     fi
-    if oc get network-attachment-definition/regulus-sriov-net -n openshift-sriov-network-operator  &>/dev/null; then
+    if oc get network-attachment-definition/regulus-sriov-net -n ${MCP}  &>/dev/null; then
         echo "SriovNetworkexists. Skip creation"
     else
         echo "create network-attachment-definition/ ..."
