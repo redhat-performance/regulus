@@ -70,9 +70,15 @@ function f_verify_lab_config {
     fi
 }
 
-if f_verify_lab_config -ne 0 ; then
-    exit
+if [ "$(hostname)" != "$REG_OCPHOST" ]; then
+    echo "Running on on the controller ... check lab.config match" >&2
+    if f_verify_lab_config -ne 0 ; then
+        exit
+    fi
+else
+    echo "Running on the bastion ... skip lab.config match check" >&2
 fi
+
 
 function f_update_tb_info {
 	# Read the JSON file
