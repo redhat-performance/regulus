@@ -1,0 +1,55 @@
+# Examples of running uperf and iperf in stand-alone mode.
+# Prerequite:
+#   The pod spec's request a multus interface, and therefore you should
+#   have installed SRIOV and create a network-attachement-definition (NAD). 
+#   The SRIOV installation script is at $REG_ROOT/SRIOV-config/UNIV.
+#
+#   Note: the NAD is a namespaced object. If you change namespace you need to create 
+#   a NAD for that nsamespace. Just:
+#   "oc create -f $REG_ROOT/SRIOV-config/UNIV/generated_manifest/network-attach-def.yaml"
+#
+
+
+################################
+# UPERF 
+#################################
+# Create uperf server pod on worker-1
+oc apply -f uperf-w1-server.yaml
+oc rsh 
+ip a  <================ make a note for the eth0 IP i.e 10.131.0.66, and net1 IP i.e 10.20.30.2
+uperf -s -P 30002
+
+# Create uperf client pod on worker-0
+oc apply -f uperf-w0-client.yaml
+oc rsh 
+cd /usr/workloads/xml-files/ 
+
+# Run a TCP stream test
+remotehost=10.20.30.2 control_port=30002 port=30003 duration=10 wsize=512 rsize=1024 nthreads=1 protocol=tcp uperf -R -m stream.xml -P 30002
+           ^^^^^^^^^^                                                                                                    ^^^^^^^^^
+             use net1
+# Run a TCP CRR test
+remotehost=10.20.30.2 control_port=30002 port=30003 duration=10 wsize=512 rsize=1024 nthreads=1 protocol=tcp uperf -R -m crr.xml -P 30002
+                                                                                                                         ^^^^^^
+# Run a TCP RR test
+remotehost=10.20.30.2 control_port=30002 port=30003 duration=10 wsize=1024 rsize=1024 nthreads=1 protocol=tcp uperf -R -m rr.xml -P 30002
+                                                                                                                         ^^^^^^
+
+################################
+# IPERF 
+#################################
+
+# Create iperf server pod on worker-1
+oc apply -f iperf-w1-server.yaml
+oc rsh 
+ip a  <================ make a note for the eth0 IP i.e 10.131.0.66, and net1 IP i.e 10.20.30.2
+iperf3 -s --format k -p 30002
+
+## Create client pod on worker-0
+oc apply -f iperf-w0-client.yaml
+oc rsh 
+
+# Run a UDP stream test
+iperf3 --format k -c 10.20.30.1 -p 30002 --udp --length 576 --get-server-output --omit 3 -t 10 --bitrate 1275M 
+
+-- EOF ---

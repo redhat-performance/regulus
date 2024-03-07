@@ -1,25 +1,27 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: w2-1-pod
+  name: w0-iperf-server
   annotations:
     k8s.v1.cni.cncf.io/networks: |-
       [
         {
-          "name": "east-sriov-net"
+          "name": "regulus-sriov-net"
         }
       ]
 spec:
-  nodeSelector: {"kubernetes.io/hostname": "worker002-r650"}
+  nodeSelector: {"kubernetes.io/hostname": "e40-h32-000-r650.rdu2.scalelab.redhat.com"}
   containers:
   - name: appcntr1
-    image: centos/tools
+    image: quay.io/hnhan/ocp-tools:iperf3
     imagePullPolicy: IfNotPresent
     command: [ "/bin/bash", "-c", "--" ]
     args: [ "while true; do sleep 300000; done;" ]
     resources:
       requests:
-        openshift.io/intelnic_east: '1'
+        openshift.io/regulus_nic: '1'
       limits:
-        openshift.io/intelnic_east: '1'
+        openshift.io/regulus_nic: '1'
+    securityContext:  
+       privileged: true
 
