@@ -2,7 +2,11 @@
 
 #if [ -z "$REG_ROOT" ]; then
 	export REG_ROOT=$(pwd)
-	export PATH=$PATH:/$REG_ROOT/bin
+    unset PATH
+    # Set the PATH variable to the default value
+    export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    source ~/.bashrc
+	export PATH=$PATH:$REG_ROOT/bin
 	source ${REG_ROOT}/system.config
 #fi
 
