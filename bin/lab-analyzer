@@ -68,13 +68,14 @@ function f_verify_lab_config {
         echo "Hint: go to $reg_dir/PAO-config on the bastion and 'make init'" >&2
         exit 1
     fi
+
+    echo "lab config matched" >&2
+    return
 }
 
 if [ "$(hostname)" != "$REG_OCPHOST" ]; then
     echo "Running on on the controller ... check lab.config match" >&2
-    if f_verify_lab_config -ne 0 ; then
-        exit
-    fi
+    f_verify_lab_config 
 else
     echo "Running on the bastion ... skip lab.config match check" >&2
 fi
@@ -132,6 +133,7 @@ if ! ssh $REG_KNI_USER@$REG_OCPHOST oc get node  &>/dev/null ; then
 fi
 
 tb_cluster_type=$(f_get_cluster_type)
+echo "cluster_type=$tb_cluster_type" >&2
 f_validate_worker_nodes
 first_worker="$(echo $worker_names | awk '{print $1}')"
 tb_alloc_cpus="$(ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get node/$first_worker -ojsonpath='{.status.allocatable.cpu}'")"
@@ -141,6 +143,7 @@ if [[ "$tb_alloc_cpus" == *m ]]; then
 fi
 
 tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
+echo "useable_cpus=$tb_useable_cpus" >&2
 f_update_tb_info
 
 echo "lab-analyzer completed" >&2

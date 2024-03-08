@@ -20,7 +20,7 @@ do
         fi
     fi
 
-    tar --force-local -czvf $name.tgz $name
+    tar --force-local -czf $name.tgz $name
     if [ $? -eq 0 ]; then
         echo "success"
         rm -fr $run
