@@ -10,10 +10,10 @@ export OCP_PROJECT=crucible-hnhan
 export JOBS= \
 	./SANDBOX
 
-# Debug. DRY run. Default is 0. Set to 1 to DRY
+# Debug. DRY run. Default is false. Set to true to DRY
 export DRY_RUN=false
 
-# Artifact directory prefix. Default is null.  For example: run-ovnic-reg-5feb-UUDID....
+# Artifact directory prefix. Default is null.  For example: run-ALL-18feb-UUDID....
 export TAG=ALL-18feb 
 
 # Number of samples per test. Default is 3

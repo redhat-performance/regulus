@@ -20,7 +20,7 @@ run:
 	${RUN} --label ${TAG}
 
 dry-run:
-	DRY_RUN=1 NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label DRY
+	DRY_RUN=true NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label DRY
 
 wet-run:
 	NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label ${TAG}

@@ -121,9 +121,10 @@ echo "working dir" $(pwd)
 if [ $DRY_RUN == false ]; then
   bash run.sh 2>&1 | tee $DIR.log
 else
-   #DRY_RUN=$DRY_RUN run.sh 2>&1 | tee $DIR.log
-   DRY_RUN=$DRY_RUN bash run.sh 
+   DRY_RUN=$DRY_RUN bash run.sh 2>&1 | tee $DIR.log
+   #DRY_RUN=$DRY_RUN bash run.sh 
 fi
+
 result_path=$(realpath /var/lib/crucible/run/latest)
 mv $result_path $DIR/
 rm -f latest

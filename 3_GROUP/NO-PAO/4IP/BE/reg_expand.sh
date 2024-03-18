@@ -19,7 +19,7 @@ envsubst ''  < ${REG_TEMPLATES}/run-3types.sh.template > ${MANIFEST_DIR}/run-3ty
 envsubst '' < ${REG_TEMPLATES}/base-node-config.template > ${MANIFEST_DIR}/node-config
 
 # generate placement. No custom params.
-envsubst '' < ${REG_TEMPLATES}/standard.placement.template  > ${MANIFEST_DIR}/pairs.placement
+envsubst '' < ${REG_TEMPLATES}/std.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
 
 # generate mv-params

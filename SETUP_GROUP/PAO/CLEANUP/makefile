@@ -14,6 +14,8 @@ confirm_bastion:
 		exit 1; \
 	fi
 
+init:
+
 run: confirm_bastion
 	@bash ./cleanup.sh
 
