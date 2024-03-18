@@ -5,7 +5,6 @@
 # Note::
 #    - for non-SNO: hardcode 2 CPUs for housekeeping workloads.
 
-set -euo pipefail
 source ./setting.env
 source ./functions.sh
 export WORKER_LIST=${WORKER_LIST:-}
