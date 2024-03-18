@@ -17,7 +17,7 @@ get_mcp_progress_status () {
     local worker_status=$(oc get mcp worker -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')
     if oc get mcp ${MCP} &> /dev/null ; then
         # my mcp exists.
-        local my_mcp_status=$(oc get mcp ${MCP} -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')
+        my_mcp_status=$(oc get mcp ${MCP} -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')
     fi
     if [ "$worker_status" == "False" ]  || [ "$my_mcp_status" == "False" ]; then
         echo "True"

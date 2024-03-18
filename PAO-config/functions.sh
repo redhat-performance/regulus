@@ -65,14 +65,16 @@ resume_mcp () {
 
 # return True if either worker or my mcp is still updating.
 get_mcp_progress_status () {
+    
     if [[ "${SNO}" == "true" ]]; then
        local status=$(oc get mcp master -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')
        echo ${status}
     else
+       local my_mcp_status=True
        local worker_status=$(oc get mcp worker -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')
        if oc get mcp ${MCP} &> /dev/null ; then
           # my mcp exists.
-          local my_mcp_status=$(oc get mcp ${MCP} -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')
+          my_mcp_status=$(oc get mcp ${MCP} -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')
        fi
        if [ "$worker_status" == "False" ]  || [ "$my_mcp_status" == "False" ]; then
           # still updating
