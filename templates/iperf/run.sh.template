@@ -117,8 +117,7 @@ fi
 if [ ! -z "$annotations" ]; then
     if [ -f "$annotations" ]; then
         echo "Using annotations: $annotations"
-        anno_opt=",annotations:client-1:$annotations"
-        anno_opt+=",annotations:server-1:$annotations"
+        anno_opt=",annotations:default:$annotations"
     else
         echo "Annotations file missing: $annotations"
         exit

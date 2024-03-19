@@ -6,8 +6,12 @@
 #
 source ${REG_ROOT}/lab.config
 
-# the number of 
-RESERVED_CPUS=4
+# We compute the number of CPUs for each pod based on the node.allocatable.cpu.
+# We learn this value during during lab-analyzer time, and this value can go down
+# when we install additional k8s services/features i,.e SRIOV and PAO. Hence
+# we "reserve" some CPUs for it one time. We have seen 4 was not enough sometime.
+# Hence use 8.
+RESERVED_CPUS=8
 
 # Define the JSON content
 tb_info='{
