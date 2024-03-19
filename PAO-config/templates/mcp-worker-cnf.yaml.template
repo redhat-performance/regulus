@@ -6,7 +6,7 @@ metadata:
   labels:
     machineconfiguration.openshift.io/role: ${MCP}
 spec:
-  maxUnavailable: 100%
+  maxUnavailable: 80%
   paused: false 
   machineConfigSelector:
     matchExpressions:

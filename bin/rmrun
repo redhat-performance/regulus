@@ -7,8 +7,10 @@
 #
 
 LABEL=${LABEL:-DRY}
+DEPTH=${DEPTH:-1}
 
-longopts="label:,help"
+
+longopts="label:,depth:,help"
 opts=$(getopt -q -o "" --longoptions "$longopts" -n "getopt.sh" -- "$@");
 if [ $? -ne 0 ]; then
     echo "Unrecognized option specified"
@@ -23,6 +25,11 @@ while true; do
             shift;
             LABEL=$1
             echo got tag=$TAG
+            shift;
+            ;;
+        --depth)
+            shift;
+            DEPTH=$1
             shift;
             ;;
         --)
@@ -49,7 +56,7 @@ echo "LABEL=$LABEL"
 
 echo removing  run-$LABEL\*
 
-NAMES=$(find . -name run-$LABEL\* -print)
+NAMES=$(find . -maxdepth $DEPTH -name run-$LABEL\* -print)
 
 echo found: $NAMES
 
