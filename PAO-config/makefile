@@ -11,7 +11,7 @@ include ${REG_ROOT}/jobs.config
 include ${REG_ROOT}/lab.config
 
 confirm_bastion: 
-	@if [ "$$(hostname)" != "$(REG_OCPHOST)" ]; then \
+	@if [ "$$(hostname)" != "$(REG_OCPHOST)" ] &&  [ "$$(hostname -i)" != "$(REG_OCPHOST)" ]; then \
 		echo "Aborting. On $$(hostname). Please run this command on the bastion, $${REG_OCPHOST}."; \
 		exit 1; \
 	fi

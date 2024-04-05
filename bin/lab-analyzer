@@ -77,14 +77,6 @@ function f_verify_lab_config {
     return
 }
 
-if [ "$(hostname)" != "$REG_OCPHOST" ]; then
-    echo "Running on on the controller ... check lab.config match" >&2
-    f_verify_lab_config 
-else
-    echo "Running on the bastion ... skip lab.config match check" >&2
-fi
-
-
 function f_update_tb_info {
 	# Read the JSON file
 	json=$tb_info
@@ -131,6 +123,13 @@ function f_validate_worker_nodes {
 }
 
 # Let's go 
+if [ "$(hostname)" != "$REG_OCPHOST" ]  &&  [ "$(hostname -i)" != "$REG_OCPHOST" ] ; then
+    echo "Running on on the controller ... check lab.config match" >&2
+    f_verify_lab_config 
+else
+    echo "Running on the bastion ... skip lab.config match check" >&2
+fi
+
 if ! ssh $REG_KNI_USER@$REG_OCPHOST oc get node  &>/dev/null ; then
 	echo "Error: Please confirm REG_KNI_USER and REG_OCPHOST in lab.config" >&2
 	exit 1
