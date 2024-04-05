@@ -52,8 +52,8 @@ function f_verify_lab_config {
 
     # Check lab.config consistency
     reg_dir=$(basename "$REG_ROOT")
-    rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export")
-    local_exports=$(cd $REG_ROOT && cat lab.config | grep export)
+    rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
+    local_exports=$(cd $REG_ROOT && cat lab.config | grep export | grep -v '#')
     if [ "$rem_exports" != "$local_exports" ]; then
         echo "ERROR: $reg_dir/lab.config file on controller differs the one on the bastion" >&2
     fi
