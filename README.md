@@ -1,15 +1,15 @@
-This is the Regulus workspace, a repo that contains collections of crucible test configurations, performance-profile config utility, and SRIOV config utility.
+This is the Regulus workspace, a repo that contains collections of Crucible test configurations, performance-profile config utility, and SRIOV config utility.
 
-Testing is to be invoked on a Crucible controller. PAO-config and SRIOV-config are to be launced on the bastion host.
+Testing is to be invoked on a Crucible controller ([info](https://docs.google.com/presentation/d/1--L-kxt4QTW78a1Foz6FpKThsvSx-GUZwha4FzwRwsE/edit#slide=id.g158c5ca952e_3_0)). PAO-config and SRIOV-config are to be launched on the bastion host.
 
 # Intro
 The primary goal of Regulus is to assit with building custom Crucible test suites and execute them easily.
 
 Let's assume you would like to build a performance test suite for your target/product and run the suite reguarly to monitor performance trend.
 
-The first complexity is the numerous test cases (INTER-NODE vs INTRA-NODE, UDP vs TCP, IPv4 vs. IPv6, block sizes, protocol stack i.e. OVN vs. Hostnetwork vs. SRIOV, performance profile etc.) that you may need - Each test case needs a set of recipe i.e run.sh, mv-params, annotations and resources specifications. It is easy to make typos when you tune the recepes. Regulus solves this problem by constructing the recepes programatically from templates, and hence eliminates typos.
+The first complexity is the numerous test cases (INTER-NODE vs INTRA-NODE, UDP vs TCP, IPv4 vs. IPv6, block sizes, protocol stack i.e. OVN vs. Hostnetwork vs. SRIOV, performance profile etc.) that you may need - Each test case needs a set of recipe i.e run.sh, mv-params, annotation and resource files. It is easy to make typos when you tune the recipes. Regulus solves this problem by constructing the recipes programatically from templates, and hence eliminates typos.
 
-The second complexity relates to the constructing and executing custom set of test cases. For example for weekly, you would like to run set A, and for montly you would like to run set B. Regulus "jobs" allows you to config two separate lists.
+The second complexity relates to the constructing and executing custom sets of test case. For example, for weekly, you would like to run set A, and for monthly you would like to run set B. Regulus "jobs" allows you to config two separate jobs.
 
 With Regulus, the workflow is as follows
 ### One time activities (per target/product)
@@ -28,24 +28,43 @@ Your Crucible controller has been setup and is working with your testbed in the 
 ## Run a pilot test on a fresh Regulus workspace:
 It recommends to run a pilot test to verify your Regulus set up.
  
-1. > First, clone the repo
-    <p>git clone https://github.com/HughNhan/regulus.git</p>
-2. > Adapt the ./lab.config.template to match your lab>
-    <p> cd ./regulus; cp lab.config.template lab.config; vi lab.config </p>
+1. First, clone the repo
+```
+    git clone https://github.com/HughNhan/regulus.git
+```
+2. Adapt the ./lab.config.template to match your lab>
+```
+cd ./regulus; cp lab.config.template lab.config; vi lab.config
+```
 
-3. > set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
-    <p>source ./bootstrap.sh</p>
-4. > set up a simple job with one simple test.
-    <p> cp job.config.tempate job.config; vi job.config </p> Add a simple test case to ./jobs.config such as the "./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD" test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
-5. > Initialize the testbed
-    <p> make init-lab </p>
-6. > Initialize the job
-    <p> make init-jobs
-7. > Run the job
-    <p> make run-jobs </p>. If lab.config is OK, the job will run to completion.
-5. > See examine result sections
-5. > Clean the job
-    <p>make clean-jobs </p>
+3. set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
+```
+source ./bootstrap.sh
+```
+4. set up a simple job with one simple test.
+```
+cp job.config.tempate job.config; vi job.config
+```
+Add a simple test case to ./jobs.config such as the ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
+5. Initialize the testbed
+```
+make init-lab
+```
+6. Initialize the job
+```
+make init-jobs
+```
+7. Run the job
+```
+make run-jobs
+```
+If lab.config is OK, the job will run to completion
+
+8. See examine result sections
+9. Clean the job
+```
+make clean-jobs
+```
 
 ## Considerations
 ### Time. 
