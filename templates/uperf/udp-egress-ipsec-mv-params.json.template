@@ -6,7 +6,8 @@
         { "arg": "duration", "vals": ["120"] },
         { "arg": "protocol", "vals": ["udp"] },
         { "arg": "nthreads", "vals": ["1","64"] },
-        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
+        { "arg": "remotehost", "vals": ["$IPSEC_EP"], "role": "client" },
+        { "arg": "passthru", "vals": ["-B$IPSEC_EP"], "role": "server" }
       ]
     }
   ],
@@ -17,6 +18,14 @@
         { "arg": "test-type", "vals": ["rr"] },
         { "arg": "wsize", "vals": ["1024"] },
         { "arg": "rsize", "vals": ["1024"] }
+      ]
+    },
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "test-type", "vals": ["crr"] },
+        { "arg": "wsize", "vals": ["512"] },
+        { "arg": "rsize", "vals": ["2048"] }
       ]
     }
   ]

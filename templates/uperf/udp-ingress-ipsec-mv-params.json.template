@@ -5,8 +5,9 @@
       "params": [
         { "arg": "duration", "vals": ["120"] },
         { "arg": "protocol", "vals": ["udp"] },
-        { "arg": "nthreads", "vals": ["1","64"] },
-        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
+        { "arg": "nthreads", "vals": ["1", "64"] },
+        { "arg": "ifname", "vals": ["eth0"], "role": "server" },
+        { "arg": "passthru", "vals": ["-B$IPSEC_EP"], "role": "client" }
       ]
     }
   ],

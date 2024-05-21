@@ -21,3 +21,9 @@ export NUM_SAMPLES=1
 
 # The duration in seconds to run each test iteration. Default is 120
 export DURATION=120
+
+# TODO move below to lab.config
+export NODE_IP=198.18.10.10
+export IPSEC_EP=100.50.1.8
+export REMOTE_HOST_INTF=ens2f0np0
+

@@ -6,7 +6,8 @@
         { "arg": "duration", "vals": ["120"] },
         { "arg": "protocol", "vals": ["tcp"] },
         { "arg": "nthreads", "vals": ["1","64"] },
-        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
+        { "arg": "remotehost", "vals": ["$IPSEC_EP"], "role": "client" },
+        { "arg": "passthru", "vals": ["-B$IPSEC_EP"], "role": "server" }
       ]
     }
   ],
