@@ -1,0 +1,31 @@
+apiVersion: performance.openshift.io/v2
+kind: PerformanceProfile
+metadata:
+  name: ${MCP}
+spec:
+  cpu:
+    isolated: "${ISOLATED_CPUS}"
+    reserved: "${RESERVED_CPUS}"
+  additionalKernelArgs:
+  - "nohz_full: ${ISOLATED_CPUS}"
+  globallyDisableIrqLoadBalancing: false
+  hugepages:
+    defaultHugepagesSize: "1G"
+    pages:
+    - size: "1G"
+      count: 16 
+  realTimeKernel:
+    enabled: false 
+  workloadHints:
+    realTime: False
+    highPowerConsumption: false
+    perPodPowerManagement: true
+  numa:
+    topologyPolicy: "single-numa-node"
+  net:
+    userLevelNetworking: false
+
+  nodeSelector:
+    node-role.kubernetes.io/${MCP}: "" 
+  machineConfigPoolSelector:
+   machineconfiguration.openshift.io/role: ${MCP}
