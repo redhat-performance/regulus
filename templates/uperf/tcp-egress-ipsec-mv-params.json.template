@@ -32,7 +32,7 @@
       "params": [
         { "arg": "test-type", "vals": ["crr"] },
         { "arg": "wsize", "vals": ["512"] },
-        { "arg": "rsize", "vals": ["2048"] }
+        { "arg": "rsize", "vals": ["512"] }
       ]
     }
   ]

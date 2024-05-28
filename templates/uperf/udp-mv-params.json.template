@@ -18,6 +18,14 @@
         { "arg": "wsize", "vals": ["1024"] },
         { "arg": "rsize", "vals": ["1024"] }
       ]
+    },
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "test-type", "vals": ["crr"] },
+        { "arg": "wsize", "vals": ["512"] },
+        { "arg": "rsize", "vals": ["512"] }
+      ]
     }
   ]
 }

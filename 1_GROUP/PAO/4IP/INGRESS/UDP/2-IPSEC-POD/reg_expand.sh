@@ -12,7 +12,7 @@ export TPL_PAO=1
 
 envsubst '$MCP,$TPL_PAO,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 export TPL_EP=$IPSEC_EP     # define IPSEC_EP in jobs.config
-envsubst '$IPSEC_EP' <  ${REG_TEMPLATES}/tcp-ingress-ipsec-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
+envsubst '$IPSEC_EP' <  ${REG_TEMPLATES}/udp-ingress-ipsec-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
 
 cp ${REG_COMMON}/tool-params.json.template  ${MANIFEST_DIR}/tool-params.json
 cp ${REG_COMMON}/annotations-pao.json.template  ${MANIFEST_DIR}/annotations.json
