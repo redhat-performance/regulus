@@ -26,29 +26,31 @@ With Regulus, the workflow is as follows
 Your Crucible controller has been setup and is working with your testbed in the standard way.
 
 ## Set up Regulus on the bastion
+
  
 1. First, clone the repo
 ```
     git clone https://github.com/HughNhan/regulus.git
 ```
-2. Adapt the ./lab.config.template to match your lab>
+This creates ~/regulus. Note, it is important that this path matches the Crucible controller setup later.
+
+2. Adapt the ./lab.config.template to match your lab
 ```
 cd ./regulus; cp lab.config.template lab.config; vi lab.config
 ```
-This creates ~/regulus. Note. it is important that this path matches the Crucible controller setup.
 3. set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
 ```
 source ./bootstrap.sh
 ```
-3. Init lab params
+4. Init lab params (prerequisite: you have setup passwordless ssh)
 ```
 make init-lab
 ```
-3. Init SRIOV-config
+5. Init SRIOV-config
 ```
 cd $REG_ROOT/SRIOV-config/UNIV && make init
 ```
-3. Init PAO-config
+6. Init PAO-config
 ```
 cd $REG_ROOT/PAO-config && make init
 ```
@@ -59,16 +61,16 @@ cd $REG_ROOT/PAO-config && make init
     git clone https://github.com/HughNhan/regulus.git
 ```
 This creates ~/regulus and it must match the bastion side.
+
 2. Adapt the ./lab.config.template to match your lab. This implies it is the exact copy of bastion's lab.config.
 ```
 cd ./regulus; cp lab.config.template lab.config; vi lab.config
 ```
-
 3. set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
 ```
 source ./bootstrap.sh
 ```
-3. Init lab params
+4. Init lab params
 ```
 make init-lab
 ```
@@ -77,18 +79,18 @@ make init-lab
 It recommends to run a pilot test to verify your Regulus set up. On the Cricible controller
  
 1. Add a simple test case to ./jobs.config such as the ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
-6. Initialize the job
+2. Initialize the job
 ```
 make init-jobs
 ```
-7. Run the job
+3. Run the job
 ```
 make run-jobs
 ```
 If everything is OK, the job will run to completion
 
-8. See examine result sections
-9. Clean the job
+4. See examine result sections
+5. Clean the job
 ```
 make clean-jobs
 ```
@@ -99,15 +101,17 @@ Most test cases take a few minutes, but an iperf3 drop-hunter run can take sever
 
 
 ### A few testing scenarios
-1. Run a job of one or more test cases e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD + ../2-POD etc.
-Add test cases to your job.
+1. Run a job of one or more test cases
+
+Add test cases to the JOBS variable your jobs.config.
+
     ```
-    cd $REG_ROOT
-    vi jobs.config
+	cd $REG_ROOT
+	vi jobs.config
 	make init-jobs
 	make run-jobs
 	make clean-jobs
-    ``````
+    ```
 
 2. To run all test cases under Regulus. Warning it can take multi hours if not day.
 	```
@@ -119,7 +123,7 @@ Add test cases to your job.
 3. Run a test case directly at its directory e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD. 
 Sometime you may have a reason to run a test locally at its directory instead of setting up $REG_ROOT/jobs.config and run a job of one test. Regulus supports this usage.
 	```
-    cd ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
+    cd $REG_ROOT/1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
 	make init
 	make run 
 	make clean
