@@ -5,7 +5,9 @@
 # Ex: $ cd INGRESS/run-foo-2022-06-19-10:30:27
 #     $ gen-summary
 #
-
+# To compute CPU, user can specify the list of cores
+#      CORE_LIST=${CORE_LIST:-"0"}
+#
 #
 # Script that produce show-summary-<suffix> and  summary-BENCH-<suffix>
 #
@@ -45,7 +47,7 @@ exec > >(tee gen-summary.txt)
 #set -v
 
 # to collect CPU of a specific list. Null list means all CPUs
-CORE_LIST=${CORE_LIST:-"0,14"}
+CORE_LIST=${CORE_LIST:-"0"}
 
 # HWOL ifname
 g_IFNAME=ens2f0np0

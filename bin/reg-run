@@ -131,14 +131,15 @@ rm -f latest
 ln -sf $DIR latest
 pushd $DIR
 
-reg-gen-summary 
+#reg-gen-summary 
+reg-gen-summary-n-cores
 
 # before tar pull the result-summary.txt here so rmrun can run
 find . -name result-summary.txt -exec cp {} . \;
 
 echo tar-result iperf
-#reg-tar-result iperf
-#reg-tar-result uperf
+reg-tar-result iperf
+reg-tar-result uperf
 
 popd
 

@@ -1,0 +1,126 @@
+
+#
+# A script to recalculate cpu usage using 'reg-gen-summary-n-cores'
+#
+
+DIRS=" \
+./1_GROUP/PAO/4IP/EGRESS/TCP/16-IPSEC-POD/run-v153-8-hk-cpus-sat-2024-05-25-11:56:00 \
+./1_GROUP/PAO/4IP/EGRESS/TCP/16-POD/run-v153-8-hk-cpus-sat-2024-05-25-10:17:48 \
+./2_GROUP/PAO/4IP/BIDIR/TCP/2-POD/run-bidir-2cor-tue-2024-05-28-23:52:14 \
+"
+
+function confirm {
+  while true; do
+    read -p "Do you want to continue? (yes/no): " answer
+    case $answer in
+        [Yy]* ) echo "You answered yes."; break;;
+        [Nn]* ) echo "You answered no."; exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+ done
+
+}
+
+function prep_core_list {
+  while true; do
+    read -p "Use 1-core or 2-core ? (1/2): " answer
+    case $answer in
+        [1]* ) 
+            echo "You answered 1."; 
+            cp /tmp/core_list1 core_list;
+            break;;
+        [2]* ) 
+            echo "You answered 2."; 
+            cp /tmp/core_list2 core_list;
+            break;;
+        * ) echo "Please answer 1 or 2.";;
+    esac
+ done
+
+}
+
+# Function to prompt the user
+confirm_a_yes() {
+    read -p "Do you want it ? (y/n): " choice
+    case "$choice" in
+        y|Y ) return 0 ;;  # Yes
+        n|N ) return 1 ;;  # No
+        * ) echo "Invalid input. Please enter 'y' or 'n'."; confirm_a_yes ;;  # Invalid input, ask again
+    esac
+}
+
+
+count=1
+
+for dir in $DIRS; do
+    i_untar=false
+    #dir=$(dirname "$sum_file")
+    echo ">>> job-$count"  $dir
+    ((count++))
+    #confirm
+    pushd $dir
+        tgz_file=$(ls *.tgz)
+        echo tgz=$tgz_file
+
+        # make sure the blob exists, if not untar to make it available
+        if [ ! -z $tgz_file ]; then
+            # tar ball exists
+            ls -l $tgz_file
+            blob="${tgz_file%.tgz}"
+            if [ ! -d $blob ]; then
+                # blob not exists, untar
+                echo no blob $blob. Will do untar
+                confirm
+                echo supposed to thisuntar $tgz_file
+                #thisuntar $tgz_file
+                i_untar=true
+            else
+                # blob exist. Ready
+                echo blob=$blob exists
+            fi
+        else
+            echo tarball not exist, tar it?
+            if confirm_a_yes; then
+                reg-tar-result iperf
+                reg-tar-result uperf
+            fi
+            blob=$(find . -type d -name "*UTC*" -print -quit)
+            if [ ! -z $blob ]; then
+                echo "Blob $blob exists."
+            else
+                echo "No blob either."
+                exit;
+            fi
+
+        fi
+
+        # now the blob exist, run it
+        echo "------------" reg-gen-summary-n-cores $dir
+        if [ ! -e core_list ]; then
+            echo missing core_list
+            prep_core_list
+        fi
+        if [ -e ./cpu_recalc ]; then
+            echo "This dir=$dir has been recomputed. Do again ?"
+            #if confirm_a_yes; then
+            if true ; then         # no
+                echo recomputing
+                #source core_list && my_command
+                source core_list && reg-gen-summary-n-cores
+            else
+                echo skip recomputing
+            fi
+        else 
+           #source core_list && my_command
+           source core_list && reg-gen-summary-n-cores
+           touch ./cpu_recalc
+        fi
+
+        # if untar, now return it to original state i.e remvoe the blob
+        if [ $i_untar = true ]; then
+            echo I untar-ed hence I will delete blob=$blob
+        fi
+    echo "<<< "  $dir
+    popd
+done
+

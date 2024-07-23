@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Script to remove blob if there is *tgz tar ball
+
+DEBUG=0
+
+BLOBS="$(/bin/ls -p | grep / | grep $1 )"
+
+# "ls -p" shows dir entries ended with /
+#DIR=$(pwd)
+#echo "---- reg-rm-blob:DIR=$DIR BLOBS=$BLOBS  - Done"
+
+if [ -z $BLOBS ]; then
+    echo "---- reg-rm-blob:$DIR has no BLOB, but there is $(ls *.tgz) - Done"
+    return 
+fi
+
+for blob in $BLOBS; do
+    if [ $DEBUG != 0 ]; then
+        echo "---- reg-rm-blob: $run"
+    fi
+    # remove ending /
+    name=${blob::-1}
+    if [ -f  $name.tgz ]; then
+        DIR=$(pwd)
+       
+        if [ $DEBUG != 0 ]; then
+            echo "----- $DIR/$name exists. rm blob?"
+        fi
+        if [ $DEBUG != 0 ]; then
+            read -p "Delete $DIR/$name (y/n)? " ans
+            if [  "$ans" == 'y' ]; then
+                rm -fr $name
+            else
+                echo "---- leave $name as-is"
+            fi
+        else
+            echo "Delete $DIR/$name" 
+            rm -fr $name
+        fi
+    else
+        echo "---- reg-rm-blob: NO *.tgz. Hence leave $blob alone"
+    fi
+
+done

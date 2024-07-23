@@ -1,0 +1,55 @@
+#
+# Wrapper script to remove blobs if it has already has its *.tgz tar ball.
+# It iinvoke bin/reg-rm-blob to do the work per dir.
+#
+export JOBS=" \
+	./1_GROUP/PAO/4IP/EGRESS/TCP/2-POD \
+	./1_GROUP/PAO/4IP/EGRESS/TCP/2-IPSEC-POD \
+    "
+
+DEBUG=0
+
+function iter_runs {
+   # We're are in a JOB dir. Iterate each "run-TAG-run-id"
+   RUNS="$(/bin/ls -p | grep /)"
+   # "ls -p" shows dir entries ended with /
+   #DIR=$(pwd)
+   
+   if [ $DEBUG != 0 ]; then
+    echo "-- " $DIR generates RUNS:$RUNS
+   fi
+
+   for run in $RUNS; do
+        if [ $DEBUG != 0 ]; then
+            echo "--re-rm-blob:iter_runs process:34 " $run
+        fi 
+        pushd $run  >/dev/null
+        if [ "$(find . -maxdepth 1 -type d -name 'uperf*' -print -quit)" ]; then
+            tgz_file=$(ls uperf*tgz 2>/dev/null | sed 's/\.tgz$//')
+            if [ -z  $tgz_file ]; then
+                DIR=$(pwd)
+                echo "-- iter_runs:" $DIR has no *.tgz. Hence DONE
+            else
+                if [ $DEBUG != 0 ]; then
+                    echo "--- iter_runs:" calling reg-rm-blob
+                fi
+                reg-rm-blob uperf
+            fi
+        else
+            DIR=$(pwd)
+            echo "-- iter_runs:47 $DIR no blob exists. Hence DONE"
+        fi
+       popd  >/dev/null
+   done
+}
+
+for job in $JOBS; do
+   
+    if [ $DEBUG != 0 ]; then
+        echo "-" re-rm-blob:main
+    fi
+    pushd $job >/dev/null
+        iter_runs
+    popd   >/dev/null
+done
+

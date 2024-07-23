@@ -8,7 +8,7 @@
         { "arg": "omit", "vals": ["3"] },
         { "arg": "protocol", "vals": ["tcp"] },
         { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
-        { "arg": "passthru", "vals": ["-B$IPSEC_EP $TPL_DIR"], "role": "client" }
+        { "arg": "passthru", "vals": ["-B$TPL_EP"], "role": "client" }
       ]
     }
   ],
