@@ -251,6 +251,11 @@ for num_pods in $scale_up_factor; do
                 endpoint_opt+=",securityContext:default:$securityContext_file"
             fi
         fi
+
+        if [ -n "$TPL_LBSVC" ]; then
+            endpoint_opt+=",lbSvc:$TPL_LBSVC"
+        fi
+
     else
         echo "interhost"
         endpoint_opt=""
