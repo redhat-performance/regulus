@@ -1,0 +1,16 @@
+
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: $POOL_NAME
+  namespace: metallb-system
+  annotations:
+        metallb.universe.tf/address-pool: $POOL_NAME
+spec:
+  addresses:
+  - $ADDR_RANGE
+  autoAssign: false
+  avoidBuggyIPs: false
+
+
+
