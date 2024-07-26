@@ -10,11 +10,6 @@ PAUSE=${PAUSE:-false}
 parse_args $@
 
 
-if oc get svc uperf-lb-svc  &>/dev/null; then
-    oc delete svc uperf-lb-svc
-fi
-
-
 if oc get L2Advertisement l2advertisement -n metallb-system  &>/dev/null; then
         echo "delete L2Advertisement  ..."
         oc delete -f ${MANIFEST_DIR}/l2-advertisement.yaml
