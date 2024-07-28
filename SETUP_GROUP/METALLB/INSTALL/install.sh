@@ -8,6 +8,6 @@ fi
 # remote REG_ROOT can be different i.e root vs kni. Extract the regulus dir part
 reg_dir=$(basename "$REG_ROOT")
 
-ssh $REG_KNI_USER@$REG_OCPHOST "cd $reg_dir && source bootstrap.sh && cd GW-config/METALLB && make install "  
+ssh $REG_KNI_USER@$REG_OCPHOST "cd $reg_dir && source bootstrap.sh && cd GW-config/METALLB/ && bash install.sh "  
 
 # Done
