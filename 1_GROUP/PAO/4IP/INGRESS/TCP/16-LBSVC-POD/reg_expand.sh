@@ -17,4 +17,4 @@ envsubst '$TPL_INTF' <  ${REG_TEMPLATES}/tcp-mv-params.json.template >  ${MANIFE
 
 cp ${REG_COMMON}/tool-params.json.template  ${MANIFEST_DIR}/tool-params.json
 cp ${REG_COMMON}/annotations-pao.json.template  ${MANIFEST_DIR}/annotations.json
-cp ${REG_COMMON}/securityContext-cps.json.template  ${MANIFEST_DIR}/securityContext.json
+#cp ${REG_COMMON}/securityContext-cps.json.template  ${MANIFEST_DIR}/securityContext.json
