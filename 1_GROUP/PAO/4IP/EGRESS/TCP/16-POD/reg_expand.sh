@@ -11,7 +11,7 @@ export TPL_TOPO=egress
 export TPL_PAO=1
 
 envsubst '$MCP,$TPL_PAO,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
-export TPL_INTF=$REMOTE_HOST_INTF     # defined in jobs.config
+export TPL_INTF=vlan46
 envsubst '$TPL_INTF' <  ${REG_TEMPLATES}/tcp-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
 
 cp ${REG_COMMON}/tool-params.json.template  ${MANIFEST_DIR}/tool-params.json
