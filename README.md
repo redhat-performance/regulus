@@ -25,43 +25,72 @@ With Regulus, the workflow is as follows
 ## Prerequisite
 Your Crucible controller has been setup and is working with your testbed in the standard way.
 
-## Run a pilot test on a fresh Regulus workspace:
-It recommends to run a pilot test to verify your Regulus set up.
+## Set up Regulus on the bastion
+
  
 1. First, clone the repo
 ```
     git clone https://github.com/HughNhan/regulus.git
 ```
-2. Adapt the ./lab.config.template to match your lab>
+This creates ~/regulus. Note, it is important that this path matches the Crucible controller setup later.
+
+2. Adapt the ./lab.config.template to match your lab
 ```
 cd ./regulus; cp lab.config.template lab.config; vi lab.config
 ```
-
 3. set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
 ```
 source ./bootstrap.sh
 ```
-4. set up a simple job with one simple test.
-```
-cp job.config.tempate job.config; vi job.config
-```
-Add a simple test case to ./jobs.config such as the ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
-5. Initialize the testbed
+4. Init lab params (prerequisite: you have setup passwordless ssh)
 ```
 make init-lab
 ```
-6. Initialize the job
+5. Init SRIOV-config
+```
+cd $REG_ROOT/SRIOV-config/UNIV && make init
+```
+6. Init PAO-config
+```
+cd $REG_ROOT/PAO-config && make init
+```
+## Set up Regulus on the crucible controller
+ 
+1. First, clone the repo
+```
+    git clone https://github.com/HughNhan/regulus.git
+```
+This creates ~/regulus and it must match the bastion side.
+
+2. Adapt the ./lab.config.template to match your lab. This implies it is the exact copy of bastion's lab.config.
+```
+cd ./regulus; cp lab.config.template lab.config; vi lab.config
+```
+3. set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
+```
+source ./bootstrap.sh
+```
+4. Init lab params
+```
+make init-lab
+```
+
+## Run a pilot test on a fresh Regulus workspace:
+It recommends to run a pilot test to verify your Regulus set up. On the Cricible controller
+ 
+1. Add a simple test case to ./jobs.config such as the ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
+2. Initialize the job
 ```
 make init-jobs
 ```
-7. Run the job
+3. Run the job
 ```
 make run-jobs
 ```
-If lab.config is OK, the job will run to completion
+If everything is OK, the job will run to completion
 
-8. See examine result sections
-9. Clean the job
+4. See examine result sections
+5. Clean the job
 ```
 make clean-jobs
 ```
@@ -72,15 +101,17 @@ Most test cases take a few minutes, but an iperf3 drop-hunter run can take sever
 
 
 ### A few testing scenarios
-1. Run a job of one or more test cases e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD + ../2-POD etc.
-Add test cases to your job.
+1. Run a job of one or more test cases
+
+Add test cases to the JOBS variable your jobs.config.
+
     ```
-    cd $REG_ROOT
-    vi jobs.config
+	cd $REG_ROOT
+	vi jobs.config
 	make init-jobs
 	make run-jobs
 	make clean-jobs
-    ``````
+    ```
 
 2. To run all test cases under Regulus. Warning it can take multi hours if not day.
 	```
@@ -92,7 +123,7 @@ Add test cases to your job.
 3. Run a test case directly at its directory e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD. 
 Sometime you may have a reason to run a test locally at its directory instead of setting up $REG_ROOT/jobs.config and run a job of one test. Regulus supports this usage.
 	```
-    cd ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
+    cd $REG_ROOT/1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
 	make init
 	make run 
 	make clean
@@ -109,22 +140,30 @@ Assuming you have pulled this repo on your bastion. You should config PAO and SR
 ### ./lab.config
 You describe your lab details in this file.
 ```
-export REG_KNI_USER=kni
-export REG_OCPHOST=<your-bastion-fqdn>
-export OCP_WORKER_0=worker000-r650
-export OCP_WORKER_1=worker001-r650
-export OCP_WORKER_2=worker002-r650
-export REG_SRIOV_NIC=ens2f0np0
+export REG_KNI_USER=hnhan
+export REG_OCPHOST="192.168.94.11"
+export OCP_WORKER_0=appworker-0.blueprint-cwl.<>.lab
+export OCP_WORKER_1=appworker-1.blueprint-cwl.<>.lab
+export OCP_WORKER_2=appworker-2.blueprint-cwl.<>.lab
+export BMLHOSTA=
+export BMLHOSTB=
+export REG_DP=415
+export REG_SRIOV_NIC=ens1f0np0
 export REG_SRIOV_MTU=9000
 export REG_SRIOV_NIC_MODEL=CX6
 ```
 ### ./jobs.config
 You describe your job details in this file
 ```
-export OCP_PROJECT=<your OCP/k8s project>    
+export OCP_PROJECT=crucible-hnhan
+export NODE_IP=
+export IPSEC_EP=
+export REMOTE_HOST_INTF=
 export JOBS= ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD 
-export NUM_SAMPLES=3
-export DURATION=120                                                  
+export DRY_RUN=false
+export TAG=NOK
+export NUM_SAMPLES=1
+export DURATION=10                                                                    
 ```
 ### ./reg_expand.sh 
 You customize a test recepes in its reg_expand.sh file. For example, /home/kni/regulus/1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD.reg_expand.h

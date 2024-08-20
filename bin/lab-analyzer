@@ -2,8 +2,11 @@
 #
 # testbed/cluster discovery and validation
 # 	1. Discover cluster_type, num_workers and num_cpus (per worker)
-# 	2. Confitm the user-intent workers specified in lab.config.
+# 	2. Confim the user-intent workers specified in lab.config.
 #
+auto_fix="true"
+
+
 source ${REG_ROOT}/lab.config
 
 # We compute the number of CPUs for each pod based on the node.allocatable.cpu.
@@ -56,25 +59,50 @@ function f_verify_lab_config {
     rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
     local_exports=$(cd $REG_ROOT && cat lab.config | grep export | grep -v '#')
     if [ "$rem_exports" != "$local_exports" ]; then
-        echo "ERROR: $reg_dir/lab.config file on controller differs the one on the bastion" >&2
+        if [ "$auto_fix" == "true" ]; then
+            echo "WARN: $reg_dir/lab.config file on controller differs the one on the bastion" >&2
+            echo "auto_fix is ON. Fixing it"  >&2
+            scp $REG_ROOT/lab.config  $DEST:$REG_ROOT/lab.config
+        else
+            echo "ERROR: $reg_dir/lab.config file on controller differs the one on the bastion" >&2
+        fi
+    fi
+
+    # A super convolute mess. We need to make init-lab (to initialize CLUSTER_TYPE) on the bastion 
+    # first before we can run make init for SRIOV/UNIV/
+    if [ "$auto_fix" == "true" ]; then
+        ssh $DEST "cd $reg_dir && source bootstrap.sh && make init-lab"
     fi
 
     # Check SRIOV-config and PAO-config ready on the bastion
     file=$(ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && ls setting.env")
     if [ -z "$file" ] ; then
-        echo "ERROR: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
-        echo "Hint: go to $reg_dir/SRIOV-config/UNIV on the bastion and 'make init'" >&2
-        exit 1
+        if [ "$auto_fix" == "true" ]; then
+            echo "WARN: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
+            echo "auto_fix is ON. Fixing it"  >&2
+            (ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && make init")
+        else
+            echo "ERROR: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
+            echo "Hint: go to $reg_dir/SRIOV-config/UNIV on the bastion and 'make init'" >&2
+            exit 1
+        fi
     fi
 
     file=$(ssh $DEST "cd $reg_dir && source bootstrap.sh && cd PAO-config && ls setting.env")
     if [ -z "$file" ] ; then
-        echo "ERROR: PAO-config is not yet initialized on the bastion" >&2
-        echo "Hint: go to $reg_dir/PAO-config on the bastion and 'make init'" >&2
-        exit 1
+        if [ "$auto_fix" == "true" ]; then
+            echo "WARN: PAO-config is not yet initialized on the bastion" >&2
+            echo "auto_fix is ON. Fixing it"  >&2
+            (ssh $DEST "cd $reg_dir && source bootstrap.sh && cd PAO-config/ && make init")
+
+        else
+            echo "ERROR: PAO-config is not yet initialized on the bastion" >&2
+            echo "Hint: go to $reg_dir/PAO-config on the bastion and 'make init'" >&2
+            exit 1
+        fi
     fi
 
-    echo "lab config matched" >&2
+    echo "Lab config matched" >&2
     return
 }
 
@@ -124,12 +152,54 @@ function f_validate_worker_nodes {
 	fi
 }
 
+function create_mirror_repo_on_bastion {
+    local_repo_path=$(git rev-parse --show-toplevel)
+    remote_user="$REG_KNI_USER"
+    remote_host="$REG_OCPHOST"
+
+    # Set the remote repository path to match the local path
+    remote_repo_path="${local_repo_path}"
+
+    # Get the current branch name from the local repository
+    current_branch=$(git branch --show-current)
+
+    # Check if the remote repository already exists
+    repo_exists=$(ssh ${remote_user}@${remote_host} "[ -d ${remote_repo_path}/.git ] && echo 'exists' || echo 'not exists'")
+
+    if [ "$repo_exists" = "exists" ]; then
+        echo "The repository already exists on the bastion host at ${remote_repo_path}. No action taken." >&2
+    else
+        echo "The repository does not exist. Creating the repository on the bastion host..."  >&2
+ 
+        # Create the same directory structure on the bastion host
+        ssh ${remote_user}@${remote_host} "mkdir -p ${remote_repo_path}"
+
+        # Initialize a non-bare repository on the bastion host
+        ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git init"
+
+        # Add the remote repository to your local Git config
+        git remote add peer-regulus ${remote_user}@${remote_host}:${remote_repo_path}
+
+        # Push your local repository to the remote repository
+        git push peer-regulus ${current_branch}
+
+        # Switch to the current branch on the remote machine
+        ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git checkout ${current_branch}"
+
+        echo "Repository has been successfully created and mirrored to the bastion host. The branch '${current_branch}' has been checked out."  >&2
+    fi
+}
+
+
+# Install regulus repo on the bastion
+create_mirror_repo_on_bastion
+
 # Let's go 
 if [ "$(hostname)" != "$REG_OCPHOST" ]  &&  [ "$(hostname -i)" != "$REG_OCPHOST" ] ; then
-    echo "Running on on the controller ... check lab.config match" >&2
+    echo "$0 is running on the controller ... check lab.config match" >&2
     f_verify_lab_config 
 else
-    echo "Running on the bastion ... skip lab.config match check" >&2
+    echo "$0 is running on the bastion ... skip lab.config match check" >&2
 fi
 
 if ! ssh $REG_KNI_USER@$REG_OCPHOST oc get node  &>/dev/null ; then
@@ -157,6 +227,6 @@ tb_cps=$(echo "$cps_string" | awk '{print $NF}')
 
 f_update_tb_info
 
-echo "lab-analyzer completed" >&2
+echo "$0 completed" >&2
 
 # done

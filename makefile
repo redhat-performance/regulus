@@ -113,7 +113,7 @@ $(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
 
 # Init LAB info if lab.config changes
 init-lab: $(LAB_TARGET) 
-	@echo Analyze testbed
+
 
 .SECONDARY: $(LAB_SOURCE)
 
