@@ -38,6 +38,16 @@ run-jobs: init-lab
 		$(MAKE) -C $$dir run; \
 	done
 
+# show jobs that generated "run-*.log.error"
+report-jobs:
+	@for dir in $(JOBS); do \
+		echo "Check jobs status $$dir"; \
+		prefix=$$(ls -l $$dir/latest | awk '/->/ {print $$NF}' | sed 's|/$$||'); \
+		if [ -e "$$dir/$$prefix.log.error" ]; then \
+			(ls $$dir/$$prefix.log.error); \
+		fi \
+	done
+
 # Also can be done with setting jobs.config.DRY_RUN=1; make run-jobs
 dry-run-jobs: init-lab
 	echo JOBS=$$JOBS
@@ -103,7 +113,7 @@ $(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
 
 # Init LAB info if lab.config changes
 init-lab: $(LAB_TARGET) 
-	@echo Analyze testbed
+
 
 .SECONDARY: $(LAB_SOURCE)
 
