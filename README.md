@@ -25,8 +25,6 @@ With Regulus, the workflow is as follows
 ## Prerequisite
 Your Crucible controller has been setup and is working with your testbed in the standard way.
 
-
-```
 ## Set up Regulus on the crucible controller
  
 1. First, clone the repo
