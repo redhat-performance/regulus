@@ -185,7 +185,8 @@ function create_mirror_repo_on_bastion {
         ssh ${remote_user}@${remote_host} "mkdir -p ${remote_repo_path}"
 
         # Initialize a non-bare repository on the bastion host
-        ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git init"
+        
+        ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git init 2>/dev/null"
 
         # Add the remote repository to local Git config. But remove remote first if there was a old one.
         git remote remove peer-regulus  2>/dev/null 
@@ -200,15 +201,21 @@ function create_mirror_repo_on_bastion {
         echo "CMD: ssh ${remote_user}@${remote_host} cd ${remote_repo_path} && git checkout ${current_branch}"  >&2
         ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git checkout ${current_branch}"
 
+        # finally copy mirror lab.config and jobs.config to remote
+        scp lab.config ${remote_user}@${remote_host}:/${remote_repo_path}/
+        scp jobs.config ${remote_user}@${remote_host}:/${remote_repo_path}/
+
         echo "Repository has been successfully created and mirrored to the bastion host. The branch '${current_branch}' has been checked out."  >&2
     fi
 }
 
+# run the repo morror process in a sub-shell, to avoid all the unwanted messages
+(
+    # Install regulus repo on the bastion if applicable
+    create_mirror_repo_on_bastion
+) > lab-init.log 2>&1
 
-# Install regulus repo on the bastion if applicable
-create_mirror_repo_on_bastion
-
-# Let's go 
+# continue
 if [ "$(hostname)" != "$REG_OCPHOST" ]  &&  [ "$(hostname -i)" != "$REG_OCPHOST" ] ; then
     echo "$0 is running on the controller ... check lab.config match" >&2
     f_verify_lab_config 
@@ -227,6 +234,8 @@ echo "cluster_type=$tb_cluster_type" >&2
 f_validate_worker_nodes
 first_worker="$(echo $worker_names | awk '{print $1}')"
 tb_alloc_cpus="$(ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get node/$first_worker -ojsonpath='{.status.allocatable.cpu}'")"
+
+
 # Round-down to whole CPU if we see like 31500m
 if [[ "$tb_alloc_cpus" == *m ]]; then
     tb_alloc_cpus="${tb_alloc_cpus:0: -4}"
@@ -244,6 +253,7 @@ fi
 # extract the number from like "Core(s) per socket:  28"
 tb_cps=$(echo "$cps_string" | awk '{print $NF}')
 echo "core-per-socket=$tb_cps" >&2 
+
 
 f_update_tb_info
 
