@@ -71,6 +71,7 @@ function f_verify_lab_config {
     # A super convolute mess. We need to make init-lab (to initialize CLUSTER_TYPE) on the bastion 
     # first before we can run make init for SRIOV/UNIV/
     if [ "$auto_fix" == "true" ]; then
+        echo "CMD: ssh $DEST cd $reg_dir && source bootstrap.sh && make init-lab" >&2
         ssh $DEST "cd $reg_dir && source bootstrap.sh && make init-lab"
     fi
 
@@ -102,7 +103,7 @@ function f_verify_lab_config {
         fi
     fi
 
-    echo "Lab config matched" >&2
+    echo "Lab config check done " >&2
     return
 }
 
@@ -157,8 +158,17 @@ function create_mirror_repo_on_bastion {
     remote_user="$REG_KNI_USER"
     remote_host="$REG_OCPHOST"
 
+    #
+    # Handle a complication when dealing with different "dirname" on the controller 
+    # and on the bastion .ie /root/my-regulus versus /home/user/my-regulus
+    #
+    reg_dir=$(basename "$REG_ROOT")
+
     # Set the remote repository path to match the local path
-    remote_repo_path="${local_repo_path}"
+
+    local_basename=$(basename "$REG_ROOT")
+    remote_dirname=$(ssh ${remote_user}@${remote_host} "pwd")
+    remote_repo_path=$remote_dirname/$local_basename
 
     # Get the current branch name from the local repository
     current_branch=$(git branch --show-current)
@@ -171,19 +181,23 @@ function create_mirror_repo_on_bastion {
     else
         echo "The repository does not exist. Creating the repository on the bastion host..."  >&2
  
-        # Create the same directory structure on the bastion host
+        # Create the regulus dir on the bastion host
         ssh ${remote_user}@${remote_host} "mkdir -p ${remote_repo_path}"
 
         # Initialize a non-bare repository on the bastion host
         ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git init"
 
-        # Add the remote repository to your local Git config
-        git remote add peer-regulus ${remote_user}@${remote_host}:${remote_repo_path}
+        # Add the remote repository to local Git config. But remove remote first if there was a old one.
+        git remote remove peer-regulus  2>/dev/null 
+        echo "CMD: git remote add peer-regulus ${remote_user}@${remote_host}:${remote_repo_path}" >&2
+        git remote add peer-regulus ${remote_user}@${remote_host}:${remote_repo_path} 
 
-        # Push your local repository to the remote repository
+        # Push your local repository to the remote/bastion repository
+        echo "CMD: git push peer-regulus ${current_branch}"  >&2
         git push peer-regulus ${current_branch}
 
-        # Switch to the current branch on the remote machine
+        # Switch to the current branch on the remote/bastion machine
+        echo "CMD: ssh ${remote_user}@${remote_host} cd ${remote_repo_path} && git checkout ${current_branch}"  >&2
         ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git checkout ${current_branch}"
 
         echo "Repository has been successfully created and mirrored to the bastion host. The branch '${current_branch}' has been checked out."  >&2
@@ -191,7 +205,7 @@ function create_mirror_repo_on_bastion {
 }
 
 
-# Install regulus repo on the bastion
+# Install regulus repo on the bastion if applicable
 create_mirror_repo_on_bastion
 
 # Let's go 
@@ -221,9 +235,15 @@ fi
 tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
 echo "useable_cpus=$tb_useable_cpus" >&2
 
+# get worker cpu topology
 cps_string="$(ssh $REG_KNI_USER@$REG_OCPHOST "ssh core@$first_worker lscpu" | grep Core)"
+if [ -z "$cps_string" ]; then
+    echo "Failed to ssh core@$first_worker. Please setup 'core' login" >&2
+    exit 
+fi
 # extract the number from like "Core(s) per socket:  28"
 tb_cps=$(echo "$cps_string" | awk '{print $NF}')
+echo "core-per-socket=$tb_cps" >&2 
 
 f_update_tb_info
 

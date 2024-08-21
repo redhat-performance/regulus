@@ -113,9 +113,11 @@ $(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
 
 # Init LAB info if lab.config changes
 init-lab: $(LAB_TARGET) 
+	@true
 
 
 .SECONDARY: $(LAB_SOURCE)
+	#
 
 clean-lab:
 	@ rm -f $(LAB_TARGET) $(LAB_TARGET_ENV)
