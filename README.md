@@ -25,34 +25,7 @@ With Regulus, the workflow is as follows
 ## Prerequisite
 Your Crucible controller has been setup and is working with your testbed in the standard way.
 
-## Set up Regulus on the bastion
 
- 
-1. First, clone the repo
-```
-    git clone https://github.com/HughNhan/regulus.git
-```
-This creates ~/regulus. Note, it is important that this path matches the Crucible controller setup later.
-
-2. Adapt the ./lab.config.template to match your lab
-```
-cd ./regulus; cp lab.config.template lab.config; vi lab.config
-```
-3. set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
-```
-source ./bootstrap.sh
-```
-4. Init lab params (prerequisite: you have setup passwordless ssh)
-```
-make init-lab
-```
-5. Init SRIOV-config
-```
-cd $REG_ROOT/SRIOV-config/UNIV && make init
-```
-6. Init PAO-config
-```
-cd $REG_ROOT/PAO-config && make init
 ```
 ## Set up Regulus on the crucible controller
  
