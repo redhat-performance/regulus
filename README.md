@@ -36,7 +36,7 @@ With Regulus, the workflow is as follows
 ```
 This creates ~/regulus.
 
-2. Adapt the ./lab.config.template to match your lab. This implies it is the exact copy of bastion's lab.config.
+2. Adapt the ./lab.config.template to match your lab.
 ```
 cd ./regulus; cp lab.config.template lab.config; vi lab.config
 ```
@@ -108,7 +108,7 @@ In each test dir e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD. you should find
 	
 # Configure PAO and SRIOV
 
-Assuming you have pulled this repo on your bastion. You should config PAO and SRIOV at the appropriate time. See README in SRIOV-config and PAO-config for details
+Assuming you have pulled this repo on your crucible controller and have invoked "make init-lab" with success, you should config PAO and SRIOV at the appropriate time. See README in SRIOV-config and PAO-config for details
 
 # Customizations
 ### ./lab.config
