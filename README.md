@@ -23,7 +23,10 @@ With Regulus, the workflow is as follows
 # Using Regulus Step-by-step
 
 ## Prerequisite
-Your Crucible controller has been setup and is working with your testbed in the standard way.
+1. Your Crucible controller has been setup and is working with your testbed in the standard way.
+2. The passwordless ssh from crucible controller to the bastion host is working. Please verify "ssh kni-username@bastion-host" works.
+3. For Regulus to initialize the testbed, among other things, it needs to learn the first worker node CPU topology. So, passwordless ssh from the bastion to the first worker node should also be setup i.e from the bastion "ssh core@your-workernode-0" works.
+
 
 ## Set up Regulus on the crucible controller
  
@@ -31,7 +34,7 @@ Your Crucible controller has been setup and is working with your testbed in the 
 ```
     git clone https://github.com/HughNhan/regulus.git
 ```
-This creates ~/regulus and it must match the bastion side.
+This creates ~/regulus.
 
 2. Adapt the ./lab.config.template to match your lab. This implies it is the exact copy of bastion's lab.config.
 ```
@@ -47,7 +50,7 @@ make init-lab
 ```
 
 ## Run a pilot test on a fresh Regulus workspace:
-It recommends to run a pilot test to verify your Regulus set up. On the Cricible controller
+It recommends to run a pilot test to verify your Regulus set up. On the Crucible controller
  
 1. Add a simple test case to ./jobs.config such as the ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
 2. Initialize the job
