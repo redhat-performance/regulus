@@ -4,10 +4,10 @@
 # Compute  sar-net packets-sec  metric average (across all primary periods) of a specific hostname.
 #
 # Usage: 
-# 1. Use the first element of NAMES array
-#   $ reg-gen-pps 
-# 2. Specific hostname to collect CPU
-#   $ HOST_NAME="master-0.blueprint-cwl.nokia.core.bos2.lab" reg-gen-pps   
+#   1. Invoke from the test case base directory. We may have several run-TAG-<DATE>/
+#       $ reg-gen-pps 
+#   2. Invoke from the a run-dir ./run-TAG-<DATE>/  which may have been tar'ed i.e *,.tgz
+#       $ reg-gen-pps 
 
 
 #!/usr/bin/env bash
@@ -284,6 +284,11 @@ function host_iter {
 
     # Iterate over each hosts in the array
     for host in "${hosts[@]}"; do
+        if [ -z "$host" ]; then
+            # empty line
+            continue
+        fi
+        echo Processing host:$host
         if [[ ${host} =~ ^[[:space:]]*# ]]; then
             continue
         fi
@@ -292,7 +297,7 @@ function host_iter {
         dir=$(echo "$host" | sed -n 's/.*DIR="\([^"]*\)".*/\1/p')
 
         {
-            echo Exeuting: f-gen-pps "$bench" "$host_name" "$dev_name" "$dir"
+            echo Executing: f-gen-pps "$bench" "$host_name" "$dev_name" "$dir"
             (f-gen-pps "$bench" "$host_name" "$dev_name" "$dir") 
         } | tee pps-gen-summary-$host_name-$dev_name-$dir.txt
     done
@@ -335,6 +340,20 @@ else
 fi
 
 echo HN bench=$bench RUNS=$RUNS
+
+if [ -z "$RUNS" ]; then
+    # this dir might have been tgz, so try that
+    name=$(basename "$(ls *.tgz 2>/dev/null)" .tgz)
+
+    echo Trying tgz=$name
+    if [[ -z "$name" ]]; then
+        echo "No .tgz file found."
+        exit
+    else
+        host_iter $name
+        exit
+    fi
+fi
 
 # all dirs with matching prefix ii.e  iperf--2022-06-19_14:30:29_UTC--09f2d1fd-7695-46e9-88f8-bbf877fa7ce4/
 # Should be one match. Multiple matches is confusing, but that is under the users control.
