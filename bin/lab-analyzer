@@ -189,13 +189,13 @@ function create_mirror_repo_on_bastion {
         ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git init 2>/dev/null"
 
         # Add the remote repository to local Git config. But remove remote first if there was a old one.
-        git remote remove peer-regulus  2>/dev/null 
-        echo "CMD: git remote add peer-regulus ${remote_user}@${remote_host}:${remote_repo_path}" >&2
-        git remote add peer-regulus ${remote_user}@${remote_host}:${remote_repo_path} 
+        git remote remove $local_basename-peer-regulus  2>/dev/null 
+        echo "CMD: git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${remote_repo_path}" >&2
+        git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${remote_repo_path} 
 
         # Push your local repository to the remote/bastion repository
-        echo "CMD: git push peer-regulus ${current_branch}"  >&2
-        git push peer-regulus ${current_branch}
+        echo "CMD: git push $local_basename-peer-regulus ${current_branch}"  >&2
+        git push $local_basename-peer-regulus ${current_branch}
 
         # Switch to the current branch on the remote/bastion machine
         echo "CMD: ssh ${remote_user}@${remote_host} cd ${remote_repo_path} && git checkout ${current_branch}"  >&2
