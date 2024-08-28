@@ -1,0 +1,17 @@
+apiVersion: k8s.ovn.org/v1
+kind: EgressIP
+metadata:
+  name: egress-$OCP_PROJECT
+spec:
+  egressIPs:
+  -  192.168.91.93
+  -  192.168.91.92
+  -  192.168.91.91
+  -  192.168.91.90
+  -  192.168.91.89
+  -  192.168.91.88
+  -  192.168.91.87
+  -  192.168.91.86
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: $OCP_PROJECT

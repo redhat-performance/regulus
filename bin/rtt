@@ -1,0 +1,5 @@
+# print traceroute result in iperf-client-stderrout.txt
+
+find . -name "iperf-client-stderrout.txt" -exec sh -c 'awk "{for(i=2;i<=NF;i++) if (\$i ~ /ms/) print \$(i-1)}" "$1"' _ {} \;
+
+

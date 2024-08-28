@@ -1,0 +1,31 @@
+{
+  "global-options": [
+    {
+      "name": "common-params",
+      "params": [
+        { "arg": "duration", "vals": ["120"] },
+        { "arg": "protocol", "vals": ["tcp"] },
+        { "arg": "nthreads", "vals": ["1"] },
+        { "arg": "ifname", "vals": ["eth0"], "role": "server" },
+        { "arg": "passthru", "vals": ["-B$IPSEC_EP"], "role": "client" }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "test-type", "vals": ["stream"] },
+        { "arg": "wsize", "vals": ["512","32768"] }
+        ]
+    },
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "test-type", "vals": ["rr"] },
+        { "arg": "wsize", "vals": ["1024"] },
+        { "arg": "rsize", "vals": ["1024"] }
+      ]
+    }
+  ]
+}

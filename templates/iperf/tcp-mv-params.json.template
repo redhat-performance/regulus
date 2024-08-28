@@ -1,0 +1,23 @@
+{
+  "global-options": [
+    {
+      "name": "common-params",
+      "params": [
+        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" },
+        { "arg": "time", "vals": ["120"] },
+        { "arg": "omit", "vals": ["3"] },
+        { "arg": "protocol", "vals": ["tcp"] },
+        { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
+        { "arg": "passthru", "vals": ["$TPL_DIR"], "role": "client" }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "length", "vals": ["512","32768"] }
+      ]
+    }
+ ]
+}

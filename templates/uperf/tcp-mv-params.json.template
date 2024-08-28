@@ -22,8 +22,8 @@
       "include": "common-params",
       "params": [
         { "arg": "test-type", "vals": ["rr"] },
-        { "arg": "wsize", "vals": ["512"] },
-        { "arg": "rsize", "vals": ["4096"] }
+        { "arg": "wsize", "vals": ["1024"] },
+        { "arg": "rsize", "vals": ["1024"] }
       ]
     },
     {
@@ -31,7 +31,7 @@
       "params": [
         { "arg": "test-type", "vals": ["crr"] },
         { "arg": "wsize", "vals": ["512"] },
-        { "arg": "rsize", "vals": ["2048"] }
+        { "arg": "rsize", "vals": ["512"] }
       ]
     }
   ]

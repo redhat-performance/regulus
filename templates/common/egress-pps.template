@@ -1,0 +1,5 @@
+{HOST_NAME="appworker-0.blueprint-cwl.nokia.core.bos2.lab", DEV="ens15f0np0", DIR="rx"}
+{HOST_NAME="appworker-0.blueprint-cwl.nokia.core.bos2.lab", DEV="ens15f0np0", DIR="tx"}
+{HOST_NAME="rhel-performance", DEV="ens15f0", DIR="rx"}
+{HOST_NAME="rhel-performance", DEV="ens15f0", DIR="tx"}
+

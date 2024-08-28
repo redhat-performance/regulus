@@ -1,0 +1,32 @@
+apiVersion: performance.openshift.io/v2
+kind: PerformanceProfile
+metadata:
+  name: ${MCP}
+spec:
+  cpu:
+    isolated: "${ISOLATED_CPUS}"
+    reserved: "${RESERVED_CPUS}"
+  hugepages:
+    defaultHugepagesSize: "1G"
+    pages:
+    - size: "1G"
+      count: 16 
+  globallyDisableIrqLoadBalancing: true
+  additionalKernelArgs:
+    - "rcupdate.rcu_normal_after_boot=0"
+    - "efi=runtime"
+    - "vfio_pci.enable_sriov=1"
+    - "vfio_pci.disable_idle_d3=1"
+    - "module_blacklist=irdma"
+  numa:
+    topologyPolicy: "restricted"
+  realTimeKernel:
+    enabled: false 
+  workloadHints:
+    realTime: true
+    highPowerConsumption: false
+    perPodPowerManagement: false
+  nodeSelector:
+    node-role.kubernetes.io/${MCP}: "" 
+  machineConfigPoolSelector:
+   machineconfiguration.openshift.io/role: ${MCP}

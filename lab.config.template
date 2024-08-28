@@ -12,6 +12,9 @@ export OCP_WORKER_0=worker000-1029p
 export OCP_WORKER_1=worker001-1029p
 export OCP_WORKER_2=worker002-1029p
 
+export BMLHOSTA=
+export BMLHOSTB=
+
 # crucible user tag
 export REG_DP=415
 

@@ -1,0 +1,9 @@
+### INGRESS via NodePort ####
+Requirement:
+1. topology = ingress
+1. Do not have lvSvc in run,sh
+
+How:
+1. k8s endpoint creates nodePort and tell Client this nodeIP
+2. client resolves nodeIP to vlan46 subnet, and sends traffic to appNode's vlan46.
+

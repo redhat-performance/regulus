@@ -1,0 +1,9 @@
+#### INGRESS via LB ####
+
+Requirements:
+1. METALLB install.sh
+2. run.sh has lbSvc=crucible-lb
+
+How:
+1. k8s endpoint create lbSvc and tell client this lbSvc IP
+2. RHEL find lbSvc IP on bond-tenant.210 subnet. GW node receives packet and forward to Appanode
