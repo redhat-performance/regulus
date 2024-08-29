@@ -1,5 +1,10 @@
-# find all directories that I need to work on.
+#!/bin/bash
+# 
+# find all directories with result-summary.txt and execute reg-gen-pps 
+#
+
 ALL=$(find . -maxdepth 8 -name result-summary.txt)
+
 # we have results-summary.txt both places. Besure to ignore the one under the blob ./run/result-summary.txt
 # ../blob/run/result-summary.txt
 # ../blob/result-summary.txt

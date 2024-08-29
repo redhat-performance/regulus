@@ -18,7 +18,7 @@ export HOST_NAME=${HOST_NAME:-""}
 # Hostnames to sum
 NAMES=(
         "appworker-0.blueprint-cwl.nokia.core.bos2.lab"
-        "master-0.blueprint-cwl.nokia.core.bos2.lab"
+        "gateway-0.blueprint-cwl.nokia.core.bos2.lab"
         # Add more names as needed
 )
 
