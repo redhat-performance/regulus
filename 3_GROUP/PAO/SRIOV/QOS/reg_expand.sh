@@ -23,7 +23,7 @@ envsubst '$MCP,$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-pao-node-confi
 
 # generate custom CPU resources and set to 2 CPUs
 export TPL_NUMCPUS=2
-envsubst '$TPL_NUMCPUS' < ${REG_TEMPLATES}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
+envsubst '$TPL_NUMCPUS' < ${REG_COMMON}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
 
 # generate annotation. Use hardcopy
 envsubst '' < ${REG_COMMON}/annotations-sriov-pao-qos.json.template  > ${MANIFEST_DIR}/annotations.json
