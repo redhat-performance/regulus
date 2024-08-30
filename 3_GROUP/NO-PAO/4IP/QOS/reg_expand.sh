@@ -21,7 +21,7 @@ envsubst '$TPL_RESOURCES' < ${REG_TEMPLATES}/base-node-config.template > ${MANIF
 
 # generate custom CPU resources
 export TPL_NUMCPUS=2
-envsubst '$TPL_NUMCPUS' < ${REG_TEMPLATES}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
+envsubst '$TPL_NUMCPUS' < ${REG_COMMON}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
 
 # generate placement. standard-32pairs.placement.template 
 envsubst '' < ${REG_TEMPLATES}/std.placement.template  > ${MANIFEST_DIR}/pairs.placement

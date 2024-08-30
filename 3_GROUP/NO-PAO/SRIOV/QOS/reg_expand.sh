@@ -25,7 +25,7 @@ envsubst '$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-node-config.templat
 
 # generate custom CPU resources and set to 2 CPUs
 export TPL_NUMCPUS=2
-envsubst '$TPL_NUMCPUS' < ${REG_TEMPLATES}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
+envsubst '$TPL_NUMCPUS' < ${REG_COMMON}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
 
 # gen annotations
 envsubst '' < ${REG_COMMON}/annotations-sriov.json.template  > ${MANIFEST_DIR}/annotations.json
