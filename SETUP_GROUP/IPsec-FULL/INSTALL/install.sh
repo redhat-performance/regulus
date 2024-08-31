@@ -8,6 +8,6 @@ fi
 # remote REG_ROOT can be different i.e root vs kni. Extract the regulus dir part
 reg_dir=$(basename "$REG_ROOT")
 
-ssh $REG_KNI_USER@$REG_OCPHOST "cd $reg_dir && source bootstrap.sh && cd IPsec-full/EIP && bash install.sh "  
+ssh $REG_KNI_USER@$REG_OCPHOST "cd $reg_dir && source bootstrap.sh && cd IPsec-FULL-config && bash install.sh "  
 
 # Done
