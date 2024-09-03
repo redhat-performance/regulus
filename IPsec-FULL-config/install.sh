@@ -9,11 +9,10 @@ channel="$(get_ocp_channel)"
 if [ "$channel" == "4.14"  ] ; then
     oc patch networks.operator.openshift.io cluster --type=merge  -p '{"spec":{"defaultNetwork":{"ovnKubernetesConfig":{"ipsecConfig":{ }}}}}'
 else
-    echo "Regulus does not support $channel IPsec config"
+    oc patch networks.operator.openshift.io cluster --type=merge -p '{"spec":{"defaultNetwork":{"ovnKubernetesConfig":{"ipsecConfig":{"mode": "Full"}}}}}'
+
 fi
 
-#
-# 4.15 config 
-# oc patch networks.operator.openshift.io cluster --type=merge -p '{"spec":{"defaultNetwork":{"ovnKubernetesConfig":{"ipsecConfig":{"mode": "Full"}}}}}'
+# debug: oc get networks.operator.openshift.io cluster -o yaml
 
 
