@@ -5,6 +5,7 @@
 
 source ${REG_ROOT}/system.config
 source ${REG_ROOT}/lab.config
+source ${REG_ROOT}/templates/common/worker_labels.config
 
 DURATION=${DURATION:-0}
 
@@ -150,7 +151,18 @@ for num_pods in $scale_up_factor; do
     num_servers=$num_clients
     if [ "$topo" != "interhost" ]; then # Any test involving ocp/k8s
         ssh $k8susr@$ocphost "kubectl get nodes -o json" >nodes.json
-        workers=(`jq -r '.items[] | .metadata.labels | select(."node-role.kubernetes.io/worker" != null) | ."kubernetes.io/hostname"' nodes.json | tr '\n' ' '`)
+        # support one MATCH label and one MATCH_NOT label for workers selection
+        if [ -z "$MATCH" ]; then
+            my_select_var=".\"node-role.kubernetes.io/worker\" != null"
+        else
+            my_select_var=".\"node-role.kubernetes.io/$MATCH\" != null"
+        fi
+        if [ -n "$MATCH_NOT" ]; then
+            my_select_var+=" and .\"node-role.kubernetes.io/$MATCH_NOT\" == null"
+        fi
+        workers=($(jq -r ".items[] | .metadata.labels | select($my_select_var) | .\"kubernetes.io/hostname\"" nodes.json))
+        #echo workers: "${workers[@]:0:3}"
+
         first_worker=`echo ${workers[0]}`
         if [ -z "$first_worker" ]; then
             "First worker not defined, exiting"
