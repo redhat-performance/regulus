@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # testbed/cluster discovery and validation
 # 	1. Discover cluster_type, num_workers and num_cpus (per worker)
@@ -6,8 +6,9 @@
 #
 auto_fix="true"
 
-
 source ${REG_ROOT}/lab.config
+reg_dir=$(basename "$REG_ROOT")
+
 
 # We compute the number of CPUs for each pod based on the node.allocatable.cpu.
 # We learn this value during during lab-analyzer time, and this value can go down
@@ -25,7 +26,37 @@ tb_info='{
     "CORE_PERSOCKET": 		"value3"
 }'
 
+function exit_error() {
+    local msg
+    msg="$1"
+    echo "[ERROR] ${msg}" 1>&2
+    exit 1
+}
+
+
+function do_ssh() {
+    local user_host user host ssh_cmd
+    user_host=$1; shift
+    user=`echo $user_host | awk -F@ '{print $1}'`
+    host=`echo $user_host | awk -F@ '{print $2}'`
+    ssh_cmd=""
+    if [ -z "$user" ]; then
+        exit_error "do_ssh: user was blank: $user_host"
+    fi
+    if [ -z "$host" ]; then
+        exit_error "do_ssh: host was blank: $user_host"
+    fi
+    ssh_cmd="ssh $ssh_opts $user_host bash -c \"$@\""
+
+    echo CMD: $ssh_cmd  >&2
+    $ssh_cmd
+    local rc=$?
+    return $rc
+}
+
+
 function f_verify_lab_config {
+echo IN: f_verify_lab_config  >&2
     # Verify a few common missed setup activities.
     #   REG_KNI_USER (root vs kni)
     #   All export vars (most likely b/c user forgot to fixup lab.config)
@@ -33,7 +64,9 @@ function f_verify_lab_config {
     #   PAO-config (user has not invoked "make init")
 
     local DEST="$REG_KNI_USER@$REG_OCPHOST"
-    workers=$(ssh $DEST "oc get nodes --selector='node-role.kubernetes.io/worker' -o jsonpath='{.items[*].metadata.name}'")
+    #workers=$(ssh $DEST "oc get nodes --selector='node-role.kubernetes.io/worker' -o jsonpath='{.items[*].metadata.name}'")
+    workers=$(do_ssh $DEST "source $reg_dir/lab.config &&  oc get nodes --request-timeout=30s --selector='node-role.kubernetes.io/worker' -o jsonpath='{.items[*].metadata.name}'")
+    
     if [ $? -ne 0 ] ; then
         echo "Cannot ssh to bastion $DEST" >&2
         exit 1
@@ -56,7 +89,8 @@ function f_verify_lab_config {
 
     # Check lab.config consistency
     reg_dir=$(basename "$REG_ROOT")
-    rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
+    #rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
+    rem_exports=$(do_ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
     local_exports=$(cd $REG_ROOT && cat lab.config | grep export | grep -v '#')
     if [ "$rem_exports" != "$local_exports" ]; then
         if [ "$auto_fix" == "true" ]; then
@@ -72,16 +106,17 @@ function f_verify_lab_config {
     # first before we can run make init for SRIOV/UNIV/
     if [ "$auto_fix" == "true" ]; then
         echo "CMD: ssh $DEST cd $reg_dir && source bootstrap.sh && make init-lab" >&2
-        ssh $DEST "cd $reg_dir && source bootstrap.sh && make init-lab"
+        #ssh $DEST "cd $reg_dir && source bootstrap.sh && make init-lab"
+        do_ssh $DEST "cd $reg_dir && source bootstrap.sh && make init-lab"
     fi
 
     # Check SRIOV-config and PAO-config ready on the bastion
-    file=$(ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && ls setting.env")
+    file=$(do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && ls setting.env")
     if [ -z "$file" ] ; then
         if [ "$auto_fix" == "true" ]; then
             echo "WARN: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
             echo "auto_fix is ON. Fixing it"  >&2
-            (ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && make init")
+            (do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && make init")
         else
             echo "ERROR: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
             echo "Hint: go to $reg_dir/SRIOV-config/UNIV on the bastion and 'make init'" >&2
@@ -89,12 +124,12 @@ function f_verify_lab_config {
         fi
     fi
 
-    file=$(ssh $DEST "cd $reg_dir && source bootstrap.sh && cd PAO-config && ls setting.env")
+    file=$(do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd PAO-config && ls setting.env")
     if [ -z "$file" ] ; then
         if [ "$auto_fix" == "true" ]; then
             echo "WARN: PAO-config is not yet initialized on the bastion" >&2
             echo "auto_fix is ON. Fixing it"  >&2
-            (ssh $DEST "cd $reg_dir && source bootstrap.sh && cd PAO-config/ && make init")
+            (do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd PAO-config/ && make init")
 
         else
             echo "ERROR: PAO-config is not yet initialized on the bastion" >&2
@@ -119,7 +154,7 @@ function f_update_tb_info {
 
 function f_get_cluster_type {
 	# number of node is 1 or 3 or more
-	num_node="$(ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get nodes --no-headers" | wc -l)"
+	num_node="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get nodes --no-headers" | wc -l)"
 	case $num_node in
 		1)
 			echo "SNO"
@@ -134,7 +169,7 @@ function f_get_cluster_type {
 }
 
 function f_validate_worker_nodes {
-	workers="$(ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get nodes --no-headers --selector=node-role.kubernetes.io/worker=")"
+	workers="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get nodes --no-headers --selector=node-role.kubernetes.io/worker=")"
 	tb_num_workers=$(echo "$workers" | wc -l)
 	worker_names=$(echo "$workers" | awk '{print $1}')
 	#echo names=$worker_names
@@ -167,31 +202,36 @@ function create_mirror_repo_on_bastion {
     # Set the remote repository path to match the local path
 
     local_basename=$(basename "$REG_ROOT")
-    remote_dirname=$(ssh ${remote_user}@${remote_host} "pwd")
+    remote_dirname=$(do_ssh ${remote_user}@${remote_host} "pwd")
     remote_repo_path=$remote_dirname/$local_basename
 
     # Get the current branch name from the local repository
     current_branch=$(git branch --show-current)
 
     # Check if the remote repository already exists
-    repo_exists=$(ssh ${remote_user}@${remote_host} "[ -d ${remote_repo_path}/.git ] && echo 'exists' || echo 'not exists'")
+    repo_exists=$(do_ssh ${remote_user}@${remote_host} "[ -d ${remote_repo_path}/.git ] && echo 'exists' || echo 'not exists'")
 
     if [ "$repo_exists" = "exists" ]; then
         echo "The repository already exists on the bastion host at ${remote_repo_path}. No action taken." >&2
-    else
+        do_ssh ${remote_user}@${remote_host} "rm -fr ${remote_repo_path}"
+    fi
+    #else
         echo "The repository does not exist. Creating the repository on the bastion host..."  >&2
  
         # Create the regulus dir on the bastion host
-        ssh ${remote_user}@${remote_host} "mkdir -p ${remote_repo_path}"
+        do_ssh ${remote_user}@${remote_host} "mkdir -p ${remote_repo_path}"
 
         # Initialize a non-bare repository on the bastion host
         
-        ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git init 2>/dev/null"
+        do_ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git init 2>/dev/null"
 
         # Add the remote repository to local Git config. But remove remote first if there was a old one.
         git remote remove $local_basename-peer-regulus  2>/dev/null 
         echo "CMD: git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${remote_repo_path}" >&2
+
+
         git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${remote_repo_path} 
+
 
         # Push your local repository to the remote/bastion repository
         echo "CMD: git push $local_basename-peer-regulus ${current_branch}"  >&2
@@ -199,31 +239,34 @@ function create_mirror_repo_on_bastion {
 
         # Switch to the current branch on the remote/bastion machine
         echo "CMD: ssh ${remote_user}@${remote_host} cd ${remote_repo_path} && git checkout ${current_branch}"  >&2
-        ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git checkout ${current_branch}"
+        do_ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git checkout ${current_branch}"
 
         # finally copy mirror lab.config and jobs.config to remote
         scp lab.config ${remote_user}@${remote_host}:/${remote_repo_path}/
         scp jobs.config ${remote_user}@${remote_host}:/${remote_repo_path}/
+        scp bin/lab-analyzer ${remote_user}@${remote_host}:/${remote_repo_path}/bin/
 
         echo "Repository has been successfully created and mirrored to the bastion host. The branch '${current_branch}' has been checked out."  >&2
-    fi
+    #fi
 }
 
-# run the repo morror process in a sub-shell, to avoid all the unwanted messages
-(
-    # Install regulus repo on the bastion if applicable
-    create_mirror_repo_on_bastion
-) > lab-init.log 2>&1
 
 # continue
 if [ "$(hostname)" != "$REG_OCPHOST" ]  &&  [ "$(hostname -i)" != "$REG_OCPHOST" ] ; then
     echo "$0 is running on the controller ... check lab.config match" >&2
+    # mirror repo in a sub-shell, to avoid all the unwanted messages
+    (
+        # Install regulus repo on the bastion if applicable
+        create_mirror_repo_on_bastion
+    ) > lab-init.log 2>&1
     f_verify_lab_config 
 else
     echo "$0 is running on the bastion ... skip lab.config match check" >&2
 fi
 
-if ! ssh $REG_KNI_USER@$REG_OCPHOST oc get node  &>/dev/null ; then
+echo CMD: do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && oc get node"  >&2
+
+if ! do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && oc get node"  &>/dev/null ; then
 	echo "Error: Please confirm REG_KNI_USER and REG_OCPHOST in lab.config" >&2
 	exit 1
 fi
@@ -233,7 +276,7 @@ tb_cluster_type=$(f_get_cluster_type)
 echo "cluster_type=$tb_cluster_type" >&2
 f_validate_worker_nodes
 first_worker="$(echo $worker_names | awk '{print $1}')"
-tb_alloc_cpus="$(ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get node/$first_worker -ojsonpath='{.status.allocatable.cpu}'")"
+tb_alloc_cpus="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get node/$first_worker -ojsonpath='{.status.allocatable.cpu}'")"
 
 
 # Round-down to whole CPU if we see like 31500m
@@ -245,7 +288,7 @@ tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
 echo "useable_cpus=$tb_useable_cpus" >&2
 
 # get worker cpu topology
-cps_string="$(ssh $REG_KNI_USER@$REG_OCPHOST "ssh core@$first_worker lscpu" | grep Core)"
+cps_string="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "ssh core@$first_worker lscpu" | grep Core)"
 if [ -z "$cps_string" ]; then
     echo "Failed to ssh core@$first_worker. Please setup 'core' login" >&2
     exit 
