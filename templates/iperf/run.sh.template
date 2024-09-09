@@ -4,7 +4,7 @@
 # -*- mode: sh; indent-tabs-mode: nil; sh-basic-offset: 4 -*-
 source ${REG_ROOT}/system.config
 source ${REG_ROOT}/lab.config
-source ${REG_ROOT}/template/common/worker_labels.config
+source ${REG_ROOT}/templates/common/worker_labels.config
 
 DURATION=${DURATION:-0}
 
