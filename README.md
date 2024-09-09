@@ -24,8 +24,9 @@ With Regulus, the workflow is as follows
 
 ## Prerequisite
 1. Your Crucible controller has been setup and is working with your testbed in the standard way.
-2. The passwordless ssh from crucible controller to the bastion host is working. Please verify "ssh kni-username@bastion-host" works.
-3. For Regulus to initialize the testbed, among other things, it needs to learn the first worker node CPU topology. So, passwordless ssh from the bastion to the first worker node should also be setup i.e from the bastion "ssh core@your-workernode-0" works.
+2. The passwordless ssh from crucible controller to the bastion host MUST be setup. Please verify "ssh kni-username@bastion-host" works.
+3. Passworless on the bastion to itsself MUST be settup i.e ssh kni-username@bastion-host
+4. For Regulus to initialize the testbed, among other things, it needs to learn the first worker node CPU topology. So, passwordless ssh from the bastion to the first worker node MUST be setup i.e from the bastion "ssh core@your-workernode-0" works.
 
 
 ## Set up Regulus on the crucible controller
