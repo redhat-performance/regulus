@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+#
+# Regulus setup diag
+#
+# Many "make init-lab" failures are from missing lab preparation. This tool helps identifying the cause.
+# 
+# Prerequisite:
+#   1. Complete lab.config
+#   2. cd $REG_ROOT && source bootstrap.sh 
+# Usage:
+#   ./reg-setup-diag [--help --verbose]
+#
+
+source ${REG_ROOT}/lab.config
+reg_dir=$(basename "$REG_ROOT")
+
+function exit_error() {
+    local msg
+    msg="$1"
+    echo "[ERROR] ${msg}" 1>&2
+    exit 1
+}
+
+function do_ssh() {
+    local user_host user host ssh_cmd
+    user_host=$1; shift
+    user=`echo $user_host | awk -F@ '{print $1}'`
+    host=`echo $user_host | awk -F@ '{print $2}'`
+    ssh_cmd=""
+    if [ -z "$user" ]; then
+        exit_error "do_ssh: user was blank: $user_host"
+    fi
+    if [ -z "$host" ]; then
+        exit_error "do_ssh: host was blank: $user_host"
+    fi
+    ssh_cmd="ssh $ssh_opts $user_host bash -c \"$@\""
+
+    echo CMD: $ssh_cmd  >&2
+    $ssh_cmd
+    local rc=$?
+    return $rc
+}
+
+f_readiness_check () {
+    local DEST="$REG_KNI_USER@$REG_OCPHOST"
+
+    # Step1 - can  ssh to the bastion
+    echo "Step 1 Check ssh to bastion"
+    if ! do_ssh $DEST "pwd"  &>/dev/null ; then
+		echo "ERROR: Please ensure passwordless to the bastion is ready i.e ssh $REG_KNI_USER@$REG_OCPHOST "pwd" "
+		exit 1
+    else
+	    if [ "$verbose" == "true" ]; then
+            echo "OK: passwordless ssh to bastion is ready  i.e ssh $REG_KNI_USER@$REG_OCPHOST"
+        fi
+	fi
+
+    # step 2 can ssh  on the bastion
+    echo "Step 2 Check bastion ssh to itself"
+    if ! do_ssh  $DEST "cd $reg_dir &&  source bootstrap.sh &&  ssh $REG_KNI_USER@$REG_OCPHOST exit"   &>/dev/null; then
+        echo ERROR: Please ensure on the bastion, passworless ssh to itself is ready i.e "\"cd $reg_dir && source bootstrap.sh && ssh $REG_KNI_USER@$REG_OCPHOST exit \""
+    else
+	    if [ "$verbose" == "true" ]; then
+            echo OK: on the passtion, passwordless ssh to itself is ready i.e. ssh $REG_KNI_USER@$REG_OCPHOST "\"cd $reg_dir && source bootstrap.sh && ssh $REG_KNI_USER@$REG_OCPHOST exit\""
+        fi
+    fi
+
+    # step 3 - can ssh core@worker
+    echo "Step 3 Check bastion ssh to core"
+    if ! do_ssh  $DEST "cd $reg_dir &&  source bootstrap.sh &&  ssh core@$OCP_WORKER_0 exit"   &>/dev/null; then
+		echo ERROR: Please ensure on bastion, passwordless ssh to core is ready i.e "\"cd $reg_dir && source bootstrap.sh && ssh core@$OCP_WORKER_0 is ready\""
+		exit 1
+    else 
+	    if [ "$verbose" == "true" ]; then
+            echo OK: passworless ssh to core is ready i.e ssh $REG_KNI_USER@$REG_OCPHOST "\"cd $reg_dir && source bootstrap.sh && ssh core@$OCP_WORKER_0 is ready\""
+        fi
+    fi
+
+    # Step 4: on the bastion: ssh to bastion
+    echo "Step 4 Check bastion invoking \"make lab-init\""
+    if ! do_ssh $DEST "cd $reg_dir && source bootstrap.sh && make clean-lab && make init-lab"  &>/dev/null ; then
+		echo ERROR: Please ensure on bastion make init-lab is ready i.e ssh $REG_KNI_USER@$REG_OCPHOST "\"cd $reg_dir && source bootstrap.sh && make clean-lab && make init-lab\""
+		exit 1
+    else
+	    if [ "$verbose" == "true" ]; then
+            echo OK: on bastion make init-lab is ready i.e ssh $REG_KNI_USER@$REG_OCPHOST "\"cd $reg_dir && source bootstrap.sh && make clean-lab && make init-lab\""
+        fi
+    fi
+}
+
+function f_help {
+    me=`basename "$0"` 
+    echo Usage: $me "[--help --verbose]"
+}
+
+longopts=",verbose,help"
+opts=$(getopt -q -o "" --longoptions "$longopts" -n "getopt.sh" -- "$@");
+if [ $? -ne 0 ]; then
+    echo "Unrecognized option specified"
+    exit
+fi
+eval set -- "$opts";
+while true; do
+    case "$1" in
+        --verbose)
+            shift;
+            verbose=true
+            ;;
+        --)
+            shift;
+            break
+            ;;
+        --help)
+            shift;
+            f_help
+            exit
+            ;;
+        *)
+            echo "Invalid option: $1"
+            exit
+    esac
+done
+
+f_readiness_check
+
+echo "$0: COMPLETE - no errors" >&2
+
+# done
+
