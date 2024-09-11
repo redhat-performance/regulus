@@ -21,7 +21,7 @@ scale_out_factor=1   # Determines the number of hosts/nodes that will get used
                  #  consists of first worker running uperf-client pods and the second uperf-server pods.
                  # For ingress/egress: (OCP) total workers = 1 * $scale_out_factor, where uperf client and server
                  #  pods are on the same worker (no external traffic)
-userenv=fedora38 # can be centos7, centos8, stream, rhubi8, debian, opensuse
+userenv=fedora-latest # can be centos7, centos8, stream, rhubi8, debian, opensuse
 osruntime=chroot # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
 
 
