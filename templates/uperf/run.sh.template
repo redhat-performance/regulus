@@ -160,6 +160,10 @@ for num_pods in $scale_up_factor; do
         if [ -n "$MATCH_NOT" ]; then
             my_select_var+=" and .\"node-role.kubernetes.io/$MATCH_NOT\" == null"
         fi
+        if [ -n "$MATCH_NOT_1" ]; then
+            my_select_var+=" and .\"node-role.kubernetes.io/$MATCH_NOT_1\" == null"
+        fi
+        workers=($(jq -r ".items[] | .metadata.labels | select($my_select_var) | .\"kubernetes.io/hostname\"" nodes.json))
         workers=($(jq -r ".items[] | .metadata.labels | select($my_select_var) | .\"kubernetes.io/hostname\"" nodes.json))
         #echo workers: "${workers[@]:0:3}"
 
