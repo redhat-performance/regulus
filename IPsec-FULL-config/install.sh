@@ -13,6 +13,8 @@ else
     oc patch networks.operator.openshift.io cluster --type=merge -p '{ "spec":{ "defaultNetwork":{ "ovnKubernetesConfig":{ "ipsecConfig":{ "mode":"Full" }}}}}'
 fi
 
+wait_mcp
+
 # debug: oc get networks.operator.openshift.io cluster -o yaml
 
 
