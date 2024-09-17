@@ -30,7 +30,7 @@ wait_mcp () {
         count=$((count-10))
     done
 
-    local status=$(mcp_mot_ready)
+    local status=$(mcp_not_ready)
     count=300
     printf "\npolling 3000 sec for mcp complete, May lose API connection if SNO, during node reboot"
     while [[ $status != "True" ]]; do
