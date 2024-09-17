@@ -33,7 +33,7 @@ wait_mcp () {
     local status=$(mcp_not_ready)
     count=300
     printf "\npolling 3000 sec for mcp complete, May lose API connection if SNO, during node reboot"
-    while [[ $status != "True" ]]; do
+    while [[ $status == "True" ]]; do
         if ((count == 0)); then
             printf "\ntimeout waiting for mcp complete on the baremetal host!\n"
             exit 1
