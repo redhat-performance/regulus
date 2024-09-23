@@ -5,10 +5,45 @@ get_ocp_channel () {
     echo ${channel}
 }
 
-# Function to check if any MCP is not ready by parsing JSON output
+ipsec_is_enable () {
+    channel="$(get_ocp_channel)"
+    if [ "$channel" == "4.14"  ]; then
+        output=$(oc get networks.operator.openshift.io cluster -o json | jq '.spec.defaultNetwork.ovnKubernetesConfig.ipsecConfig')
+	if [ "$output" == "null" ]; then
+              echo "False"
+	else
+              echo "True"
+	fi
+    else
+        # 4.15 and later
+        output=$(oc get networks.operator.openshift.io cluster -o json | jq -r '.spec.defaultNetwork.ovnKubernetesConfig.ipsecConfig.mode')
+	if [ "$output" == "Disabled" ]; then
+              echo "False"
+         else
+              echo "True"
+         fi
+    fi
+}
+
+upd_machcount=0
+
+# Function to return "True" if any MCP is not ready (UPDATED!=True or UPDATING!=False)
 mcp_not_ready() {
-    # Get the JSON output from `oc get mcp`
-    not_ready=$(oc get mcp -o json | jq -r '.items[] | select(.status.conditions[] | select(.type == "Updated").status != "True" or .type == "Updating" and .status != "False") | .metadata.name')
+    local output=$(oc get mcp -o json 2>&1)
+    local return_code=$?
+    local not_ready=""
+    if [ $return_code -ne 0 ]; then
+        echo "Command failed with exit code $return_code, $output. Retry"
+        not_ready="True"
+    elif echo "$output" | grep -i "error"; then
+        echo "Command succeeded but found error message in the output. Retry"
+        not_ready="True"
+    else
+        # Command succeeded without errors. 
+        not_ready=$(echo $output  | jq -r '.items[] | select(.status.conditions[] | select(.type == "Updated").status != "True" or .type == "Updating" and .status != "False") | .metadata.name' 2>&1)
+        # also note the UPATEDMACHINECOUNT value
+        upd_machcount=$(echo $output | jq '.items[] | {name: .metadata.name, updatedMachineCount: .status.updatedMachineCount}')
+    fi
 
     # If there are any MCPs that are not ready, echo "True" and return success status
     if [[ -n $not_ready ]]; then
@@ -20,29 +55,53 @@ mcp_not_ready() {
     fi
 }
 
-wait_mcp () {
-    local this_mcp=$1
-    printf "waiting 30 secs before checking mcp status "
-    local count=30
-    while [[ $count -gt 0  ]]; do
-        sleep 10
-        printf "."
-        count=$((count-10))
-    done
-
+# Retry to confirm the statement of "mcp not ready is <IN>"
+# IN: True/False
+# IN: max - timeout value if not making progress. We monitor the mcp UPDATEDMACHINECOUNT value. 
+# OUT:True  - statement is true
+#     False - statement is false 
+#
+wait_mcp_state_not_ready_core () {
+    local last_upd_machcount=0
+    local state=$1
+    local max=$2
+    local timeout=$max
+    local count=0
     local status=$(mcp_not_ready)
-    count=300
-    printf "\npolling 3000 sec for mcp complete, May lose API connection if SNO, during node reboot"
-    while [[ $status == "True" ]]; do
-        if ((count == 0)); then
-            printf "\ntimeout waiting for mcp complete on the baremetal host!\n"
-            exit 1
+    printf "\npolling $max sec for mcp 'not_ready'==$state. May lose API connection if SNO, during node reboot" >&2
+    while [[ "$status" != "$state" ]]; do
+        if [ "$debug" == "0" ]; then
+            echo "" >&2
+            echo in wait_mcp_state_not_ready test >&2
         fi
-        count=$((count-1))
-        printf "."
+        if ((count >= $timeout)); then
+            printf "\nTimeout waiting for mcp 'not_ready'=$state, status=$status after $count sec.!\n" >&2
+            echo "False"
+            return
+        fi
+        count=$((count+10))
+        printf "." >&2
         sleep 10
         status=$(mcp_not_ready)
+        if [ $upd_machcount != $last_upd_machcount ]; then
+           # extend expiration time since we are making progress
+           last_upd_machcount=$upd_machcount
+           timeout=$count+$max
+        fi
     done
-    printf "\nmcp complete on the baremetal host in %d sec\n" $(( (300-count) * 10 ))
+    printf "\nFound mcp 'not_ready'==$state in %d sec\n" $count >&2
+    echo "True"
+}
+
+# return True if the mcp is ready, False otherwise
+wait_mcp_state_ready () {
+    local max=$1
+    wait_mcp_state_not_ready_core "False" $max
+}
+
+# return True if mcp is NOT ready, False otherwise
+wait_mcp_state_not_ready () {
+    local max=$1
+    wait_mcp_state_not_ready_core "True" $max
 }
 
