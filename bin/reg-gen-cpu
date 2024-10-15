@@ -19,9 +19,9 @@ export CPU_LIST=${CPU_LIST:-""}
 
 # Hostnames to sum if not specified in HOST_NAME environment variable
 NAMES=(
-        "appworker-0.blueprint-cwl.nokia.core.bos2.lab"
-        "appworker-1.blueprint-cwl.nokia.core.bos2.lab"
-        "appworker-2.blueprint-cwl.nokia.core.bos2.lab"
+        "appworker-0.xxx.yyy.zzz"
+        "appworker-1.xxx.yyy.zzz"
+        "appworker-2.xxx.yyy.zzz"
         # Add more names as needed
 )
 

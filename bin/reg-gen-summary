@@ -46,6 +46,17 @@ exec > >(tee gen-summary.txt)
 g_IFNAME=ens2f0np0
 g_sut_csid=-1
 
+# Hostnames to sum. NOTE: only used if CPUS are set below.
+HOSTNAMES=(
+        "appworker-0.xxx.yyy.zzz"
+        "appworker-1.xxx.yyy.zzz"
+        "appworker-2.xxx.yyy.zzz"
+         # Add more names as needed
+ )
+ 
+# CPUs to sum. Leave empty if you want to sum without filtering CPU and HOSTNAME.
+CPUS="0,1,2,32,33,64,65,66,96,97"
+
 #
 # SUT csid is the one with highest CPU cutilization
 #
@@ -113,6 +124,40 @@ function any_cpu_accum {
     echo cpu=$val cpusum=$any_cpusum
 }
 
+# Input: pp
+function sum_cpu_by_cpus_and_hostnames {
+    total_sum=0
+
+    OLD_IFS=$IFS
+    IFS=','
+    # Loop through each name in the NAMES array
+    for name in "${HOSTNAMES[@]}"; do
+       # Get the JSON data for the host
+        json_data=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$name,num --output-format json  | sed -n '/{/,$p' )
+
+        # Loop through each cpu in the cpus' list
+        for cpu in $CPUS; do
+            # Use jq to get the value for the current name
+            # Trickiness:  the actual name in the json file has brackets wrapping around i.e. "<hostname>-<cpu>". Add brackets
+            value=$(echo "$json_data" | jq --arg key "<$name>-<$cpu>" '.values[$key][] | .value' 2>/dev/null)
+            if [ ! -z "$value" ]; then
+                total_sum=$(echo "$total_sum + $value" | bc)
+            fi
+       done
+    done
+    IFS=$OLD_IFS
+    # Print the result
+    #echo "Total Sum of Specified Values: $total_sum"
+    echo $total_sum
+}
+
+function some_cpu_accum {
+    val=$(sum_cpu_by_cpus_and_hostnames $1)
+    any_cpusum=$(calc $any_cpusum + $val)
+    ((any_cpusum_div++))
+    echo cpu=$val cpusum=$any_cpusum
+}
+
 function any_cpu_close {
     echo -n "worker CPU mean: "
     calc $any_cpusum/$any_cpusum_div
@@ -158,6 +203,8 @@ bench=
 function cpu_accum {
     if [ "$bench" == "mbench"  ] ; then
         sut_cpu_accum $1
+    elif [ ! -z "$CPUS" ] ; then
+        some_cpu_accum $1
     else
         #echo HN-short about any_cpu_accum;exit;
         any_cpu_accum $1
