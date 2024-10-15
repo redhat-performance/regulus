@@ -38,8 +38,6 @@
 #set -x
 #trap read debug
 
-
-
 exec > >(tee gen-summary.txt)
 
 #set -v
@@ -235,7 +233,6 @@ function f_l2_tput_close {
     l2_div=0
 }
 
-
 function f-gen-summ {
     exec 2> /dev/null
     
@@ -261,7 +258,6 @@ function f-gen-summ {
          echo -n " "
          grep -e "connections-sec" $1 |  grep -oP '(?<=stddevpct: )[^ ]*' 
     }
-
 
     function show-uperf-tput {
          # grep extracts mean; tr removes newline; then grep extracts stddevpct

@@ -22,7 +22,6 @@ NAMES=(
         "appworker-0.blueprint-cwl.nokia.core.bos2.lab"
         "appworker-1.blueprint-cwl.nokia.core.bos2.lab"
         "appworker-2.blueprint-cwl.nokia.core.bos2.lab"
-        #       "gateway-0.blueprint-cwl.nokia.core.bos2.lab"
         # Add more names as needed
 )
 
@@ -101,7 +100,6 @@ mpstat_metrics="Busy-CPU NonBusy-CPU"
 
 any_cpusum=0
 any_cpusum_div=0
-
 function sum_cpu {
    # Read the JSON file and sum the values using jq
    crucible get metric --source mpstat --type Busy-CPU --period C14AD596-453D-11EF-9DFF-A4AF4102E06C --breakout hostname  --output-format json  | sed -n '/{/,$p' |  jq '[.. | .value? // empty] | add'
@@ -110,7 +108,6 @@ function sum_cpu {
 echo "Total Sum of Values: $total_value"
 
 }
-
 
 # The JSON file to process
 function get_json {
