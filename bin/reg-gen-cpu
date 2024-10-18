@@ -6,21 +6,27 @@
 # 1. Use the first element of NAMES array
 #   $ reg-gen-cpu 
 # 2. Specific hostname to collect CPU
-#   $ HOST_NAME="master-0.blueprint-cwl.nokia.core.bos2.lab" reg-gen-cpu   
-
+#   $ HOST_NAME="master-0.xxx.yyy.zzz" reg-gen-cpu   
+# 3. AND/OR Specific cpus to collect CPU
+#   $ CPU_LIST="0,1,2" reg-gen-cpu
 
 #!/usr/bin/env bash
 #set -x
 #trap read debug
 
 export HOST_NAME=${HOST_NAME:-""}
+export CPU_LIST=${CPU_LIST:-""}
 
-# Hostnames to sum
+# Hostnames to sum if not specified in HOST_NAME environment variable
 NAMES=(
-        "appworker-0.blueprint-cwl.nokia.core.bos2.lab"
-        "gateway-0.blueprint-cwl.nokia.core.bos2.lab"
+        "appworker-0.xxx.yyy.zzz"
+        "appworker-1.xxx.yyy.zzz"
+        "appworker-2.xxx.yyy.zzz"
         # Add more names as needed
 )
+
+# CPUs to sum if not specified in CPU_LIST environment variable
+CPUS="0,1,2,32,33,64,65,66,96,97"
 
 if [ -z "$HOST_NAME" ]; then
     # do each in the list
@@ -32,7 +38,12 @@ if [ -z "$HOST_NAME" ]; then
 else
     SUFFIX=$HOST_NAME
 fi
-echo going to do reg-gen-cpu with HOST_NAME=$HOST_NAME
+
+if [ ! -z "$CPU_LIST" ]; then
+    CPUS="$CPU_LIST"
+fi
+
+echo going to do reg-gen-cpu with HOST_NAME=$HOST_NAME and CPU_LIST=$CPUS
 
 exec > >(tee cpu-gen-summary.$SUFFIX.txt)
 
@@ -51,7 +62,7 @@ function get_sut_csid {
 
     # get CPU metrics of all nodes
     # sed to trim all before "{", those crucible info verbage.
-    echo crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout cstype=worker,csid |  sed -n '/^{/,$p'  
+    echo crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout cstype=worker,csid |  sed -n '/^{/,$p'
     crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout cstype=worker,csid --output-format json  |  sed -n '/^{/,$p'  > $tempfile
 
     # get the highest CPU . -g: sort float, -r: rever highest on top - head -1: get the first line
@@ -80,7 +91,7 @@ function get_sut_ifname {
 }
 
 function calc { 
-    awk "BEGIN{ printf \"%.4f\", $* }"; 
+    awk "BEGIN{ printf \"%.4f\", $* }";
 }
 
 iperf_metrics="rx-Gbits/sec rx-lost/sec rx-pps tx-Mbits/sec"
@@ -105,6 +116,15 @@ function get_json {
     PP="$1"
     echo "CMD: crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout hostname " >&2
     out=$(crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout hostname  --output-format json  | sed -n '/{/,$p' )
+    echo "$out"
+    # output json object to the caller
+}
+
+function get_json_with_cpus_for_host {
+    PP="$1"
+    HOST="$2"
+    echo "CMD: crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout hostname=$HOST,num " >&2
+    out=$(crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout hostname=$HOST,num --output-format json  | sed -n '/{/,$p' )
     echo "$out"
     # output json object to the caller
 }
@@ -140,6 +160,38 @@ function get_cpu_by_hostnames {
     # the caller capture output as return val
 }
 
+# Input: pp name1 name2 ....
+# Trickiness:  the acture name in the json file has brackets wrapping around i.e. "<hostname>-<cpu>"
+function sum_cpu_by_cpus_and_hostnames {
+    PP="$1"
+    shift
+    cpus="$1"
+    shift
+
+    total_sum=0
+
+    OLD_IFS=$IFS
+    IFS=','
+    # Loop through each name in the NAMES array
+    for name in "$@"; do
+        # Get the JSON data for the host
+        json_data=$(get_json_with_cpus_for_host $PP $name)
+
+        # Loop through each cpu in the cpus' list
+        for cpu in $cpus; do
+            # Use jq to get the value for the current name
+            # Trickiness:  the actual name in the json file has brackets wrapping around i.e. "<hostname>-<cpu>". Add brackets
+            value=$(echo "$json_data" | jq --arg key "<$name>-<$cpu>" '.values[$key][] | .value' 2>/dev/null)
+            if [ ! -z "$value" ]; then
+                total_sum=$(echo "$total_sum + $value" | bc)
+            fi
+        done
+    done
+    IFS=$OLD_IFS
+    # Print the result
+    echo $total_sum
+}
+
 #
 # Input: name liist
 #
@@ -170,6 +222,19 @@ function sum_cpu_by_hostnames {
 #get_cpu_by_hostnames "${NAMES[@]}"  "${PP}"
 #exit
 
+function some_cpu_accum {
+    if [ -z "$HOST_NAME" ]; then
+        echo "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=${NAMES[0]},num=$2"
+        val=$(sum_cpu_by_cpus_and_hostnames "$1" "$2" "${NAMES[0]}")
+    else
+        echo "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=${HOST_NAME},num=$2"
+        hostname_array=("$HOST_NAME")
+        val=$(sum_cpu_by_cpus_and_hostnames "$1" "$2" "${hostname_array[0]}")
+    fi
+    any_cpusum=$(calc $any_cpusum + $val)
+    ((any_cpusum_div++))
+    echo cpu=$val cpusum=$any_cpusum
+}
 
 function any_cpu_accum {
     PP="$1"
@@ -177,7 +242,7 @@ function any_cpu_accum {
     if [ -z "$HOST_NAME" ]; then
         echo "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=${NAMES[0]}" 
         val=$(get_cpu_by_hostnames "$PP" "${NAMES[0]}")
-    else 
+    else
         echo "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=${HOST_NAME}" 
         hostname_array=("$HOST_NAME")
         val=$(get_cpu_by_hostnames "$PP" "${hostname_array[0]}")
@@ -254,6 +319,8 @@ bench=
 function cpu_accum {
     if [ "$bench" == "mbench"  ] ; then
         sut_cpu_accum $1
+    elif [ ! -z "$CPUS" ] ; then
+        some_cpu_accum $1 $CPUS
     else
         #echo HN-short about any_cpu_accum;exit;
         any_cpu_accum $1
@@ -270,20 +337,20 @@ function cpu_close {
 
 function f-gen-summ {
     exec 2> /dev/null
-    
+
     rm cpu-summary-$SUFFIX.txt
     exec > >(tee -ia cpu-summary-$SUFFIX.txt)
 
     function show-cpu {
          grep -e "CPU" $1 |  grep -oP '(?<=mean: )[^ ]*'
     }
-    
+
     function show-all {
         #echo HN:181 show-all $1 and cat input file:; cat $1
         echo "-- CPU --"
         show-cpu $1
     }
-    
+
     function f-gen-summ-mono {
 
         # For multiple samples of non-primary metric i.e CPU, we need to compute mean.
@@ -314,32 +381,32 @@ function f-gen-summ {
         #    0.00
         #    7842.33
         #
-       
-        local line;    
+
+        local line;
         Counter=0
 
-        readarray -t lines < show-summary-$1.txt 
-        for line in "${lines[@]}"; do 
+        readarray -t lines < show-summary-$1.txt
+        for line in "${lines[@]}"; do
             ((Counter++))
             #echo "Accessing line $Counter: ${line}"
             if [[ "$line" =~ "tags" || "$line" =~ "unique" ]]; then
                 echo "${line}"
             fi
-    
+
             # When seeing line "primary period-id: FF1FE266-EFDC-11EC-B247-A157F86639B4", start new submetric mean computation.
             if [[ "$line" =~ .*"primary".* ]]; then
                 #echo "HN primary line: ${line}"
                 pp=$(echo $line | awk -F ':' '{print $2}')
                 cpu_accum $pp
             fi
-        
+
             # When seing line "result: (rx-Gbps) samples: 0.26 mean: 0.26 min: 0.26 max: 0.26 stddev: NaN stddevpct: NaN",
             # close out the current mean computation.
             if [[ "$line" =~ .*"mean".* ]]; then
                 echo "${line}"                      # we need this line output
                 cpu_close
             fi
-         done 
+         done
 
     } #f-gen-summ-mono
 
@@ -367,19 +434,19 @@ function f-gen-summ {
         #    uperf: 0.00
         #    iperf UDP: 7842.33
         #
-       
+
         local pp;
         local name=$1;
         Counter=0
 
-        readarray -t lines < show-summary-$name.txt 
-        for line in "${lines[@]}"; do 
+        readarray -t lines < show-summary-$name.txt
+        for line in "${lines[@]}"; do
             ((Counter++))
             #echo "Accessing line $Counter: ${line}"
             if [[ "$line" =~ "tags" || "$line" =~ "unique" ]]; then
                 echo "${line}"
             fi
-    
+
             # When seeing line "primary period-id: FF1FE266-EFDC-11EC-B247-A157F86639B4", start new submetric mean computation.
             if [[ "$line" =~ .*"primary".* ]]; then
                 echo "HN primary line: ${line}"
@@ -393,15 +460,15 @@ function f-gen-summ {
                     echo HN:385 g_sut_csid=$g_sut_csid
                 fi
             fi
-        
+
             # Output "result: (...) samples: 0.26 mean: 0.26 min: 0.26 max: 0.26 stddev: NaN stddevpct: NaN",
             if [[ "$line" =~ .*"mean".* ]]; then
                 #echo HN:302 seeing mean
                 echo "${line}"                      # we need this line output
             fi
-        
+
        #done < show-summary-$name.txt
-       done 
+       done
 
        cpu_close
 
@@ -418,12 +485,12 @@ function f-gen-summ {
     # add show-summary output and make a copy of the final summary in this run dir.
 
     #echo HN:317
-    
+
     tempfile=$(mktemp)
     cp cpu-summary-$SUFFIX.txt $tempfile   # summary-1# contains tags. wporker CU mean and rx-lost mean
 
     show-all $tempfile > cpu-summary-$SUFFIX.txt
-    
+
     # save sum and show files to run dir.
     cp cpu-summary-$SUFFUX.txt $1  $1/ ; chmod -w cpu-summary-$SUFFIX.txt
     rm $tempfile
