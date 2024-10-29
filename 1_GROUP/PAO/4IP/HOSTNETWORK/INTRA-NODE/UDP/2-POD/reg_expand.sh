@@ -1,5 +1,5 @@
 #!/bin/bash
-# uperf PAO,IPv4,hostNetwork,INTER_NODE,2 Pods
+# uperf PAO,IPv4,hostNetwork,INTRA_NODE,2 Pods
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/uperf

@@ -1,5 +1,5 @@
 #!/bin/bash
-# uperf NO-PAO,IPv4,INTER_NODE,2 Pods
+# uperf NO-PAO,IPv4,Ingress,2 Pods
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/uperf
