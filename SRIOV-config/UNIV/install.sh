@@ -54,7 +54,7 @@ function install_sriov_operator {
 
     # install SRIOV operator
     # skip if sriov operator subscription already exists 
-    if oc get Subscription sriov-network-operator-subsription -n openshift-sriov-network-operator &>/dev/null; then 
+    if oc get Subscription sriov-network-operator-subscription -n openshift-sriov-network-operator &>/dev/null; then 
         echo "SRIOV Operator already installed: done"
     else
         #// Installing SR-IOV Network Operator done
