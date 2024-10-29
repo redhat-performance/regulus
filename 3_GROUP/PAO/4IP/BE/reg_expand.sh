@@ -24,7 +24,7 @@ envsubst '$TPL_RESOURCES,$TPL_SRIOV,$MCP' < ${REG_TEMPLATES}/base-pao-node-confi
 envsubst '' < ${REG_COMMON}/annotations-pao.json.template  > ${MANIFEST_DIR}/annotations.json
 
 # generate placement. standard-32pairs.placement.template. Use hardcopy
-envsubst '' < ${REG_TEMPLATES}/std.placement.template  > ${MANIFEST_DIR}/pairs.placement
+envsubst '' < ${REG_TEMPLATES}/pao-std.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
 # generate mv-params
 export TPL_INTF=eth0

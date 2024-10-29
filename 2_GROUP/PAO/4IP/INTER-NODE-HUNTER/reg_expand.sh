@@ -8,7 +8,7 @@ MANIFEST_DIR=./
 
 
 export TPL_SCALE_UP_FACTOR=1
-export TPL_TOPO=intranode
+export TPL_TOPO=internode
 export TPL_PAO=1
 envsubst '$TPL_SCALE_UP_FACTOR,$TPL_TOPO,$TPL_PAO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 

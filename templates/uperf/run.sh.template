@@ -74,8 +74,8 @@ irq="bal" # bal by default or rrHost or <something-else> depending on what manua
 # Variables if one or more remotehost
 # endpoints are used (topo=ingress|egress|interhost)
 #####################################
-bmlhosta=
-bmlhostb=
+bmlhosta=$BMLHOSTA
+bmlhostb=$BMLHOSTB
 
 if [ -f "${TPL_RESOURCES}" ]; then
    resource_file="`/bin/pwd`/${TPL_RESOURCES}"
@@ -87,16 +87,33 @@ fi
 function gen_resource_file() {
     local cpu=$1
     if [ "$pod_qos" == "static" ]; then
-        # use whole numbers for CPU
+        # static has number of cpu constraints.
+        #   1. multiple number of cores i.e. 2,4,6 and cannot be 1,3,5,7 when HT is on
+        #   2. if 2 CPUs per core (HT), each 2 CPU must be on the same core, In other words, the
+        #      number of CPUs cannot be great than the numbe of cores*2. And we know some
+        #      CPUs have been used the system. So we just make a best guess available cores=cores-3
+
+        # strip the last char 'm', and convert to num of whole CPU
+        local stripped_cpu="${cpu%?}"
+        local whole=$(( stripped_cpu / 1000 ))
+        # divisable by 2, since mostly we have HT on. So gu CPU must be full core.
+        cpu=$(( whole / 2 * 2 ))
+
+        # if scale factor= 1, and number of cpu is greater than 2 * (CORE_PERSOCKET - 3) will hit not enough resource.
+        if [ $scale_up_factor == 1 ]; then
+            max=$(( (CORE_PERSOCKET - 3) * 2 ))
+            if [ $cpu > $max ]; then
+                cpu=$max
+            fi
+        fi
+
         echo '"resources": {'     >$resource_file
         echo '    "requests": {' >>$resource_file
-        # TODO: horribly broken! Need to round down to whole number!
-        echo '        "cpu": "4",' >>$resource_file
+        echo '        "cpu": "'$cpu'",' >>$resource_file
         echo '        "memory": "2048Mi"' >>$resource_file
         echo '    },' >>$resource_file
         echo '    "limits": {' >>$resource_file
-        # TODO: horribly broken! Need to round down to whole number!
-        echo '        "cpu": "4",' >>$resource_file
+        echo '        "cpu": "'$cpu'",' >>$resource_file
         echo '        "memory": "2048Mi"' >>$resource_file
         echo '    }' >>$resource_file
         echo '}' >>$resource_file
@@ -151,19 +168,25 @@ for num_pods in $scale_up_factor; do
     num_servers=$num_clients
     if [ "$topo" != "interhost" ]; then # Any test involving ocp/k8s
         ssh $k8susr@$ocphost "kubectl get nodes -o json" >nodes.json
-        # support one MATCH label and one MATCH_NOT label for workers selection
+        # support one MATCH label and 4 MATCH_NOT labels for workers selection
         if [ -z "$MATCH" ]; then
             my_select_var=".\"node-role.kubernetes.io/worker\" != null"
         else
             my_select_var=".\"node-role.kubernetes.io/$MATCH\" != null"
         fi
-        if [ -n "$MATCH_NOT" ]; then
-            my_select_var+=" and .\"node-role.kubernetes.io/$MATCH_NOT\" == null"
-        fi
         if [ -n "$MATCH_NOT_1" ]; then
             my_select_var+=" and .\"node-role.kubernetes.io/$MATCH_NOT_1\" == null"
         fi
-        workers=($(jq -r ".items[] | .metadata.labels | select($my_select_var) | .\"kubernetes.io/hostname\"" nodes.json))
+        if [ -n "$MATCH_NOT_2" ]; then
+            my_select_var+=" and .\"node-role.kubernetes.io/$MATCH_NOT_1\" == null"
+        fi
+        if [ -n "$MATCH_NOT_3" ]; then
+            my_select_var+=" and .\"node-role.kubernetes.io/$MATCH_NOT_3\" == null"
+        fi
+        if [ -n "$MATCH_NOT_4" ]; then
+            my_select_var+=" and .\"node-role.kubernetes.io/$MATCH_NOT_4\" == null"
+        fi
+
         workers=($(jq -r ".items[] | .metadata.labels | select($my_select_var) | .\"kubernetes.io/hostname\"" nodes.json))
         #echo workers: "${workers[@]:0:3}"
 
@@ -234,6 +257,9 @@ for num_pods in $scale_up_factor; do
                 node_selector=`echo $node_selector | sed -e s/^,//`
             done
         endpoint_opt="--endpoint k8s,user:$k8susr,host:$ocphost"
+        if  [  ! -z ${OCP_PROJECT} ]; then
+            endpoint_opt+=",unique-project:${OCP_PROJECT}"
+        fi
         endpoint_opt+=",${node_selector}"
         endpoint_opt+=",userenv:$userenv"
         endpoint_opt+=",resources:default:$resource_file"
@@ -257,6 +283,8 @@ for num_pods in $scale_up_factor; do
     if [ "$topo" == "internode" -o "$topo" == "intranode" ]; then
         endpoint_opt+=",client:1-$num_clients,server:1-$num_servers"
     elif [ "$topo" == "ingress" ]; then
+        # EP and svc may stick around from the last abort/CTL-C. If so, delete it by hand in debug.
+
         endpoint_opt+=",server:1-$num_servers"
         endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv "
     elif [ "$topo" == "egress" ]; then
@@ -275,9 +303,6 @@ for num_pods in $scale_up_factor; do
     fi
     if [ ! -z "$other_tags" ]; then
         tags+="other_tags"
-    fi
-    if  [ "$topo" != "interhost" ] && [ ! -z ${OCP_PROJECT} ]; then
-        endpoint_opt+=",unique-project:${OCP_PROJECT}"
     fi
     if [ "$DRY_RUN" == true  ]; then
         echo DRY=true
