@@ -6,6 +6,7 @@
 source ${REG_ROOT}/system.config
 source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/templates/common/worker_labels.config
+source ${REG_ROOT}/init.sh
 
 DURATION=${DURATION:-0}
 
@@ -59,9 +60,9 @@ if [ "$TPL_SRIOV" == 1 ] ; then
     ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
 
     # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
-    ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REG_SRIOV_NAD}"
-    KNI_HOME=$(ssh $k8susr@$ocphost "pwd")
-    ssh $k8susr@$ocphost "kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
+    ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
+    #KNI_HOME=$(ssh $k8susr@$ocphost "pwd")
+    #ssh $k8susr@$ocphost "kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
 
     # sometime network-attachment takes a few seconds to be available
     sleep 5
