@@ -33,10 +33,10 @@ if is_local "$REG_OCPHOST"; then
 	REM_REG_ROOT=${REG_ROOT}
 	#echo run local REM_REG_PATH=$REM_REG_ROOT
 else
-	SUB_PATH=${REG_ROOT#$HOME/}
-        KNI_HOME=$(ssh $k8susr@$ocphost "pwd")	
-	REM_REG_ROOT=$KNI_HOME/$SUB_PATH
-	#echo run remte REM_REG_ROOT=$REG_PATH
+    SUB_PATH=${REG_ROOT#$HOME/}
+    KNI_HOME=$(ssh ${REG_KNI_USER}@${REG_OCPHOST} "pwd")
+    REM_REG_ROOT=$KNI_HOME/$SUB_PATH
+    #echo run remte REM_REG_ROOT=$REG_PATH
 fi
 
 # env to support when running on the bastion vs crucible VM
