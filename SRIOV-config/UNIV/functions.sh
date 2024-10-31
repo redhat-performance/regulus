@@ -4,11 +4,11 @@ get_ocp_channel () {
 }
 
 pause_mcp () {
-    oc patch --type=merge --patch='{"spec":{"paused":true}}' machineconfigpool/${MCP}
+    ECHO skip oc patch --type=merge --patch='{"spec":{"paused":true}}' machineconfigpool/${MCP}
 }
 
 resume_mcp () {
-    oc patch --type=merge --patch='{"spec":{"paused":false}}' machineconfigpool/${MCP}
+    ECHO resume_mcp skip: oc patch --type=merge --patch='{"spec":{"paused":false}}' machineconfigpool/${MCP}
 }
 
 # return True if either worker or my mcp is still updating.
@@ -179,3 +179,6 @@ function prompt_continue {
 
 }
 
+function ECHO {
+	echo ECHO: $@
+}

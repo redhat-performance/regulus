@@ -1,95 +1,18 @@
 #!/bin/bash
-# allow no confirm mode
-# do not unlabel nodes and remove MCP if PAO exist
-# do not remove Operator
+# There different platforms that we run on. On NCP and RDS, day-1 is ready. While on a 
+#   freshly created cluster, we are responsible for day-1.
+# Hence, we have two SRIOV config scenarios.
+#	1. Partial-installation (SriovNetworkNodePolicy and networkAttachementDefinition)
+# 	2. Full-installation (SRIOV operator + partial installation)
+# Therefore we have 2 reciprocol cleanup functions.
 
-#set -euo pipefail
-source ./setting.env
-source ./functions.sh
+source ${REG_ROOT}/lab.config
+source ${REG_ROOT}/SRIOV-config/config.env
 
-SINGLE_STEP=${SINGLE_STEP:-false}
-PAUSE=${PAUSE:-false}
-
-parse_args $@
-
-if oc get network-attachment-definition/regulus-sriov-net -n ${MCP} &>/dev/null; then
-    echo "remove SriovNetwork ..."
-    oc delete  network-attachment-definition/regulus-sriov-net -n  ${MCP}
-    echo "remove NetworkAttachmentDefinition: done"
+if [ "${SRIOV_NAD_ONLY}"  ==  "true" ]; then
+	echo SRIOV-config: NAD only
+        bash ./partial-cleanup.sh
 else
-    echo "No NetworkAttachmentDefinition to remove"
+	echo SRIOV-config: Operator and NAD 
+        bash ./full-cleanup.sh
 fi
-
-echo "Next remove SriovNetworkNodePolicy ..."
-prompt_continue
-
-# step 2 - apply
-#set -uo pipefail
-
-if oc get SriovNetworkNodePolicy regulus-sriov-node-policy -n openshift-sriov-network-operator  &>/dev/null; then
-    echo "remove SriovNetworkNodePolicy ..."
-    oc delete SriovNetworkNodePolicy regulus-sriov-node-policy -n openshift-sriov-network-operator
-    echo "remove SriovNetworkNodePolicy: done"
-    # !!!! reboot !!!! if not paused
-
-else
-    echo "No SriovNetworkNodePolicy to remove"
-    exit 0
-fi
-
-### We are on delete path. Always resume and wait before mucking the node label, and deleting mcp.
-### A messed up mcp is harder to fix. Just pay some wait time here is cheaper.
-resume_mcp
-
-# MCP may not go to UPDATING after removing SriovNetworkNodePolicy
-wait_mcp
-
-echo "Next remove node labels ..."
-prompt_continue
-
-if oc get PerformanceProfile ${MCP} &>/dev/null; then
-    echo "Performance profile is still active. Skip the rest. Done"
-    exit 0
-fi
-
-# step 2 - remove label from nodes
-if [ "${MCP}" != "master" ]; then
-    echo "removing worker node labels"
-    for NODE in $WORKER_LIST; do
-        oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}-
-    done
-fi
-
-# MCP does go to UPDATING after clear label.
-wait_mcp
-
-echo "Next delete the ${MCP} mcp  ..."
-prompt_continue
-
-if [ "${MCP}" != "master" ]; then
-    if oc get mcp ${MCP} -n openshift-sriov-network-operator &>/dev/null; then
-      echo "remove mcp ${MCP}  ..."
-      oc delete mcp ${MCP} -n openshift-sriov-network-operator
-      rm  -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
-      echo "delete mcp for mcp-regulus-vf: done"
-    else
-      echo "No mcp ${MCP} to remove."
-    fi
-else
-    oc label --overwrite mcp master machineconfiguration.openshift.io/role-
-fi
-
-echo "You don't want to remove SRIOV Operator (esp. web console installed)"
-exit
-
-echo "Continue if you want to remove the SRIOV Operator ..."
-prompt_continue
-
-if oc get Subscription sriov-network-operator-subscription -n openshift-sriov-network-operator &>/dev/null; then
-    echo "Remove  SRIOV Operator ..."
-    oc delete Subscription sriov-network-operator-subsription -n openshift-sriov-network-operator
-    rm ${MANIFEST_DIR}/sub-sriov.yaml
-fi
-
-#done
-
