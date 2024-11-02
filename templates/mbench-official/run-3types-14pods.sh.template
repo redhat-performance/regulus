@@ -53,7 +53,7 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; 
 fi
 
 if [ "${TPL_SRIOV}" == 1  ]; then
-    source ${REG_ROOT}/SRIOV-config/config.env
+	source ${REG_ROOT}/SRIOV-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
     ssh ${DEST} "kubectl create ns $OCP_PROJECT"
@@ -75,7 +75,7 @@ fi
 
 time crucible run iperf,uperf\
  --mv-params iperf-mv-params.json,uperf-mv-params.json\
- --bench-ids iperf:1-2,uperf:3-4,uperf:5-6\
+ --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\
  --tags $tags\
  --num-samples=$NUM_SAMPLES --max-sample-failures=1\
  --endpoint k8s,user:$k8susr,host:$ocp_host,$endpoint_opt,\
@@ -90,6 +90,8 @@ nodeSelector:client-${worker3_clients}:$pwd/nodeSelector-$worker3.json,\
 nodeSelector:server-${worker3_servers}:$pwd/nodeSelector-$worker3.json,\
 userenv:fedora-latest,\
 masters-tool-collect:0,\
-client:1-6,\
-server:1-6${annotation_opt}${resources_opt}
+client:1+8+15+21-24+26+27+29+31,\
+server:1+8+15+21-24+26+27+29+31${annotation_opt}${resources_opt}
+
+# 14 pods on SUT
 

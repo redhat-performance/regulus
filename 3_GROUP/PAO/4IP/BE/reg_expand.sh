@@ -1,32 +1,31 @@
 #!/bin/bash
-# mbench PAO, IPv4, Best-effort
+# mbench PAO, IPv4, SRIOV, Best-effort
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/mbench
 REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
-
 source $REG_ROOT/lab.config    		# for worker node names
 source ${REG_ROOT}/system.config	# for MCP
 
 # generate run.sh with custom-param "node-config"
 export TPL_NODE_CONF="node-config"
-envsubst '$TPL_NODE_CONF' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
+envsubst '$MCP,$TPL_NODE_CONF' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 
 # generate run-3types.sh. No custom params
 export TPL_SRIOV=0
-envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types.sh.template > ${MANIFEST_DIR}/run-3types.sh
+envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types-14pods.sh.template > ${MANIFEST_DIR}/run-3types.sh
+
 
 # generate node-config w/o custom resources. 
-envsubst '$TPL_RESOURCES,$TPL_SRIOV,$MCP' < ${REG_TEMPLATES}/base-pao-node-config.template > ${MANIFEST_DIR}/node-config
+envsubst '$MCP,$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-pao-node-config.template > ${MANIFEST_DIR}/node-config
 
-# generate annotation. Use hardcopy
+# generate annotation.
 envsubst '' < ${REG_COMMON}/annotations-pao.json.template  > ${MANIFEST_DIR}/annotations.json
 
-# generate placement. standard-32pairs.placement.template. Use hardcopy
-envsubst '' < ${REG_TEMPLATES}/pao-std.placement.template  > ${MANIFEST_DIR}/pairs.placement
+# generate placement 
+envsubst '' < ${REG_TEMPLATES}/standard-32pairs.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
-# generate mv-params
 export TPL_INTF=eth0
 export TPL_IPV=4
 envsubst '$TPL_INTF,$TPL_IPV' < ${REG_TEMPLATES}/iperf-mv-params.json.template >  ${MANIFEST_DIR}/iperf-mv-params.json

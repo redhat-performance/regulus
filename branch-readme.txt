@@ -5,6 +5,7 @@ Precondition:
     3. ens2f1 (XXV710) is br-ex, 
     4. SRIOV has been installed by RDS
     5. performanceprofile named customcnf
+    6. The worker nodes each havs 64 CPUs (32 core HT)
 Adaptations
    1. Stay away form control plane workers. Use MATCH, MATCH_NOT to select different workers.
 	In ./templates/common/worker_labels.config:
@@ -21,7 +22,7 @@ Adaptations
    5. Match MCP to performanceprofile name
 	In ./SRIOV-config/config.env
 		MCP=customcnf
-
+   6. Multibench has to be reduced to 26 pairs instead of standard 32 pairs
 
 Explanations:
 1, WORKER_0,1,2 are defined in lab.config
