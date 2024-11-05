@@ -1,0 +1,23 @@
+{
+  "global-options": [
+    {
+      "name": "common-params",
+      "params": [
+        { "arg": "duration", "vals": ["120"] },
+        { "arg": "protocol", "vals": ["udp"] },
+        { "arg": "nthreads", "vals": ["64"] },
+        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "test-type", "vals": ["rr"] },
+        { "arg": "wsize", "vals": ["1024"] },
+        { "arg": "rsize", "vals": ["1024"] }
+      ]
+    }
+  ]
+}
