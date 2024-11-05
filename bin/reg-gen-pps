@@ -1,0 +1,370 @@
+
+#!/bin/bash
+#
+# Compute sar-net 'packets-sec' average (across all primary periods) of a specific hostname.
+#
+# Usage: 
+#   1. Invoke from the test case base directory. We may have several run-TAG-<DATE>/
+#       $ reg-gen-pps 
+#   2. Invoke from the a run-dir ./run-TAG-<DATE>/  which may have been tar'ed i.e *,.tgz
+#       $ reg-gen-pps 
+
+
+#!/usr/bin/env bash
+#set -x
+#trap read debug
+
+SPEC=spec-pps.desc
+
+if [ ! -e "../$SPEC" ]; then
+    echo "$SPEC not found"
+    exit 
+fi
+grep "topo=" run.sh
+
+
+#set -v
+
+function calc { 
+    #awk "BEGIN{ printf \"%.4f\", $* }"; 
+    # no decimal for PPS
+    awk "BEGIN{ printf \"%d\", $* }"; 
+}
+
+any_ppssum=0
+any_ppssum_div=0
+
+# The JSON file to process
+function get_json {
+    local pp=$1
+    local host_name=$2
+    local dev_name=$3
+    echo "HN critical is get_json" >&2
+    echo "CMD2: crucible get metric --source sar-net --type packets-sec --period $pp --breakout hostname=$host_name,dev=$dev_name,direction --filter gt:10 " >&2
+    out=$(crucible get metric --source sar-net --type packets-sec --period $pp --breakout hostname=$host_name,dev=$dev_name,direction --filter gt:10  --output-format json  | sed -n '/{/,$p' )
+
+    # output json object to the caller
+    echo "$out"
+}
+
+# Input: pp name1 name2 ....
+# Trickiness:  the actual name in the json file has brackets wrapping around i.e. "<hostname>"
+function get_pps_by_hostnames {
+    echo "HN critical is get_pps_by_hostnames" >&2
+    local pp=$1
+    local host_name=$2
+    local dev_name=$3
+    local dir=$4
+
+    echo "HN tracing: get_pps_by_hostnames: $pp, $host_name, $dev_name, $dir" >&2
+
+    total_sum=0
+
+    # Call function foo to get the JSON data
+    json_data=$(get_json "$pp" "$host_name" "$dev_name")
+
+    echo "json_data:$json_data"  >&2
+    # Initialize an array to hold the values
+    values=()
+
+    # Use jq to get the value for the current name
+    # Trickiness:  the actual name in the json file has brackets wrapping around i.e. "<host_name>". Add brackets
+
+    key="<${host_name}>-<${dev_name}>-<${dir}>"
+    value=$(echo "$json_data" | jq -r --arg key "$key" '.values[$key][0].value | floor')
+
+    echo "rx/tx value:$value"  >&2
+    if [ ! -z "$value" ]; then
+        values+=("$value")
+    fi
+    # Print the rx, tx values side by side
+    echo "${values[@]}"
+    # the caller capture output as return val
+}
+
+#
+# Input: name list
+#
+function sum_pps_by_hostnames {
+    pp="$1"
+    #echo PP=$pp
+    shift
+
+    total_sum=0
+
+    # Call function foo to get the JSON data
+    json_data=$(get_json $PP)
+
+    # Loop through each name in the NAMES array
+    for name in "$@"; do
+        # Use jq to get the value for the current name and add to total_sum
+        value=$(echo "$json_data" | jq --arg name "$name" '.values[$name][] | .value' 2>/dev/null)
+        if [ ! -z "$value" ]; then
+            total_sum=$(echo "$total_sum + $value" | bc)
+        else
+            echo "no value for jq --arg name $name '.values[$name][]"
+        fi
+    done
+    # Print the result
+    #echo "Total Sum of Specified Values: $total_sum"
+    echo $total_sum
+}
+
+#sum_pps_by_hostnames "${NAMES[@]}"  "${PP}"
+#get_pps_by_hostnames "${NAMES[@]}"  "${PP}"
+#exit
+
+
+function any_pps_accum {
+    local pp=$1
+    local host_name=$2
+    local dev_name=$3
+    local dir=$4
+    echo "HN critical is any_pps_accum: $pp, $host_name, $dev_name, $dir" >&2
+    ppsline=""
+    echo "CMD3: crucible get metric --source sar-net --type packets-sec --period $pp --breakout hostname=$host_name,dev=$dev_name,direction=$dir" 
+    val=$(get_pps_by_hostnames "$pp" "$host_name" "$dev_name" "$dir")
+    any_ppssum=$(calc $any_ppssum + $val)
+    ((any_ppssum_div++))
+    echo pps=$val ppssum=$any_ppssum
+}
+function any_pps_close {
+    echo -n "packets-sec mean: "
+    calc $any_ppssum/$any_ppssum_div
+    echo ""
+    any_ppssum=0
+    any_ppssum_div=0
+}
+
+
+bench=
+
+function pps_accum {
+    local pp=$1
+    local host_name=$2
+    local dev_name=$3
+    local dir=$4
+    echo "HN critical is pps_accum: $pp, $host_name, $dev_name $dir" >&2
+    if [ "$bench" == "mbench"  ] ; then
+        echo "sut_pps_accum NOSUPP"
+    else
+        any_pps_accum "$pp" "$host_name" "$dev_name" "$dir"
+    fi
+}
+
+function pps_close {
+    if [ "$bench" == "mbench"  ] ; then
+        echo "sut_pps_close NOSUPP"
+    else
+        any_pps_close
+    fi
+}
+
+function f-gen-pps {
+    exec 2> /dev/null
+    local bench=$1
+    local host_name=$2
+    local dev_name=$3
+    echo "HN critical is f-gen-pps: $1,$2,$3" >&2
+    
+    rm pps-summary-$host_name-$dev_name-$dir.txt
+    exec > >(tee -ia pps-summary-$host_name-$dev_name-$dir.txt)
+
+    function show-pps {
+         # find line wih "packets-sec" extract value after "mean:"
+         grep -e "packets-sec" $1 |  grep -oP '(?<=mean: )[^ ]*'
+    }
+    
+    function show-all {
+        #echo "HN:181 show-all $1 and cat input file:"; cat $1
+        echo "-- PPS --"
+        show-pps $1
+    }
+    
+    function f-gen-pps-mono {
+        local bench=$1
+        local host_name=$2
+        local dev_name=$3
+        local dir=$4
+        echo "HN critical is f-gen-pps-mono: $1,$2,$3,$4" >&2
+
+        # For multiple samples of non-primary metric i.e CPU, we need to compute mean.
+        #
+        #  MONO-BENCH: it can run multiple iterations: The results look like:
+        #  -------------
+        # tags: cni=ovnk irq=bal kernel=4.18.0-305.49.1.el8_4.x86_64 mtu=1400 osruntime=chroot pods-per-worker=1 ....
+        # common params: ifname=eth0 length=16K time=30
+        #  unique params: protocol=tcp                                  <== iter-0 !!!!!!!!!!!!!!!!!!!!
+        #      primary period-id: A1ED47D6-2584-11ED-841A-3200FD6639B4
+        #      primary period-id: A211A52C-2584-11ED-9D6B-3200FD6639B4
+        #      primary period-id: A245E9E0-2584-11ED-8568-3200FD6639B4
+        #    result: (rx-Gbps) samples: 14.980000 13.840000 14.080000 mean: 14.300000 min: 13.840000 max: 14.980000 stddev: 0.600999 stddevpct: 4.202791
+        #  unique params: bitrate=0 protocol=udp                        <=== iter-1 !!!!!!!!!!!!!!!!!
+        #      primary period-id: A297956A-2584-11ED-B579-3200FD6639B4
+        #      primary period-id: A2F0DADA-2584-11ED-AA9F-3200FD6639B4
+        #      primary period-id: A2C34642-2584-11ED-B56F-3200FD6639B4
+        #    result: (rx-Gbps) samples: 3.234000 3.400000 3.270000 mean: 3.301333 min: 3.234000 max: 3.400000 stddev: 0.087323 stddevpct: 2.645087
+        # 
+        #  We are trying to post process and output like below :
+        #    -- TPUT --
+        #    14.300000
+        #    3.301333
+        #    -- CPU --          <==== non-primary metrics
+        #    3.49
+        #    3.47
+        #    -- rx-lost --      <==== non-primary metric
+        #    0.00
+        #    7842.33
+        #
+       
+        local line;    
+        Counter=0
+
+        readarray -t lines < show-summary-$bench.txt 
+        for line in "${lines[@]}"; do 
+            ((Counter++))
+            #echo "Accessing line $Counter: ${line}"
+            if [[ "$line" =~ "tags" || "$line" =~ "unique" ]]; then
+                echo "${line}"
+            fi
+    
+            # When seeing line "primary period-id: FF1FE266-EFDC-11EC-B247-A157F86639B4", start new submetric mean computation.
+            if [[ "$line" =~ .*"primary".* ]]; then
+                #echo "HN primary line: ${line}"
+                pp=$(echo $line | awk -F ':' '{print $2}')
+                pps_accum "$pp" "$host_name" "$dev_name" "$dir"
+            fi
+        
+            # When seing line "result: (rx-Gbps) samples: 0.26 mean: 0.26 min: 0.26 max: 0.26 stddev: NaN stddevpct: NaN",
+            # close out the current mean computation.
+            if [[ "$line" =~ .*"mean".* ]]; then
+                echo "${line}"                      # we need this line output
+                pps_close
+            fi
+         done 
+
+    } #f-gen-pps-mono
+
+    # processing begins here
+
+    if [ "$bench" != "mbench" ]; then
+        f-gen-pps-mono "$bench" "$host_name" "$dev_name" "$dir"
+    else
+        echo "f-gen-pps-multi $1 NOTSUPP"
+    fi
+
+    # add show-summary output and make a copy of the final summary in this run dir.
+
+    #echo HN:317
+    
+    tempfile=$(mktemp)
+    cp pps-summary-$host_name-$dev_name-$dir.txt $tempfile   # summary-1# contains tags. wporker CU mean and rx-lost mean
+    echo "$host_name:$dev_name:$dir" > pps-summary-$host_name-$dev_name-$dir.txt
+    show-all $tempfile >> pps-summary-$host_name-$dev_name-$dir.txt
+    
+    # save sum and show files to run dir.
+    #cp pps-summary-$host_name-$dev_name-$dir.txt $1  $1/ ; chmod -w pps-summary-$host_name-$dev_name-$dir.txt
+    rm $tempfile
+}
+
+function host_iter {
+    local bench=$1
+    local host_name
+    local dev_name
+    local dir
+
+    echo "host_iter: $bench"
+    # Initialize an empty array to store hosts
+    local hosts=()
+
+    # Read each line from the pps.env file and add it to the hosts array
+    while IFS= read -r line || [ -n "$line" ]; do
+        hosts+=("$line")
+    done < "../$SPEC"
+
+    # Iterate over each hosts in the array
+    for host in "${hosts[@]}"; do
+        if [ -z "$host" ]; then
+            # empty line
+            continue
+        fi
+        echo Processing host:$host
+        if [[ ${host} =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+        host_name=$(echo "$host" | sed -n 's/.*HOST_NAME="\([^"]*\)".*/\1/p')
+        dev_name=$(echo "$host" | sed -n 's/.*DEV="\([^"]*\)".*/\1/p')
+        dir=$(echo "$host" | sed -n 's/.*DIR="\([^"]*\)".*/\1/p')
+
+        {
+            echo Executing: f-gen-pps "$bench" "$host_name" "$dev_name" "$dir"
+            (f-gen-pps "$bench" "$host_name" "$dev_name" "$dir") 
+        } | tee pps-gen-summary-$host_name-$dev_name-$dir.txt
+    done
+}
+
+
+#### main start here
+
+if [ !  -z "$HOST_NAME" ]; then
+    echo HN=$HOST_NAME
+fi
+
+bench="mbench"
+# look at run.sh to discover bench prefix i.e iperf, uperf, flexran to know what blob to process. It will process "iperf--run-xxxxx"
+
+while read line; do
+    # Determine bench by detecting "crucible run [iperf, uperf, flexran] ..."
+    # This form, "./run-3types.sh  scalelab-withHWOL-sut" is mbench type
+    tok=$(echo $line | grep -Po 'crucible run\s*\K\S*')
+    if [[ "$tok" != "" ]]; then
+        if [[ "$tok" == *","* ]]; then
+            # "crucible run iperf,uperf ..." form
+            bench="mbench"
+            break
+        else
+           # "crucibe run iperf ... "
+            bench=$tok
+            break
+        fi
+    fi
+done < "../run.sh"
+
+echo bench=$bench
+
+# if mbench the blob namd iperf--uperf*
+if [ "$bench" == "mbench" ]; then
+  RUNS="$(/bin/ls -p | grep / | grep -e iperf -e uperf )"
+else
+  RUNS="$(/bin/ls -p | grep / | grep ^$bench )"
+fi
+
+echo HN bench=$bench RUNS=$RUNS
+
+if [ -z "$RUNS" ]; then
+    # this dir might have been tgz, so try that
+    name=$(basename "$(ls *.tgz 2>/dev/null)" .tgz)
+
+    echo Trying tgz=$name
+    if [[ -z "$name" ]]; then
+        echo "No .tgz file found."
+        exit
+    else
+        host_iter $name
+        exit
+    fi
+fi
+
+# all dirs with matching prefix ii.e  iperf--2022-06-19_14:30:29_UTC--09f2d1fd-7695-46e9-88f8-bbf877fa7ce4/
+# Should be one match. Multiple matches is confusing, but that is under the users control.
+for run in $RUNS
+do
+    #remove trailing /
+    name=${run::-1}
+    # generate summary
+    host_iter $name
+    # f-gen-pps $name
+done
+
+# EOF
+
