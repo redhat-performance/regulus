@@ -1,0 +1,15 @@
+#!/bin/bash
+# copy "full" or "one" to the current mv-params.
+
+MV_FILES="tcp-mv-params.json.template udp-mv-params.json.template"
+
+for file in $MV_FILES; do
+    if [ "$1" == "full" ]; then
+       cp  $file ../
+    elif [ "$1" == "one" ]; then
+        cp "one-$file" ../$file
+    else
+        echo "usage: set one|full"
+    fi
+done
+

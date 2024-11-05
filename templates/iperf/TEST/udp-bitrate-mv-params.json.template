@@ -1,0 +1,31 @@
+{
+  "global-options": [
+    {
+      "name": "common-params",
+      "params": [
+        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" },
+        { "arg": "time", "vals": ["120"] },
+        { "arg": "omit", "vals": ["3"] },
+        { "arg": "protocol", "vals": ["udp"] },
+        { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
+        { "arg": "passthru", "vals": ["--reverse"], "id": "1" },
+        { "arg": "passthru", "vals": ["--reverse"], "id": "3" },
+        { "arg": "passthru", "vals": ["--reverse"], "id": "5" },
+        { "arg": "passthru", "vals": ["--reverse"], "id": "7" },
+        { "arg": "passthru", "vals": ["--reverse"], "id": "9" },
+        { "arg": "passthru", "vals": ["--reverse"], "id": "11" },
+        { "arg": "passthru", "vals": ["--reverse"], "id": "13" },
+        { "arg": "passthru", "vals": ["--reverse"], "id": "15" }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "bitrate", "vals": [ "20M", "25M", "50M", "100M","150M", "200M", "250M", "300M", "350M", "400M", "500M", "600M" ], "role": "client" },
+        { "arg": "length", "vals": ["1200"] }
+      ]
+    }
+ ]
+}
