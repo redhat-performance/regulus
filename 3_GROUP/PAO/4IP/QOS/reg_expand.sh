@@ -14,7 +14,7 @@ export TPL_NODE_CONF="node-config"
 envsubst '$MCP,$TPL_NODE_CONF' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 
 # generate run-3types.sh. No custom params
-export TPL_SRIOV=1
+export TPL_SRIOV=0
 envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types-14pods.sh.template > ${MANIFEST_DIR}/run-3types.sh
 
 # generate node-config w/o custom resources. 
