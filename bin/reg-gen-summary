@@ -39,6 +39,17 @@
 #trap read debug
 
 
+## <debug>
+DEBUG=1
+DBG_FILE=.debug.txt
+rm -f $DBG_FILE
+
+DPRINT() {
+    if [ "$DEBUG" == 1 ]; then
+        printf "($1): $2\n"  >> $DBG_FILE
+    fi
+}
+## </debug>
 
 exec > >(tee gen-summary.txt)
 
@@ -46,26 +57,19 @@ exec > >(tee gen-summary.txt)
 
 # HWOL ifname
 g_IFNAME=ens2f0np0
-g_sut_csid=-1
+g_sut_name=""
 
 #
-# SUT csid is the one with highest CPU cutilization
+# SUT hostname is the one with highest CPU cutilization
 #
-function get_sut_csid {
+function get_sut_hostname {
     local PP=$1
-    local tempfile=$(mktemp)
 
-    # get CPU metrics of all nodes
-    # sed to trim all before "{", those crucible info verbage.
-    echo crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout cstype=worker,csid |  sed -n '/^{/,$p'  
-    crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout cstype=worker,csid --output-format json  |  sed -n '/^{/,$p'  > $tempfile
+    echo crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout hostname |  sed -n '/^{/,$p'  
+    # The highest CPU is the SUT. sed to trim all before "{", those crucible info verbage.
+    g_sut_name=$(crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout hostname --output-format json  |  sed -n '/^{/,$p' | jq -r ' .values | to_entries | max_by(.value[0].value) | .key | gsub("[<>]";"")')
 
-    # get the highest CPU . -g: sort float, -r: rever highest on top - head -1: get the first line
-    cpuvalue=$(jq '.values[][].value' $tempfile | sort -rg | head -1)
-
-    # get the csid                                                                                                                                                                   # 
-    g_sut_csid=$(jq '.values | to_entries[] | select(.value[].value == '$cpuvalue')' $tempfile | grep key | sed -e 's/[^0-9]//g')
-    rm $tempfile
+    DPRINT $LINENO "g_sut_name: $g_sut_name"
 }
 
 #
@@ -74,8 +78,8 @@ function get_sut_csid {
 function get_sut_ifname {
     local PP=$1
     local tempfile=$(mktemp)
-    echo CMD: crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout cstype=worker,csid=$g_sut_csid,type=physical,direction,dev
-    crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout cstype=worker,csid=$g_sut_csid,type=physical,direction,dev --output-format json  |  sed -n '/^{/,$p'  > $tempfile
+    echo CMD: crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout hostname=$g_sut_name,type=physical,direction,dev
+    crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout hostname=$g_sut_name,type=physical,direction,dev --output-format json  |  sed -n '/^{/,$p'  > $tempfile
 
     # get the highest valie . -g: sort float, -r: rever highest on top - head -1: get the first line
     gbps_value=$(jq '.values[][].value' $tempfile | sort -rg | head -1)
@@ -125,26 +129,21 @@ function any_cpu_close {
 
 #
 # Accumulate system-under-test/SUT CPU.
-#   Assumption: it is the one with the highest CPU value
 #   Applicability: for mbench ONLY
 #
 sut_cpusum=0
 sut_cpusum_div=0
 function sut_cpu_accum {
     local sut_cpu=0
+    DPRINT $LINENO "CMD: sut_cpu_accum"
+
     # grep for "value": 54.29825981303105
-    echo CMD:crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout cstype=worker,csid \| grep value
-    values=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout cstype=worker,csid --output-format json  < /dev/null | grep value\" | awk -F ':' '{print $2}')
-    echo $values
-    sut_cpu=$(echo $values | grep -oE '[-+]?[0-9]+\.[0-9]+' | sort -rg | head -1)
-      # grep -o - Print just the matching part of a line
-      # grep -E - Use extended regex
-      # [0-9]+ - Match one or more digits (this is extended regex)
-      #  For floats, use [-+]?[0-9]+\.[0-9]+, though sort -n doesn't handle floats.
-      # sort -rg - reverse, float
-      # head -1 - Get first line, i.e. largest number
-    #echo sut_cpu=$sut_cpu
+    echo CMD:crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$g_sut_name
+    # sed to remove other text before json object
+    sut_cpu=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$g_sut_name --output-format json  < /dev/null | sed -n '/^{/,$p' | jq '.values[] | .[0].value')
+
     sut_cpusum=$(calc $sut_cpusum + $sut_cpu)
+    DPRINT $LINENO "sut_cpu=$sut_cpu sut_cpusum=$sut_cpusum"
     ((sut_cpusum_div++))
 }
 function sut_cpu_close {
@@ -158,10 +157,10 @@ function sut_cpu_close {
 bench=
 
 function cpu_accum {
+    DPRINT $LINENO "CMD: cpu_accum $bench"
     if [ "$bench" == "mbench"  ] ; then
         sut_cpu_accum $1
     else
-        #echo HN-short about any_cpu_accum;exit;
         any_cpu_accum $1
     fi
 }
@@ -180,8 +179,6 @@ function iperf_loss_accum {
     #echo pp=$1
     echo "CMD:crucible get metric --source iperf --type rx-lost/sec --period $1"
     loss_line=$(crucible get metric --source iperf --output-format json --type rx-lost/sec --period $1  < /dev/null | grep "value\"")
-    #echo "HN period : ${PP}"
-    #echo "loss_line:" $loss_line
     val=$(echo $loss_line | awk -F ':' '{print $2}')
     # if exp notation, connvert it
     if [[ "$val" == *"e"* ]]; then
@@ -195,6 +192,7 @@ function iperf_loss_accum {
     echo rx-lost: $val
 
     iperf_loss_accum=$(calc $iperf_loss_accum + $val)
+    DPRINT $LINENO "rx-lost=$rx-lost rx-loss-accum=$iperf_loss_accum"
     ((iperf_loss_div++))
 }
 
@@ -210,16 +208,16 @@ l2_rx_accum=0
 l2_tx_accum=0
 l2_div=0
 function f_l2_tput_accum {
-    local csid=$1
+    local hostname=$1
     local ifname=$2
     local PP=$3
     local gbps;
 
-    echo CMD:crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout cstype=worker,csid=$csid,type=physical,direction,dev=$ifname 
-    rx_gbps=$(crucible get metric --period $PP --source sar-net --output-format json  --type L2-Gbps --breakout cstype=worker,csid=$csid,type=physical,direction=rx,dev=$ifname | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?')
+    echo CMD:crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout hostname=$hostname,type=physical,direction,dev=$ifname 
+    rx_gbps=$(crucible get metric --period $PP --source sar-net --output-format json  --type L2-Gbps --breakout hostname=$hostname,type=physical,direction=rx,dev=$ifname | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?')
     l2_rx_accum=$(calc $l2_rx_accum + $rx_gbps)
 
-    tx_gbps=$(crucible get metric --period $PP --source sar-net --output-format json --type L2-Gbps --breakout cstype=worker,csid=$csid,type=physical,direction=tx,dev=$ifname | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?')
+    tx_gbps=$(crucible get metric --period $PP --source sar-net --output-format json --type L2-Gbps --breakout hostname=$hostname,type=physical,direction=tx,dev=$ifname | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?')
     l2_tx_accum=$(calc $l2_tx_accum + $tx_gbps)
 
     ((l2_div++))
@@ -410,21 +408,22 @@ function f-gen-summ {
             if [[ "$line" =~ "tags" || "$line" =~ "unique" ]]; then
                 echo "${line}"
             fi
+            DPRINT $LINENO "CMD: f-gen-summ-multi: line=$line"
     
             # When seeing line "primary period-id: FF1FE266-EFDC-11EC-B247-A157F86639B4", start new submetric mean computation.
             if [[ "$line" =~ .*"primary".* ]]; then
                 echo "HN primary line: ${line}"
                 pp=$(echo $line | awk -F ':' '{print $2}')
+                if [ "$g_sut_name" == "" ]; then
+                    # This is the first PP, figure out SUT's hostname and its ifname
+                    get_sut_hostname $pp
+                    get_sut_ifname $pp
+                    echo HN:385 g_sut_name=$g_sut_name
+                fi
                 # accumlate non-primary metrics i.e cpu and loss and L2 stats
                 cpu_accum $pp
                 iperf_loss_accum $pp
-                if [ $g_sut_csid == -1 ]; then
-                    # This is the first PP, figure out csid of the SUT ccum
-                    get_sut_csid $pp
-                    get_sut_ifname $pp
-                    echo HN:385 g_sut_csid=$g_sut_csid
-                fi
-                f_l2_tput_accum $g_sut_csid $g_IFNAME $pp
+                f_l2_tput_accum $g_sut_name $g_IFNAME $pp
             fi
         
             # Output "result: (...) samples: 0.26 mean: 0.26 min: 0.26 max: 0.26 stddev: NaN stddevpct: NaN",
@@ -443,8 +442,10 @@ function f-gen-summ {
     } #f-gen-summ-multi
 
     if [ "$bench" != "mbench" ]; then
+        DPRINT $LINENO "CMD: f-gen-summ"
         f-gen-summ-mono $1
     else
+        umm-multiPRINT $LINENO "CMD: f-gen-summ"
         f-gen-summ-multi $1
     fi
 
@@ -463,26 +464,6 @@ function f-gen-summ {
     cp summary-$1.txt $1  $1/ ; chmod -w summary-$1.txt
     rm $tempfile
 }
-
-
-
-
-############
-function f_foo {
-    local ifname=ens2f0np0
-    local PP=35EFAFC2-04E2-11EE-AC4E-8C3076DF28B7
-    local csid
-
-    csid=$(get_sut_csid $PP)
-    f_l2_tput_accum $csid $ifname $PP
-
-    gbps=$(crucible get metric --period $PP --source sar-net -output-format json --type L2-Gbps --breakout cstype=worker,csid=$csid,type=physical,direction=tx,dev=$ifname | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?') 
-    echo Gbps $gbps
-    #csid=$(jq '.values | to_entries[] | select(.value[].value == '$cpuvalue')' $tempfile | grep key | sed -e 's/\([0-9]\{1,\}\.[0-9][0-9]\)[0-9]*\>/\1/g' )
-    #rm $tempfile
-}
-
-####################
 
 
 #### main start here
