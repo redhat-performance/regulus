@@ -6,7 +6,7 @@ REG_TEMPLATES=${REG_ROOT}/templates/uperf
 REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
 
-export TPL_SCALE_UP_FACTOR=1
+export TPL_SCALE_UP_FACTOR=8
 export TPL_TOPO=intranode
 export TPL_PAO=1
 export TPL_HOSTNETWORK=1
