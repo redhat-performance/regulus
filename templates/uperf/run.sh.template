@@ -46,7 +46,7 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; 
     securityContext_file="`/bin/pwd`/securityContext.json"
 fi
 
-if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ]; then
+if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_MACVLAN" == 1 ]; then
     annotations="`/bin/pwd`/annotations.json"  &> /dev/null
 fi
 if [ "$TPL_PAO" == 1 ] ; then
@@ -54,7 +54,7 @@ if [ "$TPL_PAO" == 1 ] ; then
 fi
 
 if [ "$TPL_SRIOV" == 1 ] ; then
-  	source ${REG_ROOT}/SRIOV-config/config.env
+    source ${REG_ROOT}/SRIOV-config/config.env
     ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
     ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
 
@@ -66,6 +66,18 @@ if [ "$TPL_SRIOV" == 1 ] ; then
     # sometime network-attachment takes a few seconds to be available
     sleep 5
 fi
+
+if [ "$TPL_MACVLAN" == 1 ] ; then
+  	source ${REG_ROOT}/MACVLAN-config/config.env
+    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
+
+    # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
+    ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_MACVLAN_NAD}"
+    # sometime network-attachment takes a few seconds to be available
+    sleep 5
+fi
+
 
 # Use to disable or enable IRQs, comment out if you are not using Performance Addon Operator
 irq="bal" # bal by default or rrHost or <something-else> depending on what manual mods made
@@ -212,6 +224,7 @@ for num_pods in $scale_up_factor; do
         kernel=`jq -r .status.nodeInfo.kernelVersion worker.json`
         rcos=`jq -r .status.nodeInfo.osImage  worker.json | awk -F"CoreOS " '{print $2}' | awk '{print $1}'`
         ssh $k8susr@$ocphost "kubectl get network -o json" >network.json
+        ssh $k8susr@$ocphost "kubectl get networks.operator.openshift.io  cluster -o json" >networks-operator.json
         network_type=`jq -r .items[0].status.networkType network.json`
         network_mtu=`jq -r .items[0].status.clusterNetworkMTU network.json`
             ns_file[0]=""
