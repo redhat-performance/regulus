@@ -48,6 +48,12 @@ report-jobs:
 		fi \
 	done
 
+reindex-jobs:
+	@for dir in $(JOBS); do \
+		echo "Reindex jobs  $$dir"; \
+		$(MAKE) -C $$dir reindex; \
+	done
+
 # Also can be done with setting jobs.config.DRY_RUN=1; make run-jobs
 dry-run-jobs: init-lab
 	echo JOBS=$$JOBS
