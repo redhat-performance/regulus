@@ -25,6 +25,9 @@ dry-run:
 wet-run:
 	NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label ${TAG}
 
+reindex:
+	reindex --labels ${TAG}
+
 clean:
 	find . -maxdepth 1 \( -type f -o -type l \) ! \( -name "makefile" -o -name "reg_expand.sh" \) -exec rm -v {} +
 	rmrun --label ALL
