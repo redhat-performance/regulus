@@ -14,7 +14,7 @@ export TPL_PAO=1
 export TPL_MACVLAN=1
 envsubst '$MCP,$TPL_SCALE_UP_FACTOR,$TPL_TOPO,$TPL_PAO,$TPL_SRIOV' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 
-# ipv4 SRIOV
+# ipv4 MACVLAN
 export TPL_INTF=net1
 export TPL_IPV=4
 envsubst '$TPL_INTF,$TPL_IPV' < ${REG_TEMPLATES}/udp-drop-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
