@@ -232,6 +232,7 @@ for num_pods in $scale_up_factor; do
         ssh $k8susr@$ocphost "kubectl get nodes/$first_worker -o json" >worker.json
         kernel=`jq -r .status.nodeInfo.kernelVersion worker.json`
         rcos=`jq -r .status.nodeInfo.osImage  worker.json | awk -F"CoreOS " '{print $2}' | awk '{print $1}'`
+        ssh $k8susr@$ocphost "kubectl get networks.operator.openshift.io cluster -o yaml" >networks-operator.json
         ssh $k8susr@$ocphost "kubectl get network -o json" >network.json
         ssh $k8susr@$ocphost "kubectl get networks.operator.openshift.io  cluster -o json" >networks-operator.json
         network_type=`jq -r .items[0].status.networkType network.json`
