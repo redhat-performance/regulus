@@ -1,0 +1,1 @@
+"annotations" : { "irq-load-balancing.crio.io": "disable", "k8s.v1.cni.cncf.io/networks": "regulus-macvlan-net" }
