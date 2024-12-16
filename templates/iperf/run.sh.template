@@ -46,7 +46,7 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; 
     securityContext_file="`/bin/pwd`/securityContext.json"
 fi
 
-if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ]; then
+if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_MACVLAN" == 1 ]; then
     annotations="`/bin/pwd`/annotations.json"  &> /dev/null
 fi
 if [ "$TPL_PAO" == 1 ] ; then
@@ -63,6 +63,17 @@ if [ "$TPL_SRIOV" == 1 ] ; then
     KNI_HOME=$(ssh $k8susr@$ocphost "pwd")
     ssh $k8susr@$ocphost "kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
 
+    # sometime network-attachment takes a few seconds to be available
+    sleep 5
+fi
+
+if [ "$TPL_MACVLAN" == 1 ] ; then
+  	source ${REG_ROOT}/MACVLAN-config/config.env
+    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
+
+    # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
+    ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_MACVLAN_NAD}"
     # sometime network-attachment takes a few seconds to be available
     sleep 5
 fi
