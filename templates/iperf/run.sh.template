@@ -6,6 +6,8 @@
 source ${REG_ROOT}/system.config
 source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/templates/common/worker_labels.config
+source ${REG_ROOT}/init.sh
+source ${REG_ROOT}/templates/common/remotehost_functions
 
 DURATION=${DURATION:-0}
 
@@ -22,6 +24,7 @@ scale_out_factor=1   # Determines the number of hosts/nodes that will get used
                  #  consists of first worker running uperf-client pods and the second uperf-server pods.
                  # For ingress/egress: (OCP) total workers = 1 * $scale_out_factor, where uperf client and server
                  #  pods are on the same worker (no external traffic)
+rm_factor=1      # Determines the number of external hosts that will get used for ingress/egress remotehost scaling
 userenv=fedora-latest # can be centos7, centos8, stream, rhubi8, debian, opensuse
 osruntime=chroot # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
 
@@ -85,8 +88,8 @@ irq="bal" # bal by default or rrHost or <something-else> depending on what manua
 # Variables if one or more remotehost
 # endpoints are used (topo=ingress|egress|interhost)
 #####################################
-bmlhosta=$BMLHOSTA
-bmlhostb=$BMLHOSTB
+bmlhosta=${BMLHOSTS[0]}
+bmlhostb=${BMLHOSTS[1]}
 
 if [ -f "${TPL_RESOURCES}" ]; then
    resource_file="`/bin/pwd`/${TPL_RESOURCES}"
@@ -293,12 +296,20 @@ for num_pods in $scale_up_factor; do
         endpoint_opt+=",client:1-$num_clients,server:1-$num_servers"
     elif [ "$topo" == "ingress" ]; then
         # EP and svc may stick around from the last abort/CTL-C. If so, delete it by hand in debug.
-
         endpoint_opt+=",server:1-$num_servers"
-        endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv "
+        if [ -n "$rm_factor" ] && [ "$rm_factor" -gt 1 ]; then
+            multi_rm_hosts "client"
+        else
+            endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv "
+        fi
     elif [ "$topo" == "egress" ]; then
         endpoint_opt+=",client:1-$num_servers"
-        endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,server:1-$num_pods,userenv:$userenv "
+        if [ -n "$rm_factor" ] && [ "$rm_factor" -gt 1 ]; then
+            multi_rm_hosts "server"
+            # func sourced from remotehost_functions
+        else
+            endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,server:1-$num_pods,userenv:$userenv "
+        fi
     elif [ "$topo" == "interhost" ]; then
         # TODO: make work for $scale_out_factor > 1
         endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
