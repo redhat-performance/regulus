@@ -1,0 +1,93 @@
+#
+# Misc support functions
+#
+source ${REG_ROOT}/lab.config   # to get the BMLHOSTS array
+
+DEBUG=1
+DPRINT() {
+    if [ "$DEBUG" == 1 ]; then
+        printf "($1): $2\n"  
+    fi
+}
+DPRINT $LINENO "DEBUG"
+
+#
+# Generic function to distribute a number of items over a number of buckets.
+# We use this logic to spread client/server over a number of remote hosts
+#
+declare -a buckets
+function compute_per_hosts() {
+    # I num_items=$1
+    # B num_bucket=$2
+    I=$1
+    B=$2
+    # Calculate base number of items per buckets
+    base=$((I / B))
+    # Calculate the remainder
+    remainder=$((I % B))
+
+    # Distribute items to buckets
+    for ((i = 0; i < B; i++)); do
+        if ((i < remainder)); then
+            # Add an extra item to this bucket
+            buckets[i]=$((base + 1))
+        else
+            # Only the base count
+            buckets[i]=$base
+        fi
+    done
+    #echo "Buckets distribution: ${buckets[@]}"
+}
+
+#
+# Function to create one or more remotehost endpoints for INGRESS/EGRESS
+# that peer to multiple remotehost endpoints.
+#
+function multi_rm_hosts() {
+    dir=$1 # "client" or "server"
+
+    if [ -z "$rm_factor" ] || [ "$rm_factor" -le 0 ]; then
+        echo "rm_factor is not defined or is less than or equal to 0."
+        exit 1
+    fi
+
+    # Verify if we have enough remote hosts
+    if [ "$rm_factor" -gt ${#BMLHOSTS[@]} ]; then
+        echo "Need at least $rm_factor remote hosts, but only ${#BMLHOSTS[@]} are available."
+        exit 1
+    fi
+
+    # Check SSH connectivity to each host
+    for i in $(seq 0 $(($rm_factor - 1))); do
+        DPRINT $LINENO "DEBUG: host ${BMLHOSTS[$i]}"
+        ssh root@${BMLHOSTS[$i]} "pwd" > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            DPRINT $LINENO "DEBUG: SSH command failed on host ${BMLHOSTS[$i]}"
+            echo "Need at least $rm_factor remote hosts to run tests, but host ${BMLHOSTS[$i]} is unreachable."
+            exit 1
+        fi
+    done
+
+    # Spread clients/servers evenly over remote hosts
+    compute_per_hosts "$num_servers" "$rm_factor"
+    echo "Buckets distribution: ${buckets[@]}"
+
+    begin=1
+    for i in $(seq 0 $(($rm_factor - 1))); do
+        if [ ${buckets[$i]} -ne 0 ]; then
+            end=$((begin + buckets[$i] - 1))
+            if [ "${dir}" == "client" ]; then
+                endpoint_opt+=" --endpoint remotehost,user:root,host:${BMLHOSTS[$i]},client:$begin-$end,userenv:$userenv "
+            else
+                endpoint_opt+=" --endpoint remotehost,user:root,host:${BMLHOSTS[$i]},server:$begin-$end,userenv:$userenv "
+            fi
+            begin=$((begin + buckets[$i]))
+        fi
+    done
+
+    # Output final endpoint options
+    echo "Endpoint options: $endpoint_opt"
+}
+
+# EOF
+
