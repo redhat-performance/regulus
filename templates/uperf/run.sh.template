@@ -89,6 +89,7 @@ irq="bal" # bal by default or rrHost or <something-else> depending on what manua
 # Variables if one or more remotehost
 # endpoints are used (topo=ingress|egress|interhost)
 #####################################
+read -a BMLHOSTS <<< "$BM_HOSTS"
 bmlhosta=${BMLHOSTS[0]}
 bmlhostb=${BMLHOSTS[1]}
 
@@ -305,7 +306,7 @@ for num_pods in $scale_up_factor; do
         if [ -n "$rm_factor" ] && [ "$rm_factor" -gt 1 ]; then
             multi_rm_hosts "client"
         else
-            endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv "
+            endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,client:1-$num_clients,userenv:$userenv "
         fi
     elif [ "$topo" == "egress" ]; then
         endpoint_opt+=",client:1-$num_servers"
@@ -313,7 +314,7 @@ for num_pods in $scale_up_factor; do
             multi_rm_hosts "server"
             # func sourced from remotehost_functions
         else
-            endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,server:1-$num_pods,userenv:$userenv "
+            endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,server:1-$num_servers,userenv:$userenv "
         fi
     elif [ "$topo" == "interhost" ]; then
         # TODO: make work for $scale_out_factor > 1
