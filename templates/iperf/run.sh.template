@@ -88,6 +88,7 @@ irq="bal" # bal by default or rrHost or <something-else> depending on what manua
 # Variables if one or more remotehost
 # endpoints are used (topo=ingress|egress|interhost)
 #####################################
+read -a BMLHOSTS <<< "$BM_HOSTS"
 bmlhosta=${BMLHOSTS[0]}
 bmlhostb=${BMLHOSTS[1]}
 
