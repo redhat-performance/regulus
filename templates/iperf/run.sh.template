@@ -11,7 +11,7 @@ source ${REG_ROOT}/templates/common/remotehost_functions
 
 DURATION=${DURATION:-0}
 
-scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair
+scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair.  Consider using even numbers due to NUMA carving
 
 # Variables which apply to all test environments
 ################################################
@@ -197,7 +197,7 @@ for num_pods in $scale_up_factor; do
         fi
         workers=($(jq -r ".items[] | .metadata.labels | select($my_select_var) | .\"kubernetes.io/hostname\"" nodes.json))
         #echo workers: "${workers[@]:0:3}"
-
+        DPRINT $LINENO "workers=${workers[@]}"
 
         first_worker=`echo ${workers[0]}`
         if [ -z "$first_worker" ]; then
@@ -237,7 +237,11 @@ for num_pods in $scale_up_factor; do
             # Create a nodeSelector JSON to place pods
             for i in `seq 1 $scale_out_factor`; do
                 for j in 0 $(($nodes_per_client_server-1)); do
-                    idx=`echo "($i-1)*2+$j" | bc`
+                    if [ "$topo" == "ingress" -o "$topo" == "egress" ]; then
+                       idx=`echo "($i-1)" | bc`
+                    else
+                       idx=`echo "($i-1)*2+$j" | bc`
+                    fi
                     this_worker=${workers[$idx]}
                     ns_file[$j]=`/bin/pwd`/nodeSelector-$this_worker.json
                     echo '"nodeSelector": {' >${ns_file[$j]}
