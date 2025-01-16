@@ -20,7 +20,7 @@ prompt_continue
 # Cleanup step 2 - create a new EIP object
 if oc get egressIP egress-$OCP_PROJECT &>/dev/null; then
     echo "delete egressIP egress-$OCP_PROJECT  ..."
-    oc delete -f ${MANIFEST_DIR}/egress-crucible.yaml
+    oc delete egressIP egress-$OCP_PROJECT
     echo "delete egressIP egress-$OCP_PROJECT  done"
 else
     echo "No egressIP egress-$OCP_PROJECT"
