@@ -308,7 +308,7 @@ for num_pods in $scale_up_factor; do
         if [ -n "$rm_factor" ] && [ "$rm_factor" -gt 1 ]; then
             multi_rm_hosts "client"
         else
-            endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,client:1-$num_clients,userenv:$userenv "
+            endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_clients,userenv:$userenv "
         fi
     elif [ "$topo" == "egress" ]; then
         endpoint_opt+=",client:1-$num_servers"
@@ -341,5 +341,23 @@ for num_pods in $scale_up_factor; do
        endpoint_opt+=",hostNetwork:1"
     fi
 
-    time crucible run uperf --tags $tags --mv-params $mv_params_file --num-samples=$NUM_SAMPLES --max-sample-failures=$max_failures $endpoint_opt  --max-rb-attempts=3 
+    if [ -z "$ONEJSON" ]; then
+        time crucible run uperf --tags $tags \
+            --mv-params $mv_params_file \
+            --num-samples=$NUM_SAMPLES  \
+            --max-sample-failures=$max_failures \
+             $endpoint_opt \
+            --max-rb-attempts=3 
+    else
+        reg-c2j-config.py --name uperf --output all-in-one.json \
+        --tags $tags \
+        --mv-params $mv_params_file \
+        --num-samples $NUM_SAMPLES \
+        --max-sample-failures $max_failures \
+         $endpoint_opt \
+        --tool-params tool-params.json \
+       --max-rb-attempts=3 && \
+         time crucible run --from-file all-in-one.json
+    fi
+
 done
