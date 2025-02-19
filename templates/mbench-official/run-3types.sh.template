@@ -85,8 +85,7 @@ if [ "$DURATION" != 0 ]; then
 	done
 fi
 
-time crucible run iperf,uperf\
- --mv-params iperf-mv-params.json,uperf-mv-params.json\
+ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\
  --tags $tags\
  --num-samples=$NUM_SAMPLES --max-sample-failures=1\
@@ -103,5 +102,12 @@ nodeSelector:server-${worker3_servers}:$pwd/nodeSelector-$worker3.json,\
 userenv:fedora-latest,\
 masters-tool-collect:0,\
 client:1-32,\
-server:1-32${annotation_opt}${resources_opt}
+server:1-32${annotation_opt}${resources_opt}"
 
+if [ -z "$ONEJSON" ]; then
+    time crucible run iperf,uperf $ARGS
+
+else
+    python3 reg-c2j-config.py --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS
+    time crucible run --from-file all-in-one.json
+fi
