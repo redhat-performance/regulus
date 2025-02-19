@@ -109,6 +109,6 @@ if [ -z "$ONEJSON" ]; then
     time crucible run iperf,uperf $ARGS
 
 else
-    reg-c2j-config.py --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS
+    reg-c2j-config.py --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS &&
     time crucible run --from-file all-in-one.json
 fi
