@@ -22,7 +22,6 @@ Adaptations
 	In ./SRIOV-config/config.env
 		MCP=customcnf
 
-
 Explanations:
 1, WORKER_0,1,2 are defined in lab.config
 2. WORKER_LIST={WORKER_0,WORKER_1,WORKER_2} is used to label nodes that will be SRIOV enabled. We manually pick this

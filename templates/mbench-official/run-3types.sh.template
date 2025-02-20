@@ -1,5 +1,6 @@
 #!/bin/bash
 source ${REG_ROOT}/lab.config
+source ${REG_ROOT}/init.sh 
 
 NUM_SAMPLES=${NUM_SAMPLES:-1}
 DURATION=${DURATION:-0}
@@ -56,9 +57,9 @@ if [ "${TPL_SRIOV}" == 1  ]; then
     DEST=$REG_KNI_USER@$REG_OCPHOST
     ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
     ssh ${DEST} "kubectl create ns $OCP_PROJECT"
+
     # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
-    KNI_HOME=$(ssh ${DEST} "pwd")
-    ssh ${DEST} "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
+    ssh ${DEST} "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
     # sometime the network-attachment takes a few seconds to be ready.
     sleep 5
 fi
@@ -85,8 +86,7 @@ if [ "$DURATION" != 0 ]; then
 	done
 fi
 
-time crucible run iperf,uperf\
- --mv-params iperf-mv-params.json,uperf-mv-params.json\
+ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\
  --tags $tags\
  --num-samples=$NUM_SAMPLES --max-sample-failures=1\
@@ -100,8 +100,15 @@ nodeSelector:server-${worker2_servers}:$pwd/nodeSelector-$worker2.json,\
 \
 nodeSelector:client-${worker3_clients}:$pwd/nodeSelector-$worker3.json,\
 nodeSelector:server-${worker3_servers}:$pwd/nodeSelector-$worker3.json,\
-userenv:fedora38,\
+userenv:fedora-latest,\
 masters-tool-collect:0,\
 client:1-32,\
-server:1-32${annotation_opt}${resources_opt}
+server:1-32${annotation_opt}${resources_opt}"
 
+if [ -z "$ONEJSON" ]; then
+    time crucible run iperf,uperf $ARGS
+
+else
+    reg-c2j-config.py --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS
+    time crucible run --from-file all-in-one.json
+fi

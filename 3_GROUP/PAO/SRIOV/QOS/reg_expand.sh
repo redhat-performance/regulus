@@ -15,7 +15,7 @@ envsubst '$MCP,$TPL_NODE_CONF' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_D
 
 # generate run-3types.sh. No custom params
 export TPL_SRIOV=1
-envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types.sh.template > ${MANIFEST_DIR}/run-3types.sh
+envsubst '$TPL_SRIOV'  < ${REG_TEMPLATES}/run-3types-14pods.sh.template > ${MANIFEST_DIR}/run-3types.sh
 
 # generate node-config w/o custom resources. 
 export TPL_RESOURCES=',resources:default:$pwd/resource-static-Ncpu.json'
@@ -25,11 +25,11 @@ envsubst '$MCP,$TPL_RESOURCES,$TPL_SRIOV' < ${REG_TEMPLATES}/base-pao-node-confi
 export TPL_NUMCPUS=2
 envsubst '$TPL_NUMCPUS' < ${REG_COMMON}/resource-static-Ncpu.json.template > ${MANIFEST_DIR}/resource-static-Ncpu.json
 
-# generate annotation. Use hardcopy
+# generate annotation. 
 envsubst '' < ${REG_COMMON}/annotations-sriov-pao-qos.json.template  > ${MANIFEST_DIR}/annotations.json
 
-# generate placement.  
-envsubst '' < ${REG_TEMPLATES}/pao-std.placement.template  > ${MANIFEST_DIR}/pairs.placement
+# generate placement 
+envsubst '' < ${REG_TEMPLATES}/standard-32pairs.placement.template  > ${MANIFEST_DIR}/pairs.placement
 
 # generate mv-params
 export TPL_INTF=net1
