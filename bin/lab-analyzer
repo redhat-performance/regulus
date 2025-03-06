@@ -35,6 +35,7 @@ function exit_error() {
 
 
 function do_ssh() {
+    ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
     local user_host user host ssh_cmd
     user_host=$1; shift
     user=`echo $user_host | awk -F@ '{print $1}'`
