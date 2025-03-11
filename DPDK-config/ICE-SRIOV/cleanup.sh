@@ -12,7 +12,7 @@ fi
 
 if oc get SriovNetwork/$DIR-testpmd-sriov-network -n openshift-sriov-network-operator &>/dev/null; then
     echo "remove SriovNetwork ..."
-    RUN_CMD oc delete -f ${MANIFEST_DIR}/testpmd-sriov-network.yaml
+    RUN_CMD oc delete SriovNetwork/$DIR-testpmd-sriov-network -n openshift-sriov-network-operator
     echo "remove SriovNetwork: done"
 else
     echo "No SriovNetwork to remove"
@@ -28,9 +28,9 @@ prompt_continue
 
 if oc get SriovNetworkNodePolicy $DIR-sriov-node-policy -n openshift-sriov-network-operator  &>/dev/null; then
     echo "remove SriovNetworkNodePolicy ..."
-    RUN_CMD oc delete -f ${MANIFEST_DIR}/sriov-node-policy.yaml
+    RUN_CMD oc delete  SriovNetworkNodePolicy $DIR-sriov-node-policy -n openshift-sriov-network-operator
     echo "remove SriovNetworkNodePolicy: done"
-    wait_mcp
+    //wait_mcp
     # !!!! reboot !!!!
 
 else

@@ -142,7 +142,7 @@ function config_SriovNetworkNodePolicy {
         echo "create SriovNetworkNodePolicy ..."
         RUN_CMD oc create -f ${MANIFEST_DIR}/sriov-node-policy.yaml
         echo "create SriovNetworkNodePolicy: done"
-        if [ $PAUSE == false ]; then
+        if [ $PAUSE == true ]; then
            RUN_CMD wait_mcp
         fi
         # !!!!! node reboot !!!!
