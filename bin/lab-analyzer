@@ -7,8 +7,13 @@
 auto_fix="true"
 
 source ${REG_ROOT}/lab.config
-reg_dir=$(basename "$REG_ROOT")
 
+# About $reg_dir,
+# On controller, the user can create REGULUS somewhere under their home i.e /root/path/regulus
+# On bastion, the user can be root or kni. Since regulus will clone a repo there. it wil be /home/kni/path/regulus or /root/path/regulus.
+# We need to identify the relative path from the bastion user's HOME. That is the "path/regulus" so that we can ssh to the bastion and cd to "path/regulus"
+reg_dir="${PWD#"$HOME"/}"
+echo reg_dir=$reg_dir >&2
 
 # We compute the number of CPUs for each pod based on the node.allocatable.cpu.
 # We learn this value during during lab-analyzer time, and this value can go down
@@ -88,7 +93,6 @@ echo IN: f_verify_lab_config  >&2
     fi
 
     # Check lab.config consistency
-    reg_dir=$(basename "$REG_ROOT")
     #rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
     rem_exports=$(do_ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
     local_exports=$(cd $REG_ROOT && cat lab.config | grep export | grep -v '#')
@@ -192,45 +196,35 @@ function create_mirror_repo_on_bastion {
     local_repo_path=$(git rev-parse --show-toplevel)
     remote_user="$REG_KNI_USER"
     remote_host="$REG_OCPHOST"
-
     #
-    # Handle a complication when dealing with different "dirname" on the controller 
-    # and on the bastion .ie /root/my-regulus versus /home/user/my-regulus
-    #
-    reg_dir=$(basename "$REG_ROOT")
-
-    # Set the remote repository path to match the local path
-
     local_basename=$(basename "$REG_ROOT")
-    remote_dirname=$(do_ssh ${remote_user}@${remote_host} "pwd")
-    remote_repo_path=$remote_dirname/$local_basename
 
     # Get the current branch name from the local repository
     current_branch=$(git branch --show-current)
 
     # Check if the remote repository already exists
-    repo_exists=$(do_ssh ${remote_user}@${remote_host} "[ -d ${remote_repo_path}/.git ] && echo 'exists' || echo 'not exists'")
+    repo_exists=$(do_ssh ${remote_user}@${remote_host} "[ -d ${reg_dir}/.git ] && echo 'exists' || echo 'not exists'")
 
     if [ "$repo_exists" = "exists" ]; then
-        echo "The repository already exists on the bastion host at ${remote_repo_path}. No action taken." >&2
-        do_ssh ${remote_user}@${remote_host} "rm -fr ${remote_repo_path}"
+        echo "The repository already exists on the bastion host at ${reg_dir}. No action taken." >&2
+        do_ssh ${remote_user}@${remote_host} "rm -fr ${reg_dir}"
     fi
     #else
         echo "The repository does not exist. Creating the repository on the bastion host..."  >&2
  
         # Create the regulus dir on the bastion host
-        do_ssh ${remote_user}@${remote_host} "mkdir -p ${remote_repo_path}"
+        do_ssh ${remote_user}@${remote_host} "mkdir -p ${reg_dir}"
 
         # Initialize a non-bare repository on the bastion host
         
-        do_ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git init 2>/dev/null"
+        do_ssh ${remote_user}@${remote_host} "cd ${reg_dir} && git init 2>/dev/null"
 
         # Add the remote repository to local Git config. But remove remote first if there was a old one.
         git remote remove $local_basename-peer-regulus  2>/dev/null 
-        echo "CMD: git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${remote_repo_path}" >&2
+        echo "CMD: git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${reg_dir}" >&2
 
 
-        git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${remote_repo_path} 
+        git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${reg_dir} 
 
 
         # Push your local repository to the remote/bastion repository
@@ -238,18 +232,17 @@ function create_mirror_repo_on_bastion {
         git push $local_basename-peer-regulus ${current_branch}
 
         # Switch to the current branch on the remote/bastion machine
-        echo "CMD: ssh ${remote_user}@${remote_host} cd ${remote_repo_path} && git checkout ${current_branch}"  >&2
-        do_ssh ${remote_user}@${remote_host} "cd ${remote_repo_path} && git checkout ${current_branch}"
+        echo "CMD: ssh ${remote_user}@${remote_host} cd ${reg_dir} && git checkout ${current_branch}"  >&2
+        do_ssh ${remote_user}@${remote_host} "cd ${reg_dir} && git checkout ${current_branch}"
 
         # finally copy mirror lab.config and jobs.config to remote
-        scp lab.config ${remote_user}@${remote_host}:/${remote_repo_path}/
-        scp jobs.config ${remote_user}@${remote_host}:/${remote_repo_path}/
-        scp bin/lab-analyzer ${remote_user}@${remote_host}:/${remote_repo_path}/bin/
+        scp lab.config ${remote_user}@${remote_host}:~/${reg_dir}/
+        scp jobs.config ${remote_user}@${remote_host}:~/${reg_dir}/
+        scp bin/lab-analyzer ${remote_user}@${remote_host}:~/${reg_dir}/bin/
 
         echo "Repository has been successfully created and mirrored to the bastion host. The branch '${current_branch}' has been checked out."  >&2
     #fi
 }
-
 
 # continue
 if [ "$(hostname)" != "$REG_OCPHOST" ]  &&  [ "$(hostname -i)" != "$REG_OCPHOST" ] ; then
@@ -264,6 +257,7 @@ else
     echo "$0 is running on the bastion ... skip lab.config match check" >&2
 fi
 
+echo CMD: reg_dir=$reg_dir  >&2
 echo CMD: do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && oc get node"  >&2
 
 if ! do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && oc get node"  &>/dev/null ; then
