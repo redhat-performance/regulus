@@ -85,8 +85,12 @@ def parse_remotehosts(endpoint_str):
         key, value = key.strip(), value.strip()
         if key in ["host"]:
             config[key] = value
-        elif key in ["user", "userenv"]:
-            pass  # Ignore
+        elif key in ["user"]:
+            config["settings"]["user"] = value
+        elif key in ["userenv"]:
+            config["settings"]["userenv"] = value
+        elif key in ["cpu-partitioning"]:
+            config["settings"]["cpu-partitioning"] = value.lower() == "true"
         elif key == "client":
             remotes_entry["engines"].append({"role": "client", "ids": simplify_id_range(value)})
         elif key == "server":

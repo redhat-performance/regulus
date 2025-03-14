@@ -1,0 +1,4 @@
+"annotations": {
+  "k8s.v1.cni.cncf.io/networks": "[ { \"name\": \"east-testpmd-sriov-network\", \"namespace\": \"default\" }, { \"name\": \"west-testpmd-sriov-network\", \"namespace\": \"default\" }]",
+  "irq-load-balancing.crio.io": "disable"
+}

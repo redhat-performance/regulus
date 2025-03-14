@@ -1,0 +1,1 @@
+You can invoke "bash install.sh.cleanup.sh" here.  Or cd $REG_ROOT/SETUP-GROUP/DPDK/INSTALL && make run

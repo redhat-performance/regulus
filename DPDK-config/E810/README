@@ -1,0 +1,4 @@
+DO NOT invoke make, or "bash install.shr" or cleanup.sh directly here.
+In the normal usage, from the REGULUS controller, "cd $REG_ROOT/SETUP-group/DKDK && make run"
+Or 
+If you are on the bastion, from this dir you can "cd .. && bash install.sh or cleanup.sh"

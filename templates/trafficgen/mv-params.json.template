@@ -1,0 +1,28 @@
+{
+    "global-options": [
+        {
+            "name": "global",
+            "params": [
+                { "arg": "trex-active-devices", "vals": [ "TWO_PCI_ADDRS" ], "role": "client", "enabled": "yes" },
+                { "arg": "trex-devices",        "vals": [ "TWO_PCI_ADDRS" ], "role": "client", "enabled": "yes" },
+                { "arg": "server-devices", "vals": [ "TWO_PCI_RSRC_NAMES" ], "role": "server", "enabled": "yes" },
+                { "arg": "trex-software-mode", "vals": [ "on" ], "role": "client", "enabled": "yes" },
+                { "arg": "trex-mellanox-support", "vals": [ "off" ], "role": "client", "enabled": "yes" },
+                { "arg": "use-dst-mac-flows", "vals": [ "0" ], "role": "client", "enabled": "yes" },
+                { "arg": "use-src-mac-flows", "vals": [ "0" ], "role": "client" , "enabled": "yes"},
+                { "arg": "one-shot", "vals": [ "1" ] , "enabled": "yes"},
+                { "arg": "rate-unit", "vals": [ "mpps" ] , "enabled": "yes"},
+                { "arg": "rate", "vals": [ "0.5" ] , "enabled": "yes"},
+                { "arg": "testpmd-forward-mode", "vals": [ "$TPL_FWD_MODE" ], "role": "server", "enabled": "yes" }
+            ]
+        }
+    ],
+    "sets": [
+        {
+            "include": "global",
+            "params": [
+                { "arg": "frame-size", "vals": [ "64" ], "role": "client", "enabled": "yes" }
+            ]
+        }
+    ]
+}

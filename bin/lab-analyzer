@@ -194,9 +194,9 @@ function f_validate_worker_nodes {
 
 function create_mirror_repo_on_bastion {
     local_repo_path=$(git rev-parse --show-toplevel)
-    remote_user="$REG_KNI_USER"
-    remote_host="$REG_OCPHOST"
-    #
+    remote_user=$1
+    remote_host=$2
+
     local_basename=$(basename "$REG_ROOT")
 
     # Get the current branch name from the local repository
@@ -250,12 +250,28 @@ if [ "$(hostname)" != "$REG_OCPHOST" ]  &&  [ "$(hostname -i)" != "$REG_OCPHOST"
     # mirror repo in a sub-shell, to avoid all the unwanted messages
     (
         # Install regulus repo on the bastion if applicable
-        create_mirror_repo_on_bastion
+        create_mirror_repo_on_bastion "${REG_KNI_USER}" "${REG_OCPHOST}"
+
     ) > lab-init.log 2>&1
     f_verify_lab_config 
 else
     echo "$0 is running on the bastion ... skip lab.config match check" >&2
 fi
+ 
+if [[ -n "${BM_HOSTS[*]}" ]]; then
+    DPDK_REMHOST="${BM_HOSTS[0]}"
+    if [ "$(hostname)" != "$REG_OCPHOST" ]  &&  [ "$(hostname -i)" != "$REG_OCPHOST" ] ; then
+      echo "$0 is running on the controller ... check lab.config match" >&2
+      # mirror repo in a sub-shell, to avoid all the unwanted messages
+      (
+        # Install regulus repo on the DPDK host if applicable
+          create_mirror_repo_on_bastion "root"  "${DPDK_REMHOST}"
+     ) > rem-init.log 2>&1
+    else
+      echo "$0 is running on the bastion ... skip mirror to remhost" >&2
+    fi
+fi
+
 
 echo CMD: reg_dir=$reg_dir  >&2
 echo CMD: do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && oc get node"  >&2

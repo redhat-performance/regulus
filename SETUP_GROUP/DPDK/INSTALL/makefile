@@ -1,7 +1,9 @@
 #
-# run: use oc/kubectl to install performanceProfile on the testbed
+# Usage: "make run" to install OCP  and TREX_HOST vfio-pci devices
+# Dependecies: 
+#    export TREX_HOSTS="hostname"
+#    export REM_DPDK_CONFIG=true
 #
-
 ifndef REG_ROOT
 $(error REG_ROOT is not set. Please 'source ./bootstrap.sh')
 endif
@@ -14,7 +16,8 @@ confirm_bastion:
 		exit 1; \
 	fi
 
-init:
+init: confirm_bastion
+	@bash ./init.sh
 
 run: confirm_bastion
 	@bash ./install.sh
