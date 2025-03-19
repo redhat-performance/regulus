@@ -1,27 +1,39 @@
 #
-# Lab environment settings
+# Lab environment settings specific to your Regulus cloud
 #
+export KUBECONFIG=<your-kubeconfig-full-path>     # example KUBECONFG=/root/mno/kubeconfig
+# Your OCP bastion and credential. Use "" since host's FQDN has "."
+export REG_KNI_USER=root
+export REG_OCPHOST="host-FQDN"          # example REG_OCPHOST="my-bastion.com"
+#export REG_OCPHOST="a.b.c.d"           # use IP address if you are in scalelab AND running crucible controller directly on the bastion.
 
-# OCP user
-export REG_KNI_USER=kni
+# A kludgy solution for now. Name your 3 primary worker nodes that you use for DP testing.
+export OCP_WORKER_0=worker-10
+export OCP_WORKER_1=worker-11
+export OCP_WORKER_2=worker-12
 
-# OCP bastion. Use "" since host's FQDN has "."
-export REG_OCPHOST="xxx.yyy.zzz"
+# Baremetal server info for external peer(s) for INGRESS, EGRESS, trafficgen-testpmd etc
+export BM_HOSTS="FQDN_1 FQDN_2 ..."     # example:  BM_HOSTS="host-1.my.com host-2.my.com"
 
-export OCP_WORKER_0=worker000-1029p
-export OCP_WORKER_1=worker001-1029p
-export OCP_WORKER_2=worker002-1029p
-
-# crucible user tag
-export REG_DP=415
-
-# SRIOV
-export REG_SRIOV_NIC=ens2f3
-export REG_SRIOV_MTU=9000
-# MACVLAN
-export REG_SRIOV_NIC=ens2f3
+# SRIOV NIC info en xample)
+export REG_SRIOV_NIC=ens7f0
+export REG_SRIOV_NIC_MODEL=X710         # support list: CX6,XXV710,X710. Case sensitive
 export REG_SRIOV_MTU=9000
 
-# NIC mode;. Support CX6, E810 and X710. Use exact acronym. Case sensitive
-export REG_SRIOV_NIC_MODEL=X710
+# MACVLAN NIC info (as an example)
+export REG_MACVLAN_NIC=ens2f0
+export REG_MACVLAN_NIC_MODEL=X710
+export REG_MACVLAN_MTU=9000
 
+# TestPMD 2 NICs (as an example). On a pod 
+export REG_DPDK_NIC_1=ens6f0
+export REG_DPDK_NIC_2=ens6f1
+export REG_DPDK_NIC_MODEL=E810      # No support for mixed types among the 2 NICs. They can be different NIC type to the TREX side.
+
+# TREX 2 NICs info (as an example). On external host
+export TREX_HOSTS=$BM_HOSTS
+export TREX_SRIOV_INTERFACE_1=ens6f0
+export TREX_SRIOV_INTERFACE_2=ens6f1
+export REM_DPDK_CONFIG=true # =true if you want Regulus to config TREX's SRIOV. The host should have git installed. Otherwise you can install it by hand.
+
+#EOF - That's it folks

@@ -1,0 +1,12 @@
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetwork
+metadata:
+  name: $DIR-testpmd-sriov-network
+  namespace: openshift-sriov-network-operator
+spec:
+  ipam: |
+    { }
+  spoofChk: "on"
+  trust: "on"
+  resourceName: mlxnic_$DIR
+  networkNamespace: default

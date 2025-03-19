@@ -1,0 +1,26 @@
+#
+# init:     init this dir one-time
+# install:  install SRIOV for DPDK
+# cleanup:  remove SRIOV for DPDK
+#
+
+ifndef REG_ROOT
+$(error REG_ROOT is not set. Please 'source ./bootstrap.sh')
+endif
+include ${REG_ROOT}/jobs.config
+include ${REG_ROOT}/lab.config
+
+confirm_bastion:
+	@if [ "$$(hostname)" != "$(REG_OCPHOST)" ] && [ "$$(hostname -i )" != "$(REG_OCPHOST)" ]; then \
+		echo "Aborting. Please run this command on the bastion, $${REG_OCPHOST}."; \
+		exit 1; \
+	fi
+
+init: confirm_bastion
+	@bash ./expand.sh
+
+install: confirm_bastion
+	@bash ./install.sh
+
+cleanup: confirm_bastion
+	@source ${REG_ROOT}/lab.config && source ${REG_ROOT}/DPDK-config/config.env && bash ./cleanup.sh
