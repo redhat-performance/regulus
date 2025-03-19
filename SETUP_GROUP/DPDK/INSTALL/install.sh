@@ -8,6 +8,11 @@ fi
 # remote REG_ROOT can be different i.e root vs kni. Extract the regulus dir part
 reg_dir=$(basename "$REG_ROOT")
 
+# if we have not run init before to get device-info.json, do it now 
+if [[ ! -e ${trex-device-info.json} ]] ; then
+    bash init.sh
+fi
+
 echo CMD: ssh $REG_KNI_USER@$REG_OCPHOST "cd $reg_dir && source bootstrap.sh && cd DPDK-config && bash install.sh "  
 ssh $REG_KNI_USER@$REG_OCPHOST "cd $reg_dir && source bootstrap.sh && cd DPDK-config && bash install.sh "  
 
