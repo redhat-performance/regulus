@@ -1,0 +1,17 @@
+---
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: $DIR-sriov-node-policy 
+  namespace: openshift-sriov-network-operator
+spec:
+  deviceType: vfio-pci
+  nicSelector:
+    pfNames:
+    - ${VFIO_INTERFACE}
+  nodeSelector:
+    node-role.kubernetes.io/$MCP: "" 
+  numVfs: 1 
+  mtu: ${SRIOV_MTU}
+  priority: 5
+  resourceName: mlxnic_$DIR

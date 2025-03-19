@@ -1,0 +1,19 @@
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: sriov-dpdk-net
+spec:
+  resourceName: sriovdpdkresource
+  nicSelector: {}
+  deviceType: vfio-pci  # Use vfio-pci for DPDK support
+  numVfs: 2  # Allocate two VFs for the two PF ports
+  pfNames:
+    -  ens7f0  # Physical Function for receive
+    -  ens7f1  # Physical Function for transmit
+  mtu: 9000  # Set MTU for DPDK
+  priority: 99
+  isRdma: false
+  driver: vfio-pci
+  sysfsMount: true
+  ioThreads: 1  # Optional: Configure number of I/O threads
+

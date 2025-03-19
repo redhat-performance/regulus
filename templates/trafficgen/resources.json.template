@@ -1,0 +1,12 @@
+"resources": {
+    "requests": {
+        "cpu": "$TPL_NUMCPUS",
+        "memory": "1000Mi",
+        "hugepages-1Gi": "4Gi"
+    },
+    "limits": {
+        "cpu": "$TPL_NUMCPUS",
+        "memory": "1000Mi",
+        "hugepages-1Gi": "4Gi"
+    }
+}
