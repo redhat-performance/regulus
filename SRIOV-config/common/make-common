@@ -10,6 +10,8 @@ endif
 include ${REG_ROOT}/jobs.config
 include ${REG_ROOT}/lab.config
 
+.PHONY: confirm_bastion init install cleanup
+
 confirm_bastion:
 	@if [ "$$(hostname)" != "$(REG_OCPHOST)" ] && [ "$$(hostname -i )" != "$(REG_OCPHOST)" ]; then \
 		echo "Aborting. Please run this command on the bastion, $${REG_OCPHOST}."; \
@@ -19,7 +21,11 @@ confirm_bastion:
 init: confirm_bastion
 	@bash ./expand.sh
 
-install: confirm_bastion
+# install depends on init which generated ../setting.sh
+../setting.env: expand.sh
+	@bash ./expand.sh
+
+install: confirm_bastion ../setting.env
 	@bash ./install.sh
 
 cleanup: confirm_bastion

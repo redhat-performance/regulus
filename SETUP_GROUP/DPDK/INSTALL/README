@@ -1,0 +1,4 @@
+"make init": generates trex-device-info.json file. This runs on the TREX remote host and scp the result here,
+"make clean": rm -f trex-device-info.json
+"make run": generates trex-device-info.json if not exists AND invoke ./install.sh to install OCP and remotehost vfio-io devices
+

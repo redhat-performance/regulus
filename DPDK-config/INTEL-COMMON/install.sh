@@ -104,7 +104,7 @@ function add_mc_realloc {
     fi
 }
 
-if [ ${NIC_MODEL} == "CX6" ]; then
+if [ ${REG_DPDK_NIC_MODEL} == "CX6" ]; then
    DPRINT $LINDO "next, add add_mc_realloc"
    prompt_continue
    add_mc_realloc
