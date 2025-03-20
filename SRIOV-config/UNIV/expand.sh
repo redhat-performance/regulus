@@ -2,7 +2,7 @@
 
 REG_ROOT=${REG_ROOT:-/root/regulus}
 REG_TEMPLATES=./templates
-MANIFEST_DIR=./
+MANIFEST_DIR=../
 source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/system.config
 source ${REG_ROOT}/SRIOV-config/config.env

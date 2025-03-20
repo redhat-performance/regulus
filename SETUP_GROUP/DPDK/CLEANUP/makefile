@@ -16,6 +16,8 @@ confirm_bastion:
 		exit 1; \
 	fi
 
+clean:
+
 init:
 
 run: confirm_bastion

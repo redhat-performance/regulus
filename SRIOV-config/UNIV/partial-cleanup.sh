@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #set -euo pipefail
-source ./setting.env
+source ../setting.env
 source ./functions.sh
 
 SINGLE_STEP=${SINGLE_STEP:-false}

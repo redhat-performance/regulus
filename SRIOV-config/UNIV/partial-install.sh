@@ -17,7 +17,7 @@ if [ $PAUSE == true ]; then
 fi
 
 #set -euo pipefail
-source ./setting.env
+source ../setting.env
 source ./functions.sh
 
 parse_args $@

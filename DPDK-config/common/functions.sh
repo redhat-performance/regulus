@@ -182,3 +182,23 @@ function prompt_continue {
 function ECHO {
 	echo ECHO: $@
 }
+
+DEBUG=true  # set to true to print debug
+RUN_CMD() {
+    local cmd="$*"
+
+    if $DEBUG; then
+        echo "[DEBUG] Command: $cmd"
+        eval "$cmd"
+    else
+        eval "$cmd"
+    fi
+}
+
+DPRINT() {
+    if $DEBUG; then
+        printf "($1): $2\n"
+    fi
+}
+# Example: DPRINT $LINENO "g_sut_name: $g_sut_name"
+
