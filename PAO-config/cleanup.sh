@@ -38,7 +38,7 @@ echo "deleting label for $WORKER_LIST ..."
 if [ "${MCP}" != "master" ]; then
     # this is STANDARD cluster. Do it.
     for worker in $WORKER_LIST; do
-        oc label --overwrite node ${worker} node-role.kubernetes.io/${MCP}-
+        oc label node ${worker} node-role.kubernetes.io/${MCP}-
     done
 fi
 
@@ -51,7 +51,7 @@ if [ "${MCP}" != "master" ]; then
     fi
 else
     # this is non-standard cluster that uses mcp master. Just remove the label.
-    oc label --overwrite mcp ${MCP} machineconfiguration.openshift.io/role-
+    oc label mcp ${MCP} machineconfiguration.openshift.io/role-
 
 fi
 

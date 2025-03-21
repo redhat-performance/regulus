@@ -8,7 +8,7 @@ endif
 include ${REG_ROOT}/jobs.config
 include ${REG_ROOT}/lab.config
 
-confirm_bastion:
+confirm_controler:
 	@if [ "$$(hostname)" == "$(REG_OCPHOST)" ]; then \
 		echo "Aborting. Please run this command on the controller."; \
 		exit 1; \
@@ -16,6 +16,6 @@ confirm_bastion:
 
 init:
 
-run: confirm_bastion
+run: confirm_controler
 	@bash ./install.sh
 

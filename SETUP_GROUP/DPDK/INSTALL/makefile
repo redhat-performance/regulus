@@ -11,10 +11,10 @@ endif
 include ${REG_ROOT}/jobs.config
 include ${REG_ROOT}/lab.config
 
-.PHONY: confirm_bastion clean
+.PHONY: confirm_controller clean
 
-confirm_bastion:
-	@if [ "$$(hostname)" == "$(REG_OCPHOST)" ]; then \
+confirm_controller:
+	@if [ "$$(hostname)" == "$(REG_OCPHOST_NAME)" ]; then \
 		echo "Aborting. Please run this command on the controller."; \
 		exit 1; \
 	fi
@@ -24,12 +24,12 @@ trex-device-info.json: init.sh
 	@bash ./init.sh
 	@touch trex-device-info.json
 
-init: confirm_bastion
+init: confirm_controller
 	@bash ./init.sh
 
 clean:
 	@rm -f trex-device-info.json
 
-run: confirm_bastion trex-device-info.json
+run: confirm_controller trex-device-info.json
 	@bash ./install.sh
 

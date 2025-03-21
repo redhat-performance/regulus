@@ -10,9 +10,14 @@ endif
 include ${REG_ROOT}/jobs.config
 include ${REG_ROOT}/lab.config
 
-confirm_bastion: 
-	@if [ "$$(hostname)" != "$(REG_OCPHOST)" ] &&  [ "$$(hostname -i)" != "$(REG_OCPHOST)" ]; then \
-		echo "Aborting. On $$(hostname). Please run this command on the bastion, $${REG_OCPHOST}."; \
+confirm_bastion:
+	@REG_OCPHOST=$$(echo "$$REG_OCPHOST" | sed 's/^[" ]*//; s/[" ]*$$//'); \
+	host_name="$$(hostname)"; \
+	host_ip="$$(hostname -i | awk '{print $$1}')"; \
+	if [ "$$host_name" != "$$REG_OCPHOST" ] && ! hostname -I | grep -qw "$$REG_OCPHOST"; then \
+		echo "Detected host_ip: $$host_ip"; \
+		echo "Detected host_name: $$host_name"; \
+		echo "Aborting. Please run this command on the configured bastion, $$REG_OCPHOST."; \
 		exit 1; \
 	fi
 
