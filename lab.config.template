@@ -5,27 +5,23 @@
 # full path name to kubeconfig. Example, KUBECONFIG=/root/mnokubeconfig
 export KUBECONFIG=
 
-# Bastion login username
-export REG_KNI_USER=root
-
-# Bastion FQDN. Example, REG_OCPHOST_NAME="e16-h12-b02-fc640.rdu2.scalelab.redhat.com"
-export REG_OCPHOST_NAME=
-
-# Bastion FQDN or IP. Use IP when running crucible on the bastion, a lab DNS's quirk will figure out one day.  Example, REG_OCPHOST="10.6.60.151"
-export REG_OCPHOST="e16-h12-b02-fc640.rdu2.scalelab.redhat.com" 
+# Bastion login username i.e root or kni
+export REG_KNI_USER=
+# Bastion hostname. i.e "e16-h12-b02-fc640.rdu2.scalelab.redhat.com"
+export REG_OCPHOST="" 
 
 # Optional. Just a user defined tag. that label your run artifacts.
 export REG_DP=rds
 
-# Three workers that Regulus will run tests on. Example below
-export OCP_WORKER_0=e23-h24-b02-fc640.rdu2.scalelab.redhat.com
-export OCP_WORKER_1=e23-h24-b03-fc640.rdu2.scalelab.redhat.com
-export OCP_WORKER_2=e23-h24-b04-fc640.rdu2.scalelab.redhat.com
+# Three workers that Regulus will run tests on. Example below i.e e23-h24-b02-fc640.rdu2.scalelab.redhat.com
+export OCP_WORKER_0=""
+export OCP_WORKER_1=""
+export OCP_WORKER_2=""
 
-# The external host/RHEL that will host INGRESS,EGRESS and TREX. ExampleBM_HOSTS="e16-h12-b01-fc640.rdu2.scalelab.redhat.com"
+# The list of external host/RHEL that will host INGRESS,EGRESS and TREX. Example BM_HOSTS="host_1  host_2 host_3"
 export BM_HOSTS=""
 
-### To select what NICs to use for SRIOV, MACVLAN and TREX, you need to understand your worker nodes connectivity.
+### To select the NICs for SRIOV, MACVLAN and TREX. You need to understand your worker nodes connectivity.
 
 # Below are examples of the selection for the 120-node RDS testbed in ourlabe as of 3/2025.
 # On our RDS testbed worker nodes, they have  Cx-5 (ens2f0np0,ens2f1np1) and XXV710 (ens2f0,ens2f1)
@@ -44,11 +40,14 @@ export REG_DPDK_NIC_1=ens2f0
 export REG_DPDK_NIC_2=ens2f1
 export REG_DPDK_NIC_MODEL=X710  # all intel 710 derivatives use X710 as model within regulus
 
-# TREX, the remote side, we need to pick the peer NICs of the testpmd side. They happen to be the XXV710.
-export TREX_HOSTS=$BM_HOSTS
+# The remotehost to host TREX. Example e16-h12-b02-fc640.rdu2.scalelab.redhat.com
+export TREX_HOSTS=""
+
+# For TREX, choose NICs. 
 export TREX_SRIOV_INTERFACE_1=ens2f0
 export TREX_SRIOV_INTERFACE_2=ens2f1
 export TREX_DPDK_NIC_MODEL=X710
-# Config the TREX side for DPDK test to work. Example, REM_DPDK_CONFIG=true
-export REM_DPDK_CONFIG=false   # Disable DPDK test, until we manually verify the testbed correctness.
+
+# Auto config the TREX NICs. Example, REM_DPDK_CONFIG=true
+export REM_DPDK_CONFIG=false   # fale to disable DPDK test, until we manually verify the testbed correctness.
 

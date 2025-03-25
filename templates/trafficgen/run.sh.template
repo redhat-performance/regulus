@@ -14,12 +14,16 @@ source ${REG_ROOT}/SETUP_GROUP/DPDK/INSTALL/trafficgen.sh
 # Variables if one or more remotehost
 # endpoints are used (topo=ingress)
 #####################################
-read -a BMLHOSTS <<< "$BM_HOSTS"
 
 # trafficgen host
-remhost1=${BMLHOSTS[0]}
+remhost1=${TREX_HOSTS}
 # ocp admin node
 k8shost1=$REG_OCPHOST
+if [ "$(hostname)" == "${REG_OCPHOST}" ]; then
+    # use IP if running on the bastion
+    k8shost1="$(hostname -i)"
+fi
+
 k8susr=$REG_KNI_USER    # Might be "root" or "kni" for some installations
 
 userenv=alma8           # trafficgen only work with alma8
