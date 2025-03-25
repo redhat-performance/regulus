@@ -49,26 +49,32 @@ is_ip() {
 #fi
 
 function do_ssh() {
-    ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
-    local user_host user host ssh_cmd
-    user_host=$1; shift
-    user=`echo $user_host | awk -F@ '{print $1}'`
-    host=`echo $user_host | awk -F@ '{print $2}'`
-    ssh_cmd=""
-    if [ -z "$user" ]; then
-        exit_error "do_ssh: user was blank: $user_host"
-    fi
-    if [ -z "$host" ]; then
-        exit_error "do_ssh: host was blank: $user_host"
-    fi
-    ssh_cmd="ssh $ssh_opts $user_host bash -c \"$@\""
+    local user_host="$1"
+    shift
+    local ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
+    local user host ssh_cmd
 
-    echo CMD: $ssh_cmd  >&2
-    $ssh_cmd
+    # Parse user and host from user_host
+    user=$(echo "$user_host" | awk -F@ '{print $1}')
+    host=$(echo "$user_host" | awk -F@ '{print $2}')
+
+    # Check if user and host are valid
+    if [ -z "$user" ] || [ -z "$host" ]; then
+        echo "Error: Invalid user/host: $user_host" >&2
+        return 1
+    fi
+
+    # Create the ssh command with the given commands
+    ssh_cmd="ssh $ssh_opts $user_host \"bash -c '$@'\""
+
+    # Echo the command for debugging
+    echo "CMD: $ssh_cmd" >&2
+
+    # Execute the command
+    eval $ssh_cmd
     local rc=$?
     return $rc
 }
-
 
 function f_verify_lab_config {
 echo IN: f_verify_lab_config  >&2
@@ -104,7 +110,13 @@ echo IN: f_verify_lab_config  >&2
 
     # Check lab.config consistency
     #rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
-    rem_exports=$(do_ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
+    #rem_exports=$(do_ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#'\"")
+    #rem_exports=$(do_ssh $DEST "cd $reg_dir && grep export lab.config | grep -v '#'")
+    #rem_exports=$(do_ssh $DEST "cd $reg_dir && grep export lab.config | grep -v '\#'")
+    #rem_exports=$(do_ssh $DEST "cd $reg_dir && grep export lab.config | grep -v \"#\"")
+    scp $DEST:$reg_dir/lab.config /tmp/lab.config
+    rem_exports=$(grep export /tmp/lab.config | grep -v '#')
+
     local_exports=$(cd $REG_ROOT && cat lab.config | grep export | grep -v '#')
     if [ "$rem_exports" != "$local_exports" ]; then
         if [ "$auto_fix" == "true" ]; then
@@ -290,22 +302,17 @@ if [[ -n "${BM_HOSTS[*]}" ]]; then
     done
 fi
 
-
-echo CMD: reg_dir=$reg_dir  >&2
-echo CMD: do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && oc get node"  >&2
-
-if ! do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && oc get node"  &>/dev/null ; then
+# check ssh and $reg_dir correctness
+if ! do_ssh "$REG_KNI_USER@$REG_OCPHOST" "cd $reg_dir && oc get node &>/dev/null" ; then
 	echo "Error: Please confirm REG_KNI_USER and REG_OCPHOST in lab.config" >&2
 	exit 1
 fi
-
 
 tb_cluster_type=$(f_get_cluster_type)
 echo "cluster_type=$tb_cluster_type" >&2
 f_validate_worker_nodes
 first_worker="$(echo $worker_names | awk '{print $1}')"
 tb_alloc_cpus="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get node/$first_worker -ojsonpath='{.status.allocatable.cpu}'")"
-
 
 # Round-down to whole CPU if we see like 31500m
 if [[ "$tb_alloc_cpus" == *m ]]; then
@@ -324,7 +331,6 @@ fi
 # extract the number from like "Core(s) per socket:  28"
 tb_cps=$(echo "$cps_string" | awk '{print $NF}')
 echo "core-per-socket=$tb_cps" >&2 
-
 
 f_update_tb_info
 

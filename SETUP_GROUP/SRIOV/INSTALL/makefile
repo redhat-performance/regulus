@@ -15,6 +15,7 @@ confirm_controler:
 	fi
 
 init:
+	@bash ./init.sh
 
 run: confirm_controler
 	@bash ./install.sh
