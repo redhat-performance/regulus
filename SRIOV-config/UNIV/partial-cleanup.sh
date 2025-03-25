@@ -41,7 +41,7 @@ prompt_continue
 if [ "${MCP}" != "master" ]; then
     echo "removing worker node labels"
     for NODE in $WORKER_LIST; do
-        oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}-
+        oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
 fi
 

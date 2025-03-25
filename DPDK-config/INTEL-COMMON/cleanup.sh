@@ -6,6 +6,7 @@ SINGLE_STEP=${SINGLE_STEP:-false}
 source ./setting.env
 source ../../common/functions.sh
 
+MANIFEST_DIR=./
 
 parse_args $@
 
@@ -50,17 +51,17 @@ prompt_continue
 if [ ! -z "${WORKER_LIST}" ]; then
     echo "removing worker node labels"
     for NODE in $WORKER_LIST; do
-        oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}-
+        oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
 else
     echo "removing master node labels"
     for NODE in $MASTER_LIST; do
-        oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}-
+        oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
 fi
 
 if oc get mcp $MCP -n openshift-sriov-network-operator &>/dev/null; then
-    echo "remove mcp for mcp-offloading  ..."
+    echo "remove mcp  ..."
     oc delete -f ${MANIFEST_DIR}/mcp-intel-vf.yaml
     rm  -f ${MANIFEST_DIR}/mcp-intel-vf.yaml
     echo "delete mcp for $MCP done"

@@ -99,7 +99,7 @@ clean-all: confirm_execute
 	done
 
 # Lab targets
-.PHONY: clean-lab
+.PHONY: clean-lab init-lab SRIOV_INIT
 
 
 LAB_TARGET := ${GEN_LAB_JSON}
@@ -117,14 +117,17 @@ $(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
 	jq -r 'to_entries | .[] | "\(.key)=\(.value)"' $@ > ${LAB_TARGET_ENV};
 
 
-# Init LAB info if lab.config changes
-init-lab: $(LAB_TARGET) 
-	@true
+# This top dog setting.env is needed before other  *-config can run
+SRIOV_INIT:
+	@cd SETUP_GROUP/SRIOV/INSTALL && make --no-print-directory init
 
+# Init LAB info if lab.config changes. Do not output anything to spoil the json file
+init-lab: $(LAB_TARGET) SRIOV_INIT
+	@true
 
 .SECONDARY: $(LAB_SOURCE)
 	#
 
 clean-lab:
-	@ rm -f $(LAB_TARGET) $(LAB_TARGET_ENV)
+	@ rm -f $(LAB_TARGET) $(LAB_TARGET_ENV) 
 

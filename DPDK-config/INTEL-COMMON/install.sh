@@ -3,7 +3,6 @@
 PAUSE=${PAUSE:-false}
 SINGLE_STEP=${SINGLE_STEP:-false}
 
-
 if [ $PAUSE == true ]; then
   echo true PAUSE=$PAUSE
 fi
@@ -13,6 +12,8 @@ source ./setting.env
 source ../../common/functions.sh
 
 parse_args $@
+
+MANIFEST_DIR=./
 
 mkdir -p ${MANIFEST_DIR}/
 
@@ -72,7 +73,8 @@ function configure_mcp {
 
 # Create a new MCP, but if cluster is SNO or compact we only have masters, and hence use master MCP.
 if [ ! -z "${WORKER_LIST}" ]; then
-    configure_mcp
+    # configure_mcp     # SRIOV selects by node label and not MCP
+    :
 else
     echo "Cluster has no workers. Will use master mcp"
 fi
