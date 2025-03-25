@@ -14,7 +14,7 @@ include ${REG_ROOT}/lab.config
 .PHONY: confirm_controller clean
 
 confirm_controller:
-	@if [ "$$(hostname)" == "$(REG_OCPHOST_NAME)" ]; then \
+	@if [ "$$(hostname)" != "$(REG_OCPHOST_NAME)" ]; then \
 		echo "Aborting. Please run this command on the controller."; \
 		exit 1; \
 	fi

@@ -9,7 +9,7 @@ include ${REG_ROOT}/jobs.config
 include ${REG_ROOT}/lab.config
 
 confirm_controler:
-	@if [ "$$(hostname)" == "$(REG_OCPHOST)" ]; then \
+	@if [ "$$(hostname)" != "$(REG_OCPHOST_NAME)" ]; then \
 		echo "Aborting. Please run this command on the controller."; \
 		exit 1; \
 	fi
