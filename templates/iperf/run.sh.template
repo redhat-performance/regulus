@@ -41,6 +41,11 @@ num_cpus=${USEABLE_CPUS}  # A few fewer than the number of *Allocatable* cpus on
              # This is  automatically calculated by lab-analyzer
 pod_qos=burstable # static = guaranteed pod, burstable = default pos qos
 ocphost=$REG_OCPHOST
+if [ "$(hostname)" == "${REG_OCPHOST}" ]; then
+    # use IP if running on the bastion
+    ocphost="$(hostname -i)"
+fi
+
 k8susr=$REG_KNI_USER # Might be "root" or "kni" for some installations
 
 if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; then

@@ -109,11 +109,7 @@ echo IN: f_verify_lab_config  >&2
     fi
 
     # Check lab.config consistency
-    #rem_exports=$(ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#' ")
-    #rem_exports=$(do_ssh $DEST "cd $reg_dir && cat lab.config | grep export | grep -v '#'\"")
-    #rem_exports=$(do_ssh $DEST "cd $reg_dir && grep export lab.config | grep -v '#'")
-    #rem_exports=$(do_ssh $DEST "cd $reg_dir && grep export lab.config | grep -v '\#'")
-    #rem_exports=$(do_ssh $DEST "cd $reg_dir && grep export lab.config | grep -v \"#\"")
+    # ssh + grep has too much syntax headaches. scp and then grep local is easier.
     scp $DEST:$reg_dir/lab.config /tmp/lab.config
     rem_exports=$(grep export /tmp/lab.config | grep -v '#')
 
@@ -128,8 +124,7 @@ echo IN: f_verify_lab_config  >&2
         fi
     fi
 
-    # A super convolute mess. We need to make init-lab (to initialize CLUSTER_TYPE) on the bastion 
-    # first before we can run make init for SRIOV/UNIV/
+    # The bastion also needs lab-init (for CLUSTER_TYPE) before we can init SRIOV/UNIV/
     if [ "$auto_fix" == "true" ]; then
         echo "CMD: ssh $DEST cd $reg_dir && source bootstrap.sh && make init-lab" >&2
         #ssh $DEST "cd $reg_dir && source bootstrap.sh && make init-lab"
@@ -142,7 +137,8 @@ echo IN: f_verify_lab_config  >&2
         if [ "$auto_fix" == "true" ]; then
             echo "WARN: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
             echo "auto_fix is ON. Fixing it"  >&2
-            (do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && make init")
+            #(do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && make init")
+            do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && make init"
         else
             echo "ERROR: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
             echo "Hint: go to $reg_dir/SRIOV-config/UNIV on the bastion and 'make init'" >&2
@@ -269,8 +265,8 @@ function create_mirror_repo_on_bastion {
 }
 
 # continue
-if [ "$(hostname)" != "$REG_OCPHOST" ]  &&  [ "$(hostname -i)" != "$REG_OCPHOST" ] ; then
-    echo "$0 is running on the controller ... check lab.config match" >&2
+if [ "$(hostname)" != "$REG_OCPHOST" ] ; then
+    echo "$0 is NOT on the bastion ... mirror check lab.config match" >&2
     # mirror repo in a sub-shell, to avoid all the unwanted messages
     (
         # Install regulus repo on the bastion if applicable
@@ -283,24 +279,24 @@ else
 fi
 
 is_bastion() {
-    [ "$1" == "$REG_OCPHOST_NAME" ]
+    [ "$1" == "$REG_OCPHOST" ]
 }
 
-if [[ -n "${BM_HOSTS[*]}" ]]; then
-    echo "HN BM_HOSTS=${BM_HOSTS[*]}" >&2
-    # The user can specify REG_OCPHOST by IP or by FQDN. We compare like kind.
-    for host in "${BM_HOSTS[@]}"; do
+read -a BM_HOST_ARR <<< "$BM_HOSTS"
+
+for host in "${BM_HOST_ARR[@]}"; do
+    if [ "$(hostname)" != "$host" ] ; then
         if is_bastion "$host"; then
-            echo "remotehost $host is bastion $REG_OCHOST. Skipping cloning..." >&2
+            echo "remotehost $host is bastion. Skipping cloning..." >&2
             continue
         fi
-        echo "remotehost $host is not bastion $REG_OCHOST. Cloning repo to remotehost" >&2
+        echo "remotehost $host is not bastion. Cloning repo to remotehost" >&2
         # Mirror repo in a sub-shell to avoid unwanted messages
         (
             create_mirror_repo_on_bastion "root" "${host}"
         ) > rem-init.log 2>&1
-    done
-fi
+    fi
+done
 
 # check ssh and $reg_dir correctness
 if ! do_ssh "$REG_KNI_USER@$REG_OCPHOST" "cd $reg_dir && oc get node &>/dev/null" ; then
@@ -334,6 +330,11 @@ echo "core-per-socket=$tb_cps" >&2
 
 f_update_tb_info
 
-echo "$0 completed" >&2
+if [ "$(hostname)" == "$REG_OCPHOST" ] ; then
+    iam="bastion"
+else
+    iam="local"
+fi
+echo "$0 on $iam completed" >&2
 
 # done

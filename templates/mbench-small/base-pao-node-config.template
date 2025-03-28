@@ -1,5 +1,10 @@
 pwd=`/bin/pwd`
 ocp_host=$REG_OCPHOST
+if [ "$(hostname)" == "${REG_OCPHOST}" ]; then
+    # use IP if running on the bastion
+    ocp_host="$(hostname -i)"
+fi
+
 k8susr=$REG_KNI_USER
 tags=lab:scale,datapath:$REG_DP
 
