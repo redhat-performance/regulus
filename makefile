@@ -117,10 +117,10 @@ $(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
 	jq -r 'to_entries | .[] | "\(.key)=\(.value)"' $@ > ${LAB_TARGET_ENV};
 
 
-# This top dog setting.env is needed before other  *-config can run
+# This top setting.env is needed before other  *-config can run. 
 SRIOV_INIT:
-	@pushd SETUP_GROUP/SRIOV/INSTALL && make --no-print-directory init  && popd  && \
-	cd SRIOV-config/UNIV && make --no-print-directory init
+	@pushd SETUP_GROUP/SRIOV/INSTALL > /dev/null 2>&1 && make --no-print-directory init \
+	 && popd > /dev/null 2>&1 && cd SRIOV-config/UNIV && make --no-print-directory init
 
 # Init LAB info if lab.config changes. Do not output anything to spoil the json file
 init-lab: $(LAB_TARGET) SRIOV_INIT
