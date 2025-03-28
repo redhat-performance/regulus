@@ -352,8 +352,7 @@ ARGS=" --tags $tags \
         --mv-params $mv_params_file \
         --num-samples=$NUM_SAMPLES  \
         --max-sample-failures=$max_failures \
-        $endpoint_opt \
-        --max-rb-attempts=3"
+        $endpoint_opt "
 
     if [ -z "$ONEJSON" ]; then
         time crucible run uperf $ARGS
