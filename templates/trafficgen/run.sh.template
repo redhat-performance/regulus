@@ -76,7 +76,6 @@ sed -i -e "s/\"arg\": \"trex-active-devices\",[[:space:]]*\"vals\": \[ \"[^\"]*\
 
 ARGS=" --tags $tags \
   --tool-params tool-params.json \
-  --max-rb-attempts=3 \
   --mv-params $mv_params_file \
   --num-samples ${NUM_SAMPLES} \
   --max-sample-failures ${max_failures} \
