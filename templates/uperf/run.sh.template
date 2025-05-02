@@ -10,6 +10,7 @@ source ${REG_ROOT}/init.sh
 source ${REG_ROOT}/templates/common/remotehost_functions
 
 DURATION=${DURATION:-0}
+OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 
 scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair. Consider using even numbers due to NUMA carving
 
@@ -331,10 +332,6 @@ for num_pods in $scale_up_factor; do
         endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
     fi
 
-    # Give our project privilege 
-    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
-    ssh $k8susr@$ocphost "kubectl create namespace crucible-rickshaw  --labels=pod-security.kubernetes.io/enforce=privileged,pod-security.kubernetes.io/enforce-version=v1.27"
-
     tags="sdn:$network_type,mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv,osruntime:$osruntime"
     tags+=",topo:$topo,pods-per-worker:$num_pods,scale_out_factor:$scale_out_factor"
     if [ "$topo" == "internode" -a "$topo" == "intranode" ]; then
@@ -351,6 +348,12 @@ for num_pods in $scale_up_factor; do
     if [ "$TPL_HOSTNETWORK" == 1 ]; then
        endpoint_opt+=",hostNetwork:1"
     fi
+
+    # Give our project privilege 
+    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT && \
+                 kubectl label ns $OCP_PROJECT pod-security.kubernetes.io/enforce=privileged \
+                      pod-security.kubernetes.io/enforce-version=v1.27 --overwrite" 
 
 ARGS=" --tags $tags \
         --mv-params $mv_params_file \

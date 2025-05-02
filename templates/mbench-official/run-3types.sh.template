@@ -4,6 +4,7 @@ source ${REG_ROOT}/init.sh
 
 NUM_SAMPLES=${NUM_SAMPLES:-1}
 DURATION=${DURATION:-0}
+OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 
 num_samples=$NUM_SAMPLES
 config=$1
@@ -85,6 +86,12 @@ if [ "$DURATION" != 0 ]; then
 		sed -i 's/\({ "arg": "time", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
 	done
 fi
+
+# Give our project privilege 
+ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT && \
+                 kubectl label ns $OCP_PROJECT pod-security.kubernetes.io/enforce=privileged \
+                      pod-security.kubernetes.io/enforce-version=v1.27 --overwrite" 
 
 ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\
