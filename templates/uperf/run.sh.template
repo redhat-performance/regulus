@@ -331,6 +331,10 @@ for num_pods in $scale_up_factor; do
         endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
     fi
 
+    # Give our project privilege 
+    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    ssh $k8susr@$ocphost "kubectl create namespace crucible-rickshaw  --labels=pod-security.kubernetes.io/enforce=privileged,pod-security.kubernetes.io/enforce-version=v1.27"
+
     tags="sdn:$network_type,mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv,osruntime:$osruntime"
     tags+=",topo:$topo,pods-per-worker:$num_pods,scale_out_factor:$scale_out_factor"
     if [ "$topo" == "internode" -a "$topo" == "intranode" ]; then
