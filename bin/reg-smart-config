@@ -355,6 +355,12 @@ update_config_var() {
     fi
 }
 
+{ cat <<EOF
+# This file was completed by reg-smart-config
+# 
+EOF
+cat ./lab.config; } > ./lab.config.new && mv ./lab.config.new ./lab.config
+
 # Update all variables
 update_config_var "BM_HOSTS" "$BM_HOSTS" "$LAB_CONFIG"
 update_config_var "OCP_WORKER_0" "$OCP_WORKER_0" "$LAB_CONFIG"
@@ -366,6 +372,7 @@ update_config_var "REG_SRIOV_NIC_MODEL" "$REG_SRIOV_NIC_MODEL" "$LAB_CONFIG"
 update_config_var "REG_MACVLAN_NIC" "$REG_MACVLAN_NIC" "$LAB_CONFIG"
 update_config_var "REG_MACVLAN_MTU" "$REG_MACVLAN_MTU" "$LAB_CONFIG"
 update_config_var "REG_DPDK_NIC_1" "$REG_DPDK_NIC_1" "$LAB_CONFIG"
+update_config_var "REG_DPDK_NIC_2" "$REG_DPDK_NIC_2" "$LAB_CONFIG"
 update_config_var "REG_DPDK_NIC_MODEL" "$REG_DPDK_NIC_MODEL" "$LAB_CONFIG"
 update_config_var "TREX_HOSTS" "$TREX_HOSTS" "$LAB_CONFIG"
 update_config_var "TREX_SRIOV_INTERFACE_1" "$TREX_SRIOV_INTERFACE_1" "$LAB_CONFIG"
