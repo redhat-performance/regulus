@@ -2,6 +2,7 @@
 # Misc support functions
 #
 source ${REG_ROOT}/lab.config   # to get the BMLHOSTS array
+source ${REG_ROOT}/templates/common/functions
 
 DEBUG=1
 DPRINT() {
@@ -60,7 +61,7 @@ function multi_rm_hosts() {
     # Check SSH connectivity to each host
     for i in $(seq 0 $(($rm_factor - 1))); do
         DPRINT $LINENO "DEBUG: host ${BMLHOSTS[$i]}"
-        ssh root@${BMLHOSTS[$i]} "pwd" > /dev/null 2>&1
+        do_ssh root@${BMLHOSTS[$i]} "pwd" > /dev/null 2>&1
         if [ $? -ne 0 ]; then
             DPRINT $LINENO "DEBUG: SSH command failed on host ${BMLHOSTS[$i]}"
             echo "Need at least $rm_factor remote hosts to run tests, but host ${BMLHOSTS[$i]} is unreachable."

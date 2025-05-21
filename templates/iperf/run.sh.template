@@ -7,6 +7,7 @@ source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/templates/common/worker_labels.config
 source ${REG_ROOT}/init.sh
 source ${REG_ROOT}/templates/common/remotehost_functions
+source ${REG_ROOT}/templates/common/functions
 
 DURATION=${DURATION:-0}
 
@@ -61,13 +62,13 @@ fi
 
 if [ "$TPL_SRIOV" == 1 ] ; then
     source ${REG_ROOT}/SRIOV-config/config.env
-    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
-    ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
+    do_ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    do_ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
 
     # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
-    ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
-    #KNI_HOME=$(ssh $k8susr@$ocphost "pwd")
-    #ssh $k8susr@$ocphost "kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
+    do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
+    #KNI_HOME=$(do_ssh $k8susr@$ocphost "pwd")
+    #do_ssh $k8susr@$ocphost "kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
 
     # sometime network-attachment takes a few seconds to be available
     sleep 5
@@ -75,11 +76,11 @@ fi
 
 if [ "$TPL_MACVLAN" == 1 ] ; then
   	source ${REG_ROOT}/MACVLAN-config/config.env
-    ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
-    ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
+    do_ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    do_ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT"
 
     # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
-    ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_MACVLAN_NAD}"
+    do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_MACVLAN_NAD}"
     # sometime network-attachment takes a few seconds to be available
     sleep 5
 fi
@@ -146,7 +147,7 @@ function gen_resource_file() {
 
 
 # check for dependencies
-bins="jq bc ssh sed crucible"
+bins="jq bc do_ssh sed crucible"
 missing_bins=""
 for bin in $bins; do
     which $bin >/dev/null 2>&1 || missing_bins="$missing_bins $bin"
@@ -185,7 +186,7 @@ for num_pods in $scale_up_factor; do
     num_clients=`echo "$num_pods * $scale_out_factor" | bc`
     num_servers=$num_clients
     if [ "$topo" != "interhost" ]; then # Any test involving ocp/k8s
-        ssh $k8susr@$ocphost "kubectl get nodes -o json" >nodes.json
+        do_ssh $k8susr@$ocphost "kubectl get nodes -o json" >nodes.json
         # support one MATCH label and 4 MATCH_NOT labels for workers selection
         if [ -z "$MATCH" ]; then
             my_select_var=".\"node-role.kubernetes.io/worker\" != null"
@@ -235,11 +236,11 @@ for num_pods in $scale_up_factor; do
             echo "Computing resource file: $resource_file"
             gen_resource_file $per_pod_cpu
         fi
-        ssh $k8susr@$ocphost "kubectl get nodes/$first_worker -o json" >worker.json
+        do_ssh $k8susr@$ocphost "kubectl get nodes/$first_worker -o json" >worker.json
         kernel=`jq -r .status.nodeInfo.kernelVersion worker.json`
         rcos=`jq -r .status.nodeInfo.osImage  worker.json | awk -F"CoreOS " '{print $2}' | awk '{print $1}'`
-        ssh $k8susr@$ocphost "kubectl get networks.operator.openshift.io cluster -o yaml" >networks-operator.json
-        ssh $k8susr@$ocphost "kubectl get network -o json" >network.json
+        do_ssh $k8susr@$ocphost "kubectl get networks.operator.openshift.io cluster -o yaml" >networks-operator.json
+        do_ssh $k8susr@$ocphost "kubectl get network -o json" >network.json
         network_type=`jq -r .items[0].status.networkType network.json`
         network_mtu=`jq -r .items[0].status.clusterNetworkMTU network.json`
             ns_file[0]=""
@@ -301,7 +302,7 @@ for num_pods in $scale_up_factor; do
         network_type=flat
         network_mtu=8900 # TODO: get actual mtu
         rcos=na
-        kernel=`ssh $bmlhosta uname -r`
+        kernel=`do_ssh $bmlhosta uname -r`
     fi
 
     if [ "$topo" == "internode" -o "$topo" == "intranode" ]; then
@@ -344,6 +345,11 @@ for num_pods in $scale_up_factor; do
     if [ "$TPL_HOSTNETWORK" == 1 ]; then
        endpoint_opt+=",hostNetwork:1"
     fi
+
+    do_ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    do_ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT && \
+                 kubectl label ns $OCP_PROJECT pod-security.kubernetes.io/enforce=privileged \
+                      pod-security.kubernetes.io/enforce-version=v1.27 --overwrite" 
 
 ARGS=" --tags $tags \
         --mv-params $mv_params_file \

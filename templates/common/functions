@@ -1,20 +1,28 @@
 
 function do_ssh() {
-    local user_host user host ssh_cmd
-    user_host=$1; shift
-    user=`echo $user_host | awk -F@ '{print $1}'`
-    host=`echo $user_host | awk -F@ '{print $2}'`
-    ssh_cmd=""
-    if [ -z "$user" ]; then
-        exit_error "do_ssh: user was blank: $user_host"
-    fi
-    if [ -z "$host" ]; then
-        exit_error "do_ssh: host was blank: $user_host"
-    fi
-    ssh_cmd="ssh $ssh_opts $user_host bash -c \"$@\""
+    local user_host="$1"
+    shift
+    local ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
+    local user host ssh_cmd
 
-    echo CMD: $ssh_cmd  >&2
-    $ssh_cmd
+    # Parse user and host from user_host
+    user=$(echo "$user_host" | awk -F@ '{print $1}')
+    host=$(echo "$user_host" | awk -F@ '{print $2}')
+
+    # Check if user and host are valid
+    if [ -z "$user" ] || [ -z "$host" ]; then
+        echo "Error: Invalid user/host: $user_host" >&2
+        return 1
+    fi
+
+    # Create the ssh command with the given commands
+    ssh_cmd="ssh $ssh_opts $user_host \"bash -c '$@'\""
+
+    # Echo the command for debugging
+    echo "CMD: $ssh_cmd" >&2
+
+    # Execute the command
+    eval $ssh_cmd
     local rc=$?
     return $rc
 }
