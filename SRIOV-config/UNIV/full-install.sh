@@ -38,10 +38,7 @@ if [ -z "$WORKER_LIST"  ]; then
 fi
 echo Use mcp $MCP 
 
-export OCP_CHANNEL=$(get_ocp_channel)
-
-# lately 4.14 onward sriov  operator want channel="stable" and not the actual version number.
-OCP_CHANNEL=stable
+export OCP_CHANNEL=$(oc get packagemanifest sriov-network-operator -n openshift-marketplace -o json | jq -r '.status.channels[0].name')
 
 # step1 - install sriov Operator
 function install_sriov_operator {
@@ -66,10 +63,21 @@ function install_sriov_operator {
         # give it a little delay. W/o delay we could encounter error on the next command.
         ECHO sleep 10
     fi
+
+    ### install SRIOV operator config. Required since 4.18
+    if oc get sriovoperatorconfig  -n openshift-sriov-network-operator &>/dev/null; then 
+        echo "SRIOV Operator config already installed: done"
+    else
+        echo "Installing SRIOV Operator config ..."
+        envsubst  < templates/sriov-operator-config.yaml.template > ${MANIFEST_DIR}/sriov-operator-config.yaml
+        ECHO oc create -f ${MANIFEST_DIR}//sriov-operator-config.yaml
+        echo "install SRIOV Operator: done"
+        ECHO sleep 10
+    fi
+
 }
 
 install_sriov_operator
-ECHO "72: exit"; exit
 
 # step 2 -Create mcp-regulus-vf mcp for STANDARD cluster
 #         For SNO and 3-node compact, setting.env has MCP=master, hence we do not skip creation.
@@ -188,7 +196,6 @@ config_SriovNetworkNodePolicy
 
 function create_network {
     # debug:  oc get SriovNetwork/sriov-node-policy.yaml.template
-    OCP_CHANNEL=$(get_ocp_channel)
     if [ "${OCP_CHANNEL}" == "4.14" ] ||  [ "${OCP_CHANNEL}" == "4.15" ] ; then
     	envsubst < templates/net-attach-def.yaml.415.template > ${MANIFEST_DIR}/net-attach-def.yaml
     else

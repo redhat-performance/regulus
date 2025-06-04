@@ -5,10 +5,12 @@ metadata:
   name: $DIR-sriov-node-policy 
   namespace: openshift-sriov-network-operator
 spec:
-  deviceType: vfio-pci
+  deviceType: netdevice
+  isRdma: true
+  needVhostNet: true
   nicSelector:
     pfNames:
-    - ${VFIO_INTERFACE}
+    - ${INTERFACE}
   nodeSelector:
     node-role.kubernetes.io/$MCP: "" 
   numVfs: 1 

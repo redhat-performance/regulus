@@ -8,7 +8,7 @@
 source ./setting.env
 source ./functions.sh
 export WORKER_LIST=${WORKER_LIST:-}
-SINGLE_STEP=${SINGLE_STEP:-false}
+SINGLE_STEP=${SINGLE_STEP:-true}
 
 parse_args $@
 
@@ -43,6 +43,8 @@ if ! oc get mcp $MCP &>/dev/null; then
     echo "create mcp for ${MCP}: done"
 fi
 
+echo "Next is label node role ${MCP}"; prompt_continue 
+
 # make sure MCP is labeled
 if oc get mcp ${MCP} &> /dev/null ; then
    oc label --overwrite mcp ${MCP} machineconfiguration.openshift.io/role=${MCP}
@@ -50,8 +52,10 @@ fi
 
 mkdir -p ${MANIFEST_DIR}/
 
+echo "Next is getting cpuinfo from 1st of role ${WORKER_LIST}"; prompt_continue 
+
 # Step 3 - generate performance profile and install it 
-echo "Acquiring cpu info from first worker node in ${WORKER_LIST} ..."
+echo "Acquiring reserved cpu info from first worker node in ${WORKER_LIST} ..."
 FIRST_WORKER=$(echo ${WORKER_LIST} * | head -n1 | awk '{print $1;}')
 all_cpus=$(exec_over_ssh ${FIRST_WORKER} lscpu | awk '/On-line CPU/{print $NF;}')
 export RESERVED_CPUS=
@@ -63,6 +67,8 @@ for N in {0..1}; do
     RESERVED_CPUS+=$(exec_over_ssh ${FIRST_WORKER} "cat /sys/bus/cpu/devices/cpu$N/topology/thread_siblings_list")
 done
 echo RESERVED_CPUS=$RESERVED_CPUS
+echo "Next is getting isolated cpuinfo from 1st of role ${FIRST_WORKER}"
+prompt_continue 
 
 PYTHON=$(get_python_exec)
 export ISOLATED_CPUS=$(${PYTHON} cpu_cmd.py cpuset-substract ${all_cpus} ${RESERVED_CPUS})

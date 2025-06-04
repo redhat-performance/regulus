@@ -1,0 +1,16 @@
+# For CX6, you need to provision the remotehost with a few extra steps
+1. install ibverbs library
+  yum install -y rdma-core-devel libibverbs-utils
+
+2. install OFED driver
+wget https://content.mellanox.com/ofed/MLNX_OFED-5.8-1.0.1.1/MLNX_OFED_LINUX-5.8-1.0.1.1-rhel8.6-x86_64.tgz
+tar -xzf MLNX_OFED_LINUX-5.8-1.0.1.1-rhel8.6-x86_64.tgz  
+cd MLNX_OFED_LINUX-5.8-1.0.1.1-rhel8.6-x86_64
+./mlnxofedinstall --force
+
+If all working correctly, you should see the NICs show up in the output of ibv_devinfo
+$ ibv_devinfo
+
+3. bind to mlx5_core (NOT vfio-pci)
+./dpdk-devbind.py --bind=mlx5_core 0000:98:00.0 0000:98:00.1
+
