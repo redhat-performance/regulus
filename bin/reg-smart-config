@@ -337,23 +337,27 @@ DPRINT $LINENO "Updating $LAB_CONFIG..."
 # Create backup
 cp "$LAB_CONFIG" "${LAB_CONFIG}.bak"
 
-# Function to update or add a variable in the config file
+# Function to update or add a variable in the config file. Also prefix with "export" if not already there.
 update_config_var() {
     local var_name="$1"
     local var_value="$2"
     local config_file="$3"
 
     INFO $LINENO "Updating $var_name to \"$var_value\""
-    
+
     # Check if variable exists in the file
-    if grep -q "^[[:space:]]*$var_name[[:space:]]*=" "$config_file"; then
-        # Variable exists, update it
-        sed -i "s|^[[:space:]]*$var_name[[:space:]]*=.*|$var_name=\"$var_value\"|" "$config_file"
+    if grep -q "^[[:space:]]*export[[:space:]]\+$var_name[[:space:]]*=" "$config_file"; then
+        # Variable exists with export, update it
+        sed -i "s|^[[:space:]]*export[[:space:]]\+$var_name[[:space:]]*=.*|export $var_name=\"$var_value\"|" "$config_file"
+    elif grep -q "^[[:space:]]*$var_name[[:space:]]*=" "$config_file"; then
+        # Variable exists without export, update it to include export
+        sed -i "s|^[[:space:]]*$var_name[[:space:]]*=.*|export $var_name=\"$var_value\"|" "$config_file"
     else
-        # Variable doesn't exist, add it
-        echo "$var_name=\"$var_value\"" >> "$config_file"
+        # Variable doesn't exist, add it with export
+        echo "export $var_name=\"$var_value\"" >> "$config_file"
     fi
 }
+
 
 { cat <<EOF
 # This file was completed by reg-smart-config
@@ -362,6 +366,10 @@ EOF
 cat ./lab.config; } > ./lab.config.new && mv ./lab.config.new ./lab.config
 
 # Update all variables
+update_config_var "KUBECONFIG" "$KUBECONFIG" "$LAB_CONFIG"
+update_config_var "REG_KNI_USER" "$REG_KNI_USER" "$LAB_CONFIG"
+update_config_var "REG_OCPHOST" "$REG_OCPHOST" "$LAB_CONFIG"
+update_config_var "REG_DP" "$REG_DP" "$LAB_CONFIG"
 update_config_var "BM_HOSTS" "$BM_HOSTS" "$LAB_CONFIG"
 update_config_var "OCP_WORKER_0" "$OCP_WORKER_0" "$LAB_CONFIG"
 update_config_var "OCP_WORKER_1" "$OCP_WORKER_1" "$LAB_CONFIG"
