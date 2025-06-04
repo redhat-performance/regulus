@@ -1,1 +1,4 @@
 You can invoke "bash install.sh.cleanup.sh" here.  Or cd $REG_ROOT/SETUP-GROUP/DPDK/INSTALL && make run
+
+# Reminder: the remotehost/RHEL should be ready for DPDK i.e. hugepages, iommu, cpu-partitionning
+"... intel_iommu=on default_hugepagesz=1G hugepagesz=1G hugepages=32 isolcpus=managed_irq,domain,2-55,58-111 nohz_full=2-55,58-111 rcu_nocbs=2-55,58-111 systemd.cpu_affinity=0,1,56,57"

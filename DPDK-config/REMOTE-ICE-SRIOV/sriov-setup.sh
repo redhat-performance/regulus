@@ -1,5 +1,9 @@
 #!/bin/sh
 #
+# Prepare NIC for DPDK. 
+#   Mellanox Cx6: install ibverbs and ofed driver, and bind NIC to mlx5_core
+#   Intel NICs: bind to fvio-pci
+#
 # Overall error handling policy: require operator intervention upon error
 # Scenarios: 
 #    1. install after install:   ERROR
@@ -26,6 +30,19 @@ print_usage() {
         printf '%-15s: %s\n' "$key" "${arr[$key]}"
     done
     exit 1
+}
+
+DRY=false  # set to true to print but no execution
+RUN_CMD() {
+    local cmd="$*"
+
+    if $DRY; then
+        echo "[DRY] Command: $cmd"
+        #eval "$cmd"
+    else
+        echo "CMD: $cmd"
+        eval "$cmd"
+    fi
 }
 
 rebind_kernel_auto() {
@@ -166,21 +183,73 @@ bind_driver() {
     fi
 }
 
+install_ofed()
+{
+	if ! rpm -q rdma-core-devel >/dev/null 2>&1; then
+    	echo "Installing rdma-core-devel..."
+    	RUN_CMD yum install -y rdma-core-devel
+	else
+    	echo "rdma-core-devel already installed"
+	fi
+
+	if ! rpm -q libibverbs-utils >/dev/null 2>&1; then
+    	echo "Installing libibverbs-utils..."
+    	RUN_CMD yum install -y libibverbs-utils
+	else
+    	echo "libibverbs-utils already installed"
+	fi
+
+	if ibv_devinfo | grep -q "hca_id.*mlx5_" && lsmod | grep -q mlx5_core; then
+    	DPRINT $LINENO  "OFED/mlx5 functionality is working"
+    	echo "OFED/mlx5 functionality is working"
+    	exit 0
+	else
+    	echo "Need to install/configure OFED"
+		if ./ofed-util.sh --check-only; then
+    		echo "OFED already installed, continuing..."
+		else
+    		echo "Installing OFED..."
+    		./ofed-util.sh
+		fi
+	fi
+
+}
 
 install() {
     DPRINT $LINENO "Enter=setup" 
-    echo "Setting up vfio-pci on TREX host ..."
-
-    echo "bind PF to vfio-pci"
-    modprobe vfio-pci
+    if [[ "${REG_DPDK_NIC_MODEL}" == "CX6"   ]]; then
+		DPRINT $LINENO "I am CX6"
+        # MLX NICs need OFED driver. Do the follows:
+        #   yum install -y rdma-core-devel libibverbs-utils
+        #   wget https://content.mellanox.com/ofed/MLNX_OFED-5.8-1.0.1.1/MLNX_OFED_LINUX-5.8-1.0.1.1-rhel8.6-x86_64.tgz
+        #   tar -xzf MLNX_OFED_LINUX-5.8-1.0.1.1-rhel8.6-x86_64.tgz  && cd MLNX_OFED_LINUX-5.8-1.0.1.1-rhel8.6-x86_64
+        #   cd MLNX_OFED_LINUX-5.8-1.0.1.1-rhel8.6-x86_64
+        #   ./mlnxofedinstall --force
+        #   ibv_devinfo <== should show "mlx_" entries
+		install_ofed
+		exit 0;
+    else
+		DPRINT $LINENO "I am NOT CX6, ${REG_DPDK_NIC_MODEL} "
+        modprobe vfio-pci
+    fi
 
    	pf_pci=$(realpath /sys/class/net/${TREX_SRIOV_INTERFACE_1}/device| awk -F '/' '{print $NF}')
-    echo CMD: bind_driver vfio-pci ${pf_pci}
-    bind_driver vfio-pci "${pf_pci}"
+    if [[ "${REG_DPDK_NIC_MODEL}" == "CX6"   ]]; then
+       echo CMD: bind_driver mlx5_core ${pf_pci}
+       bind_driver mlx5_core "${pf_pci}"
+    else 
+       echo CMD: bind_driver vfio-pci ${pf_pci}
+       bind_driver vfio-pci "${pf_pci}"
+   fi
 
     pf_pci=$(realpath /sys/class/net/${TREX_SRIOV_INTERFACE_2}/device | awk -F '/' '{print $NF}')
-    echo CMD: bind_driver vfio-pci ${pf_pci}
-    bind_driver vfio-pci "${pf_pci}"
+    if [[ "{REG_DPDK_NIC_MODEL}" == "CX6"   ]]; then
+       echo CMD: bind_driver mlx5_core ${pf_pci}
+       bind_driver mlx5_core "${pf_pci}"
+    else 
+       echo CMD: bind_driver vfio-pci ${pf_pci}
+       bind_driver vfio-pci "${pf_pci}"
+   fi
 
     echo "vfio-pci devices setup on TREX host: done"
 }     

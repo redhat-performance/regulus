@@ -31,6 +31,8 @@ fi
 echo Use label $MCP 
 prompt_continue
 
+export OCP_CHANNEL=$(oc get packagemanifest sriov-network-operator -n openshift-marketplace -o json | jq -r '.status.channels[0].name')
+
 # step 3 - label nodes that needs SRIOV
 
 function add_label {
@@ -101,12 +103,9 @@ config_SriovNetworkNodePolicy
 
 function create_network {
     # debug:  oc get SriovNetwork/sriov-node-policy.yaml.template
-    OCP_CHANNEL=$(get_ocp_channel)
-    if [ "${OCP_CHANNEL}" == "4.14" ] ||  [ "${OCP_CHANNEL}" == "4.15" ] ||  [ "${OCP_CHANNEL}"  == "4.16" ] ; then
-    	envsubst < templates/net-attach-def.yaml.415.template > ${MANIFEST_DIR}/net-attach-def.yaml
-    else
-    	envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
-    fi
+    envsubst < templates/net-attach-def.yaml.415.template > ${MANIFEST_DIR}/net-attach-def.yaml
+
+    # OLDER, pre 4.14	envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
 
     return # lately we create NAD per test. So no need to create now
 

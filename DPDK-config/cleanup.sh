@@ -3,7 +3,7 @@ source ${REG_ROOT}/lab.config
 nic_type=$REG_DPDK_NIC_MODEL
 
 case "${nic_type}" in
-    X710|XXV710|E810|MLX6)
+    X710|XXV710|E810|CX6)
         echo "config $REG_DPDK_NIC_MODEL"
         ;;
     *)

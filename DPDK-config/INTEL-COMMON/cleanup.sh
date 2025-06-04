@@ -75,6 +75,12 @@ exit
 echo "Continue if you want to also remove the SRIOV Operator ..."
 prompt_continue
 
+if oc get sriovoperatorconfig -n openshift-sriov-network-operator &>/dev/null; then 
+    echo "Remove SRIOV Operator config ..."
+    oc delete sriovoperatorconfig openshift-sriov-network-operator -n openshift-sriov-network-operator
+    rm ${MANIFEST_DIR}/sriov-operator-config.yaml
+fi
+
 if oc get Subscription sriov-network-operator-subscription -n openshift-sriov-network-operator &>/dev/null; then
     echo "Remove  SRIOV Operator ..."
     oc delete -f ${MANIFEST_DIR}/sub-sriov.yaml

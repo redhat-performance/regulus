@@ -11,21 +11,24 @@ fi
 source ./setting.env
 source ../../common/functions.sh
 
+
 parse_args $@
 
-MANIFEST_DIR=./
+MANIFEST_DIR=.
 
 mkdir -p ${MANIFEST_DIR}/
+
 
 if [ -z "${WORKER_LIST}"  ]; then
     echo no WORKER_LIST
     exit
 else
-    echo WORRER_LIST=$WORKER_LIST
+    echo WORKER_LIST=$WORKER_LIST
 fi
+#echo INTERFACE=$INTERFACE; exit
 echo Use mcp $MCP 
 
-export OCP_CHANNEL=$(get_ocp_channel)
+export OCP_CHANNEL=$(oc get packagemanifest sriov-network-operator -n openshift-marketplace -o json | jq -r '.status.channels[0].name')
 
 # step1 - install sriov Operator
 function install_sriov_operator {
@@ -43,12 +46,22 @@ function install_sriov_operator {
     else
         #// Installing SR-IOV Network Operator done
         echo "Installing SRIOV Operator ..."
-        export OCP_CHANNEL=$(get_ocp_channel)
         envsubst < templates/sub-sriov.yaml.template > ${MANIFEST_DIR}/sub-sriov.yaml
         RUN_CMD oc create -f ${MANIFEST_DIR}/sub-sriov.yaml
         echo "install SRIOV Operator: done"
         RUN_CMD wait_pod_in_namespace openshift-sriov-network-operator
         # give it a little delay. W/o delay we could encounter error on the next command.
+        sleep 10
+    fi
+
+    ### install SRIOV operator config. Required since 4.18
+    if oc get sriovoperatorconfig  -n openshift-sriov-network-operator &>/dev/null; then 
+        echo "SRIOV Operator config already installed: done"
+    else
+        echo "Installing SRIOV Operator config ..."
+        envsubst  < templates/sriov-operator-config.yaml.template > ${MANIFEST_DIR}/sriov-operator-config.yaml
+        RUN_CMD oc create -f ${MANIFEST_DIR}//sriov-operator-config.yaml
+        echo "install SRIOV Operator: done"
         sleep 10
     fi
 }
@@ -106,7 +119,7 @@ function add_mc_realloc {
     fi
 }
 
-if [ ${REG_DPDK_NIC_MODEL} == "CX6" ]; then
+if [ "${REG_DPDK_NIC_MODEL}" == "CX6" ]; then
    DPRINT $LINDO "next, add add_mc_realloc"
    prompt_continue
    add_mc_realloc
@@ -127,7 +140,7 @@ function config_SriovNetworkNodePolicy {
     WORKER_ARR=(${WORKER_LIST})
     # assuming all worker NICs are in same PCI slot
     export INTERFACE_PCI=$(exec_over_ssh ${WORKER_ARR[0]} "ethtool -i ${INTERFACE}" | awk '/bus-info:/{print $NF;}')
-    echo "Acquiring SRIOV interface PCI info from worker node ${WORKER_LIST}: done"
+    echo "Acquiring SRIOV interface [$INTERFACE] PCI info [$INTERFACE_PCI] from worker node ${WORKER_ARR[0]}: done"
 
     # step 1 - create sriov-node-policy.yaml from template
     # 
