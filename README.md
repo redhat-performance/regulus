@@ -1,4 +1,4 @@
-This is the Regulus workspace, a repo that contains collections of Crucible test configurations, performance-profile config utility, and SRIOV config utility.
+This is the Regulus workspace, a repo that contains collections of Crucible test configurations, performance-profile, SRIOV and other config utilities.
 
 Testing is to be invoked on a Crucible controller ([info](https://docs.google.com/presentation/d/1--L-kxt4QTW78a1Foz6FpKThsvSx-GUZwha4FzwRwsE/edit#slide=id.g158c5ca952e_3_0)). PAO-config and SRIOV-config are to be launched on the bastion host.
 
