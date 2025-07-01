@@ -38,6 +38,26 @@ exit_error() {
     exit 1
 }
 
+function do_ssh() {
+    local user_host user host ssh_cmd
+    user_host=$1; shift
+    user=`echo $user_host | awk -F@ '{print $1}'`
+    host=`echo $user_host | awk -F@ '{print $2}'`
+    ssh_cmd=""
+    if [ -z "$user" ]; then
+        exit_error "do_ssh: user was blank: $user_host"
+    fi
+    if [ -z "$host" ]; then
+        exit_error "do_ssh: host was blank: $user_host"
+    fi
+    ssh_cmd="ssh $ssh_opts $user_host bash -c \"$@\""
+
+    echo CMD: $ssh_cmd  >&2
+    $ssh_cmd
+    local rc=$?
+    return $rc
+}
+
 LAB_CONFIG="lab.config"
 INFO $LINENO "Initializing optional variables in $LAB_CONFIG"
 
@@ -89,7 +109,9 @@ fi
 get_node_ip() {
     local node=$1
     DPRINT $LINENO "Getting IP address for node $node..."
-    local ip=$(oc get node $node -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
+    #local ip=$(oc get node $node -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
+    # we may have both ipv4 and v5 if dual stack. Take ipv4
+    local ip=$(oc get node worker000-000 -o json | jq -r '.status.addresses[] | select(.type=="InternalIP" and (.address | test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))) | .address')
     if [ -z "$ip" ]; then
         exit_error $LINENO "Could not get IP address for node $node"
     fi
