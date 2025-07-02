@@ -109,9 +109,8 @@ fi
 get_node_ip() {
     local node=$1
     DPRINT $LINENO "Getting IP address for node $node..."
-    #local ip=$(oc get node $node -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
     # we may have both ipv4 and v5 if dual stack. Take ipv4
-    local ip=$(oc get node worker000-000 -o json | jq -r '.status.addresses[] | select(.type=="InternalIP" and (.address | test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))) | .address')
+    local ip=$(oc get node $node -o json | jq -r '.status.addresses[] | select(.type=="InternalIP" and (.address | test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))) | .address')
     if [ -z "$ip" ]; then
         exit_error $LINENO "Could not get IP address for node $node"
     fi
