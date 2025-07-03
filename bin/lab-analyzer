@@ -38,6 +38,9 @@ function exit_error() {
     exit 1
 }
 
+SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ConnectTimeout=20"
+SSH_OPTS+="${extra_SSH_OPTS:-}"
+
 # compare two IDs for match. They can be FQDN or IP in any combination.
 hostids_match() {
     local host1="$1"
@@ -88,7 +91,7 @@ hostids_match() {
 function do_ssh() {
     local user_host="$1"
     shift
-    local ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
+    #local ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
     local user host ssh_cmd
 
     # Parse user and host from user_host
@@ -102,7 +105,7 @@ function do_ssh() {
     fi
 
     # Create the ssh command with the given commands
-    ssh_cmd="ssh $ssh_opts $user_host \"bash -c '$@'\""
+    ssh_cmd="ssh $SSH_OPTS $user_host \"bash -c '$@'\""
 
     # Echo the command for debugging
     echo "CMD: $ssh_cmd" >&2
@@ -356,7 +359,7 @@ tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
 echo "useable_cpus=$tb_useable_cpus" >&2
 
 # get worker cpu topology
-cps_string="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "ssh  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null core@$first_worker_ip lscpu" | grep Core)"
+cps_string="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "ssh $SSH_OPTS core@$first_worker_ip lscpu" | grep Core)"
 if [ -z "$cps_string" ]; then
     echo "Failed to ssh core@$first_worker_ip. Please setup 'core' login" >&2
     exit 
