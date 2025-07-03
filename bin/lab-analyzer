@@ -38,20 +38,60 @@ function exit_error() {
     exit 1
 }
 
-is_ip() {
-    local ip_regex='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
-    [[ $1 =~ $ip_regex ]]
+SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ConnectTimeout=20"
+SSH_OPTS+="${extra_SSH_OPTS:-}"
+
+# compare two IDs for match. They can be FQDN or IP in any combination.
+hostids_match() {
+    local host1="$1"
+    local host2="$2"
+
+    # Helper to get IPs from DNS or literal IPs
+    resolve_ips() {
+        local input="$1"
+        # If it's already an IP, return it
+        if [[ "$input" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$input"
+        else
+            getent ahosts "$input" | awk '{print $1}' | sort -u
+        fi
+    }
+
+    # Helper to get local IPs. These are extra interfaces setup by jetlag perhaps. dig does not know them.
+    local_ips() {
+        ip -4 -o addr show | awk '{print $4}' | cut -d/ -f1 | sort -u
+    }
+
+    # Resolve
+    ips1=$(resolve_ips "$host1")
+    ips2=$(resolve_ips "$host2")
+
+    # Add local IPs if either input refers to the local machine
+    hostname_fqdn=$(hostname -f)
+    hostname_short=$(hostname)
+
+    if [[ "$host1" == "$hostname_fqdn" || "$host1" == "$hostname_short" ]]; then
+        ips1=$(local_ips)
+    fi
+    if [[ "$host2" == "$hostname_fqdn" || "$host2" == "$hostname_short" ]]; then
+        ips2=$(local_ips)
+    fi
+
+    # Compare all IPs
+    for ip1 in $ips1; do
+        for ip2 in $ips2; do
+            if [[ "$ip1" == "$ip2" ]]; then
+                return 0
+            fi
+        done
+    done
+    return 1
 }
-#if is_ip "$1"; then
-#    echo "It's an IP address."
-#else
-#   echo "It's a hostname."
-#fi
 
 function do_ssh() {
     local user_host="$1"
     shift
-    local ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
+    #local ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
     local user host ssh_cmd
 
     # Parse user and host from user_host
@@ -65,7 +105,7 @@ function do_ssh() {
     fi
 
     # Create the ssh command with the given commands
-    ssh_cmd="ssh $ssh_opts $user_host \"bash -c '$@'\""
+    ssh_cmd="ssh $SSH_OPTS $user_host \"bash -c '$@'\""
 
     # Echo the command for debugging
     echo "CMD: $ssh_cmd" >&2
@@ -265,7 +305,8 @@ function create_mirror_repo_on_bastion {
 }
 
 # continue
-if [ "$(hostname)" != "$REG_OCPHOST" ] ; then
+#if [ "$(hostname)" != "$REG_OCPHOST" ] ; then
+if ! hostids_match "$(hostname)" "$REG_OCPHOST" ; then
     echo "$0 is NOT on the bastion ... mirror check lab.config match" >&2
     # mirror repo in a sub-shell, to avoid all the unwanted messages
     (
@@ -278,15 +319,12 @@ else
     echo "$0 is running on the bastion ... skip lab.config match check" >&2
 fi
 
-is_bastion() {
-    [ "$1" == "$REG_OCPHOST" ]
-}
-
 read -a BM_HOST_ARR <<< "$BM_HOSTS"
 
 for host in "${BM_HOST_ARR[@]}"; do
-    if [ "$(hostname)" != "$host" ] ; then
-        if is_bastion "$host"; then
+    #if [ "$(hostname)" != "$host" ] ; then
+    if ! hostids_match "$(hostname)" "$host" ; then
+    	if  hostids_match "$REG_OCPHOST" "$host" ; then
             echo "remotehost $host is bastion. Skipping cloning..." >&2
             continue
         fi
@@ -321,7 +359,7 @@ tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
 echo "useable_cpus=$tb_useable_cpus" >&2
 
 # get worker cpu topology
-cps_string="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "ssh  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null core@$first_worker_ip lscpu" | grep Core)"
+cps_string="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "ssh $SSH_OPTS core@$first_worker_ip lscpu" | grep Core)"
 if [ -z "$cps_string" ]; then
     echo "Failed to ssh core@$first_worker_ip. Please setup 'core' login" >&2
     exit 
