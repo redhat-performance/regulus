@@ -1,11 +1,23 @@
 #/bin/bash
 #
-# Main script called by Prow after Crucible and Regulus have been installed.
+# Main script to support Prow env, called by:  Prow -> bastion -> True bastion -> this-script
+# after Crucible and Regulus have been installed.
 #
+# See release/ci-operator/step-registry/openshift-qe/installer/bm/day2/regulus
+# for the description of bastion vs true bastion.
 #
-
 source bootstrap.sh
 source lab.config
+
+# If we run in the double/nested ssh scenario, the destination env context may not have 
+# ssh-agent available and thus no key. In this case we must use explicit key. "ssh -i <key> ...."
+if ssh-add -l >/dev/null 2>&1; then
+    echo 'SSH agent available, using agent'
+    export extra_SSH_OPTS=""
+else
+    echo 'No SSH agent, using private_key'
+    export extra_SSH_OPTS=" -i /tmp/private_key"  
+fi
 
 function do_ssh_copy_id() {
     # Script to ssh-copy-id with password
@@ -48,21 +60,22 @@ EOF
     fi
 }
 
-# This process needs ssh to the bastion (could be itself)
+# We are on the true bastion, Set it up so that it can ssh to itself.
 if ! ssh -o ConnectTimeout=5 -o BatchMode=yes $REG_KNI_USER@$REG_OCPHOST "pwd" 2>/dev/null; then
     echo "SSH key authentication failed, copying SSH key..."
     echo CMD: do_ssh_copy_id "$REG_OCPHOST" "100yard-" "$REG_KNI_USER"
     do_ssh_copy_id "$REG_OCPHOST" "100yard-" "$REG_KNI_USER"
 fi
 
-#### do some real work
-./bin/reg-smart-config      # Fix lab.config. Prow unlikely to have created a perfect lab.config
-source bootstrap.sh         # Pick up the updated lab.config
-source lab.config
-make init-lab
-pushd templates/uperf/TEST
-bash setmode one            # Make Prow Regulus job super short for now.
-popd
-make init-jobs
-make jobs
+#### Now do the Regulus work.
+./bin/reg-smart-config || { echo "reg-smart-config failed"; exit 1; }
+source bootstrap.sh || { echo "bootstrap.sh failed"; exit 1; }
+source lab.config || { echo "lab.config failed"; exit 1; }
+make init-lab || { echo "make init-lab failed"; exit 1; }
+pushd templates/uperf/TEST || { echo "pushd failed"; exit 1; }
+bash setmode one || { echo "setmode failed"; exit 1; }
+popd || { echo "popd failed"; exit 1; }
+make init-jobs || { echo "make init-jobs failed"; exit 1; }
+make jobs || { echo "make jobs failed"; exit 1; }
 
+#EOF
