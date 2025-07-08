@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 #
 # Regulus smart lab.config util
-#	1. Check for required env i.e KUBECONFIG, REG_KNI_USER, REG_OCPHOST
-# 	2. Initialize other env variables (according to the best of my knowledge) that the user has no inputs.
+#	1. Check for the required envs i.e KUBECONFIG, REG_KNI_USER, REG_OCPHOST
+# 	2. Initialize other env variables that the user has no inputs for. For example,
 #		a. OCP_WORKER_0-2
 #		b. BM_HOSTS
 #		c. REG_SRIOV_NIC, REG_MACVLAN_NIC, REG_DPDK_NIC, MODEL, MTU
 #		d. TREX_HOSTS, TREX_SRIOV_INTERFACE_1-2, MODEL, MTU
 #
-# Logic: it will skip a NIC for DPD eligibleK if NIC has SRIOV VFs already configured or being unknown NIC type.
+# Logic: if a NIC has SRIOV VFs (owned and configured by something else), or being unknown NIC type, it
+#       will not be eligible for DPDK tests.
 #
 # Limitations: 
 #	1. Recognize only XXV710, E810, Cx5 and Cx6 NIC at this moment. For others, it is Just a matter of verifying them.
