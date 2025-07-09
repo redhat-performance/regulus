@@ -5,6 +5,7 @@ source ${REG_ROOT}/templates/common/functions
 
 NUM_SAMPLES=${NUM_SAMPLES:-1}
 DURATION=${DURATION:-0}
+OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 
 num_samples=$NUM_SAMPLES
 config=$1
