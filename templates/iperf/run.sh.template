@@ -10,6 +10,7 @@ source ${REG_ROOT}/templates/common/remotehost_functions
 source ${REG_ROOT}/templates/common/functions
 
 DURATION=${DURATION:-0}
+OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 
 scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair.  Consider using even numbers due to NUMA carving
 
