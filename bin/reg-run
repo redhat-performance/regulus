@@ -125,8 +125,9 @@ else
    #DRY_RUN=$DRY_RUN bash run.sh 
 fi
 
-result_path=$(realpath /var/lib/crucible/run/latest)
-mv $result_path $DIR/
+# move the result blob in /var/lib/crucible to local folder
+base_run_dir=$(grep -Po -- '--base-run-dir=\K[^[:space:]]*' "$DIR.log")
+mv $base_run_dir $DIR/
 rm -f latest
 ln -sf $DIR latest
 pushd $DIR
