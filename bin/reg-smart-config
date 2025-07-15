@@ -45,23 +45,24 @@ SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLeve
 SSH_OPTS+="${extra_SSH_OPTS:-}"
 
 function do_ssh() {
-    local user_host user host ssh_cmd
+    local user_host user host
     user_host=$1; shift
     user=`echo $user_host | awk -F@ '{print $1}'`
     host=`echo $user_host | awk -F@ '{print $2}'`
-    ssh_cmd=""
+
     if [ -z "$user" ]; then
         exit_error "do_ssh: user was blank: $user_host"
     fi
     if [ -z "$host" ]; then
         exit_error "do_ssh: host was blank: $user_host"
     fi
-    ssh_cmd="ssh $SSH_OPTS $user_host bash -c \"$@\""
 
-    echo CMD: $ssh_cmd  >&2
-    $ssh_cmd
-    local rc=$?
-    return $rc
+    # Use here-document to send the script
+    ssh $SSH_OPTS $user_host bash << EOFCMD
+export KUBECONFIG='${KUBECONFIG}'
+$*
+EOFCMD
+    return $?
 }
 
 LAB_CONFIG="lab.config"
@@ -128,7 +129,7 @@ get_node_ip() {
 get_ovn_interface() {
     local node_ip=$1
     DPRINT $LINENO "Getting OVN interface for node IP $node_ip..."
-    local ovn_interface=$(ssh ${SSH_OPTS}  "core@$node_ip" "nmcli | grep ovs-port-phys0 | awk '{print \$1}' | tr -d ':'")
+    local ovn_interface=$(do_ssh  "core@$node_ip" "nmcli | grep ovs-port-phys0 | awk '{print \$1}' | tr -d ':'")
     INFO $LINENO "OVN interface for node IP $node_ip: $ovn_interface"
     echo "$ovn_interface"
 }
@@ -142,29 +143,32 @@ if [ ! -z "$OCP_WORKER_0" ]; then
     WORKER_IP=$(get_node_ip "$OCP_WORKER_0")
     
     if [ ! -z "$WORKER_IP" ]; then
-        DPRINT $LINENO "Testing SSH: ssh ${SSH_OPTS} core@$WORKER_IP..."
-        if ssh ${SSH_OPTS} "core@$WORKER_IP" "echo 'SSH connection successful'" >/dev/null 2>&1; then
+        DPRINT $LINENO "Testing SSH: do_ssh  core@$WORKER_IP..."
+        if do_ssh "core@$WORKER_IP" "echo 'SSH connection successful'" >/dev/null 2>&1; then
             OVN_INTERFACE=$(get_ovn_interface "$WORKER_IP")
             INFO $LINENO "OVN_INTERFACE=$OVN_INTERFACE"
             
             # Get all available NICs that aren't the OVN interface
             #local available_nics=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o BatchMode=yes "core@$WORKER_IP" "find /sys/class/net -type l -not -lname '*virtual*' -exec basename {} \; | grep -v 'lo' | grep -v '$OVN_INTERFACE'")
-             local available_nics=$(ssh  ${SSH_OPTS} "core@$WORKER_IP" "
-                for nic in /sys/class/net/*; do
-                    nic_name=\$(basename \$nic)
-                    # Skip loopback
-                    [[ \$nic_name == 'lo' ]] && continue
-                    # Skip OVN interface
-                    [[ \$nic_name == '$OVN_INTERFACE' ]] && continue
-                    # Skip virtual interfaces
-                    [[ -L \$nic && \$(readlink \$nic) == *virtual* ]] && continue
-                    # Skip VF devices (they have physfn directory)
-                    [[ -d \$nic/device/physfn ]] && continue
-                    # Skip if no device directory (some virtual interfaces)
-                    [[ ! -d \$nic/device ]] && continue
-                    echo \$nic_name
-                done
-            ")
+
+            local available_nics=$(do_ssh "core@$WORKER_IP" "
+cat > /tmp/get_nics.sh << 'EOFSCRIPT'
+ for nic in /sys/class/net/*; do
+  [[ ! -e \$nic ]] && continue
+  nic_name=\$(basename \$nic)
+  [[ \$nic_name == lo ]] && continue
+  [[ \$nic_name == '${OVN_INTERFACE}' ]] && continue
+  if [[ -L \$nic ]]; then
+      link_target=\$(readlink \$nic)
+     [[ \$link_target == *virtual* ]] && continue
+  fi
+  [[ -d \$nic/device/physfn ]] && continue
+  [[ ! -d \$nic/device ]] && continue
+  echo \$nic_name
+  done
+EOFSCRIPT
+bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh
+")
 
             INFO $LINENO "Available NICs (excluding OVN): $(echo "$available_nics" | tr '\n' ' ')"
             
@@ -175,11 +179,11 @@ if [ ! -z "$OCP_WORKER_0" ]; then
             
             for nic in $available_nics; do
                 # Get driver
-                local driver=$(ssh ${SSH_OPTS} "core@$WORKER_IP" "basename \$(readlink -f /sys/class/net/$nic/device/driver) 2>/dev/null || echo 'unknown'")
+                local driver=$(do_ssh "core@$WORKER_IP" "basename \$(readlink -f /sys/class/net/$nic/device/driver) 2>/dev/null || echo 'unknown'")
                 nic_drivers[$nic]=$driver
                 
                 # Get device path and PCI address - extract the last PCI address from the path
-                local device_path=$(ssh  ${SSH_OPTS} "core@$WORKER_IP" "readlink -f /sys/class/net/$nic/device")
+                local device_path=$(do_ssh "core@$WORKER_IP" "readlink -f /sys/class/net/$nic/device")
                 local pci_addr=$(echo "$device_path" | grep -o "[0-9a-f]\{4\}:[0-9a-f]\{2\}:[0-9a-f]\{2\}\.[0-9a-f]" | tail -1)
                 
                 DPRINT $LINENO "NIC $nic - device path: $device_path, PCI address: $pci_addr"
@@ -187,7 +191,7 @@ if [ ! -z "$OCP_WORKER_0" ]; then
                 # Determine model using lspci - We limit our interests to known models: XXV710, E810, CX5 and CX6.
                 local model="unknown"
                 if [ ! -z "$pci_addr" ]; then
-                    local lspci_info=$(ssh ${SSH_OPTS} "core@$WORKER_IP" "lspci -s \"$pci_addr\" -v 2>/dev/null || echo 'unknown'")
+                    local lspci_info=$(do_ssh  "core@$WORKER_IP" "lspci -s \"$pci_addr\" -v 2>/dev/null || echo 'unknown'")
                     DPRINT $LINENO "lspci info for $nic ($pci_addr): $(echo "$lspci_info" | head -1)"
                     
                     # Check model based on lspci output
@@ -199,6 +203,8 @@ if [ ! -z "$OCP_WORKER_0" ]; then
                         model="CX5"
                     elif echo "$lspci_info" | grep -q -i "ConnectX-6"; then
                         model="CX6"
+                    elif echo "$lspci_info" | grep -q -i "ConnectX-7"; then
+                        model="CX7"
                     elif echo "$lspci_info" | grep -q -i "Mellanox.*Connect"; then
                         if [ "$driver" == "mlx5_core" ]; then
                             model="CX5"  # Default to CX5 for Mellanox with mlx5_core
@@ -209,7 +215,7 @@ if [ ! -z "$OCP_WORKER_0" ]; then
                 DPRINT $LINENO "Recording $nic as  $model"
                 
                 # Check if SRIOV is configured - I don't want to touch NICs with VFs configured by other test(s) ran before me.
-                local sriov_numvfs=$(ssh ${SSH_OPTS} "core@$WORKER_IP" "cat /sys/class/net/$nic/device/sriov_numvfs 2>/dev/null || echo '0'")
+                local sriov_numvfs=$(do_ssh "core@$WORKER_IP" "cat /sys/class/net/$nic/device/sriov_numvfs 2>/dev/null || echo '0'")
                 if [[ "$sriov_numvfs" == "0" ]]; then
                     nic_has_sriov[$nic]="no"
                 else
