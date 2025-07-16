@@ -38,6 +38,10 @@ function exit_error() {
     exit 1
 }
 
+# locate this script path. We may need to call its support script(s)
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+core_auth_script_path="${script_dir}/core-auth-key.sh"
+
 SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ConnectTimeout=20"
 SSH_OPTS+="${extra_SSH_OPTS:-}"
 
@@ -357,6 +361,14 @@ fi
 
 tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
 echo "useable_cpus=$tb_useable_cpus" >&2
+
+# Setup auth key to ssh core@<ip>
+if [[ -e "${core_auth_script_path}" ]]; then
+  bash "${core_auth_script_path}" "${first_worker}" "/root/.ssh/id_rsa.pub" >&2
+else
+  echo $LINENO "$core_auth_script_path not found "
+  exit 1
+fi
 
 # get worker cpu topology
 cps_string="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "ssh $SSH_OPTS core@$first_worker_ip lscpu" | grep Core)"

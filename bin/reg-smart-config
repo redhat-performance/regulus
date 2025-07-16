@@ -8,11 +8,17 @@
 #		c. REG_SRIOV_NIC, REG_MACVLAN_NIC, REG_DPDK_NIC, MODEL, MTU
 #		d. TREX_HOSTS, TREX_SRIOV_INTERFACE_1-2, MODEL, MTU
 #
+# Prerequisite:
+#   1. Prepare a skeletal lab.config with valid KUBECONFIG, REG_KNI_USER, REG_OCPHOST. Other vars can be empty.
+#   2. Be on the bastion host
+#
+# Usage: bash reg-smart-config
+#
 # Logic: if a NIC has SRIOV VFs (owned and configured by something else), or being unknown NIC type, it
 #       will not be eligible for DPDK tests.
 #
 # Limitations: 
-#	1. Recognize only XXV710, E810, Cx5 and Cx6 NIC at this moment. For others, it is Just a matter of verifying them.
+#	1. Recognize only XXV710, E810, Cx5, Cx6 and Cx7NIC at this moment. For others, it is Just a matter of verifying them.
 #
 
 set -e  # Exit on error
@@ -39,6 +45,10 @@ exit_error() {
     echo "($line) [ERROR]: $*"  >&2
     exit 1
 }
+
+# locate this script path. We may need to call its support script(s)
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+core_auth_script_path="${script_dir}/core-auth-key.sh"
 
 # In double/netsted usage, we need extra_SSH_OPTS
 SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ConnectTimeout=20"
@@ -134,14 +144,18 @@ get_ovn_interface() {
     echo "$ovn_interface"
 }
 
-# Method 1: Check for physfn directory (most reliable)
-# VF devices have a 'physfn' directory that points to their physical function
-
 # Configure main env's i.e. SRIOV,MACVLAN and DPDK NICs 
 configure_main() {
 if [ ! -z "$OCP_WORKER_0" ]; then
     WORKER_IP=$(get_node_ip "$OCP_WORKER_0")
     
+    if [[ -e "${core_auth_script_path}" ]]; then
+       bash "${core_auth_script_path}" "$OCP_WORKER_0"  "/root/.ssh/id_rsa.pub"
+    else
+        echo $LINENO "${core_auth_script_path} not found"
+        exit 1
+    fi
+
     if [ ! -z "$WORKER_IP" ]; then
         DPRINT $LINENO "Testing SSH: do_ssh  core@$WORKER_IP..."
         if do_ssh "core@$WORKER_IP" "echo 'SSH connection successful'" >/dev/null 2>&1; then
