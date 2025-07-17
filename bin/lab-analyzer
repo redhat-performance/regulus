@@ -38,7 +38,6 @@ function exit_error() {
     exit 1
 }
 
-# locate this script path. We may need to call its support script(s)
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 core_auth_script_path="${script_dir}/core-auth-key.sh"
 
@@ -142,12 +141,12 @@ echo IN: f_verify_lab_config  >&2
         exit 1
     fi
     if [[ !  "$workers" == *"$OCP_WORKER_1"* ]]; then
-        echo "OCP_WORKER_0=$OCP_WORKER_1 is NOT in '$workers'"  >&2
+        echo "OCP_WORKER_1=$OCP_WORKER_1 is NOT in '$workers'"  >&2
         echo "Check lab.config on both sides"  >&2
         exit
     fi
     if [[ !  "$workers" == *"$OCP_WORKER_2"* ]]; then
-        echo "OCP_WORKER_0=$OCP_WORKER_2 is NOT in '$workers'"  >&2
+        echo "OCP_WORKER_2=$OCP_WORKER_2 is NOT in '$workers'"  >&2
         echo "Check lab.config on both sides"  >&2
         exit 1
     fi
@@ -349,9 +348,12 @@ fi
 tb_cluster_type=$(f_get_cluster_type)
 echo "cluster_type=$tb_cluster_type" >&2
 f_validate_worker_nodes
-#first_worker="$(echo $worker_names | awk '{print $1}')"
-first_worker=$OCP_WORKER_0
-first_worker_ip="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get node/\$OCP_WORKER_0 -o=custom-columns=IP:.status.addresses[0].address --no-headers")"
+if [[ -z "$OCP_WORKER_0" ]]; then
+    first_worker=$(do_ssh $REG_KNI_USER@$REG_OCPHOST "oc get nodes -l node-role.kubernetes.io/worker= --no-headers -o custom-columns=NAME:.metadata.name | head -1")
+else
+    first_worker=$OCP_WORKER_0
+fi
+first_worker_ip="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get node/\$first_worker -o=custom-columns=IP:.status.addresses[0].address --no-headers")"
 tb_alloc_cpus="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get node/$first_worker -ojsonpath='{.status.allocatable.cpu}'")"
 
 # Round-down to whole CPU if we see like 31500m
@@ -362,9 +364,11 @@ fi
 tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
 echo "useable_cpus=$tb_useable_cpus" >&2
 
+echo $LINENO first_worker=$first_worker >&2
+
 # Setup auth key to ssh core@<ip>
 if [[ -e "${core_auth_script_path}" ]]; then
-  bash "${core_auth_script_path}" "${first_worker}" "/root/.ssh/id_rsa.pub" >&2
+  do_ssh $REG_KNI_USER@$REG_OCPHOST "cd $reg_dir && bash bin/core-auth-key.sh ${first_worker} ~/.ssh/id_rsa.pub >&2"
 else
   echo $LINENO "$core_auth_script_path not found "
   exit 1
