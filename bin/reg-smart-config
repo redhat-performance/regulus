@@ -7,22 +7,33 @@
 #		b. BM_HOSTS
 #		c. REG_SRIOV_NIC, REG_MACVLAN_NIC, REG_DPDK_NIC, MODEL, MTU
 #		d. TREX_HOSTS, TREX_SRIOV_INTERFACE_1-2, MODEL, MTU
+#  Usage: bash re-config
 #
-# Prerequisite:
-#   1. Prepare a skeletal lab.config with valid KUBECONFIG, REG_KNI_USER, REG_OCPHOST. Other vars can be empty.
-#   2. Be on the bastion host
-#
-# Usage: bash reg-smart-config
+#  Exec context:
+#       Can be called after "make init-lab" to fix up lab.config
+#       Can be called before "make init-lab" ONLY when crucible controller runs on the bastion
+#       CANNOI be called before "make init-lab" when controller is NOT running on bastion. Repo has not been mirrored to the bastion yet.
 #
 # Logic: if a NIC has SRIOV VFs (owned and configured by something else), or being unknown NIC type, it
 #       will not be eligible for DPDK tests.
 #
 # Limitations: 
-#	1. Recognize only XXV710, E810, Cx5, Cx6 and Cx7NIC at this moment. For others, it is Just a matter of verifying them.
+#	1. Recognize only XXV710, E810, Cx5 and Cx6 NIC at this moment. For others, it is Just a matter of verifying them.
 #
 
 set -e  # Exit on error
+source ${REG_ROOT}/lab.config
+#source ${REG_ROOT}/templates/common/functions
 
+# About $reg_dir,
+# On controller, the user can create REGULUS somewhere under their home i.e /root/path/regulus
+# On bastion, the user can be root or kni. Since regulus will clone a repo there. it wil be /home/kni/path/regulus or /root/path/regulus.
+# We need to identify the relative path from the bastion user's HOME. That is the "path/regulus" so that we can ssh to the bastion and cd to "path/regulus"
+reg_dir="${PWD#"$HOME"/}"
+echo reg_dir=$reg_dir >&2
+
+DEST="$REG_KNI_USER@$REG_OCPHOST"
+OVN_INTERFACE=""
 
 DEBUG=false
 DPRINT() {
@@ -99,12 +110,14 @@ fi
 
 # Get worker nodes
 DPRINT $LINENO "Getting worker nodes..."
-WORKER_NODES=($(oc get nodes -l node-role.kubernetes.io/worker= -o jsonpath='{.items[*].metadata.name}'))
+WORKER_NODES=$(do_ssh $DEST "oc get nodes -l node-role.kubernetes.io/worker= -o jsonpath='{.items[*].metadata.name}'")
+WORKER_NODES=$(echo $WORKER_NODES)  # Remove extra whitespace
+WORKER_NODES=($WORKER_NODES)        # Convert to array
 
 if [ ${#WORKER_NODES[@]} -eq 0 ]; then
     exit_error $LINENO "Error: No worker nodes found"
 fi
-INFO $LINENO "Found ${#WORKER_NODES[@]} worker nodes: ${WORKER_NODES[*]}"
+INFO $LINENO "Found ${#WORKER_NODES[@]} worker nodes"
 
 # Update worker node variables
 if [ -z "$OCP_WORKER_0" ] && [ ${#WORKER_NODES[@]} -ge 1 ]; then
@@ -127,7 +140,10 @@ get_node_ip() {
     local node=$1
     DPRINT $LINENO "Getting IP address for node $node..."
     # we may have both ipv4 and v6 if dual stack. Take ipv4
-    local ip=$(oc get node $node -o json | jq -r '.status.addresses[] | select(.type=="InternalIP" and (.address | test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))) | .address')
+    # local ip=$(do_ssh $DEST "oc get node $node -o json | jq -r '.status.addresses[] | select(.type=="InternalIP" and (.address | test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))) | .address'")
+
+    local jq_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))'
+    local ip=$(do_ssh $DEST "oc get node $node -o json | jq -r '$jq_cmd'")
     if [ -z "$ip" ]; then
         exit_error $LINENO "Could not get IP address for node $node"
     fi
@@ -139,39 +155,49 @@ get_node_ip() {
 get_ovn_interface() {
     local node_ip=$1
     DPRINT $LINENO "Getting OVN interface for node IP $node_ip..."
-    local ovn_interface=$(do_ssh  "core@$node_ip" "nmcli | grep ovs-port-phys0 | awk '{print \$1}' | tr -d ':'")
+    local ovn_interface=$(do_ssh  $DEST "ssh core@$node_ip" "nmcli | grep ovs-port-phys0 | awk '{print \$1}' | tr -d ':'")
     INFO $LINENO "OVN interface for node IP $node_ip: $ovn_interface"
     echo "$ovn_interface"
 }
 
+dpdk_acceptable() {
+    local model=$1
+    
+    case "$model" in
+        CX7|CX8|CX6|E810|E820|XXV710)
+            return 0  # true
+            ;;
+        *)
+            return 1  # false
+            ;;
+    esac
+}
+
 # Configure main env's i.e. SRIOV,MACVLAN and DPDK NICs 
 configure_main() {
-if [ ! -z "$OCP_WORKER_0" ]; then
+  if [ ! -z "$OCP_WORKER_0" ]; then
     WORKER_IP=$(get_node_ip "$OCP_WORKER_0")
-    
-    if [[ -e "${core_auth_script_path}" ]]; then
-       bash "${core_auth_script_path}" "$OCP_WORKER_0"  "/root/.ssh/id_rsa.pub"
-    else
-        echo $LINENO "${core_auth_script_path} not found"
-        exit 1
-    fi
 
+    DPRINT $LINENO "CMD: $core_auth_script_path $OCP_WORKER..."
+    do_ssh $DEST "cd $reg_dir && bash bin/core-auth-key.sh $OCP_WORKER_0  ~/.ssh/id_rsa.pub }"
+
+    
     if [ ! -z "$WORKER_IP" ]; then
         DPRINT $LINENO "Testing SSH: do_ssh  core@$WORKER_IP..."
-        if do_ssh "core@$WORKER_IP" "echo 'SSH connection successful'" >/dev/null 2>&1; then
+        if do_ssh $DEST "ssh core@$WORKER_IP" "echo 'SSH connection successful'" >/dev/null 2>&1; then
             OVN_INTERFACE=$(get_ovn_interface "$WORKER_IP")
             INFO $LINENO "OVN_INTERFACE=$OVN_INTERFACE"
             
             # Get all available NICs that aren't the OVN interface
-            #local available_nics=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o BatchMode=yes "core@$WORKER_IP" "find /sys/class/net -type l -not -lname '*virtual*' -exec basename {} \; | grep -v 'lo' | grep -v '$OVN_INTERFACE'")
-
-            local available_nics=$(do_ssh "core@$WORKER_IP" "
-cat > /tmp/get_nics.sh << 'EOFSCRIPT'
- for nic in /sys/class/net/*; do
+            #  When using our do_ssh function with complex nested SSH commands, 
+            #  it's better to combine everything into one argument using single quotes, 
+            #  rather than passing multiple arguments that the function has to concatenate with $*.
+            local available_nics=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP 'cat > /tmp/get_nics.sh << \"EOFSCRIPT\"
+  for nic in /sys/class/net/*; do
   [[ ! -e \$nic ]] && continue
   nic_name=\$(basename \$nic)
   [[ \$nic_name == lo ]] && continue
-  [[ \$nic_name == '${OVN_INTERFACE}' ]] && continue
+  #[[ \$nic_name == '${OVN_INTERFACE}' ]] && continue
   if [[ -L \$nic ]]; then
       link_target=\$(readlink \$nic)
      [[ \$link_target == *virtual* ]] && continue
@@ -181,10 +207,9 @@ cat > /tmp/get_nics.sh << 'EOFSCRIPT'
   echo \$nic_name
   done
 EOFSCRIPT
-bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh
-")
+bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
 
-            INFO $LINENO "Available NICs (excluding OVN): $(echo "$available_nics" | tr '\n' ' ')"
+            INFO $LINENO "Available NICs: $(echo "$available_nics" | tr '\n' ' ')"
             
             # Map of NIC info
             declare -A nic_drivers
@@ -193,11 +218,11 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh
             
             for nic in $available_nics; do
                 # Get driver
-                local driver=$(do_ssh "core@$WORKER_IP" "basename \$(readlink -f /sys/class/net/$nic/device/driver) 2>/dev/null || echo 'unknown'")
+                local driver=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "basename \$(readlink -f /sys/class/net/$nic/device/driver) 2>/dev/null || echo 'unknown'")
                 nic_drivers[$nic]=$driver
                 
                 # Get device path and PCI address - extract the last PCI address from the path
-                local device_path=$(do_ssh "core@$WORKER_IP" "readlink -f /sys/class/net/$nic/device")
+                local device_path=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "readlink -f /sys/class/net/$nic/device")
                 local pci_addr=$(echo "$device_path" | grep -o "[0-9a-f]\{4\}:[0-9a-f]\{2\}:[0-9a-f]\{2\}\.[0-9a-f]" | tail -1)
                 
                 DPRINT $LINENO "NIC $nic - device path: $device_path, PCI address: $pci_addr"
@@ -205,7 +230,7 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh
                 # Determine model using lspci - We limit our interests to known models: XXV710, E810, CX5 and CX6.
                 local model="unknown"
                 if [ ! -z "$pci_addr" ]; then
-                    local lspci_info=$(do_ssh  "core@$WORKER_IP" "lspci -s \"$pci_addr\" -v 2>/dev/null || echo 'unknown'")
+                    local lspci_info=$(do_ssh  $DEST "ssh $SSH_OPTS core@$WORKER_IP" "lspci -s \"$pci_addr\" -v 2>/dev/null || echo 'unknown'")
                     DPRINT $LINENO "lspci info for $nic ($pci_addr): $(echo "$lspci_info" | head -1)"
                     
                     # Check model based on lspci output
@@ -223,13 +248,15 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh
                         if [ "$driver" == "mlx5_core" ]; then
                             model="CX5"  # Default to CX5 for Mellanox with mlx5_core
                         fi
+                    else
+                        model="$(echo "$lspci_info" | grep 'Kernel driver in use' | awk -F': ' '{print $2}')"
                     fi
                 fi
                 nic_models[$nic]=$model
                 DPRINT $LINENO "Recording $nic as  $model"
                 
                 # Check if SRIOV is configured - I don't want to touch NICs with VFs configured by other test(s) ran before me.
-                local sriov_numvfs=$(do_ssh "core@$WORKER_IP" "cat /sys/class/net/$nic/device/sriov_numvfs 2>/dev/null || echo '0'")
+                local sriov_numvfs=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "cat /sys/class/net/$nic/device/sriov_numvfs 2>/dev/null || echo '0'")
                 if [[ "$sriov_numvfs" == "0" ]]; then
                     nic_has_sriov[$nic]="no"
                 else
@@ -244,12 +271,18 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh
 			printf "%-12s %-20s %-8s\n" "------------" "--------------------" "------------"
 			# Print each NIC's info
             for nic in $available_nics; do
-                printf "%-12s %-20s %-8s\n" \
+                if [ "$nic" == "${OVN_INTERFACE}" ] ; then
+                   printf "%-12s %-20s %-8s\n" \
+                    "$nic" \
+                    "${nic_models[$nic]:-UNKNOWN}" \
+                    "OVN main"
+                else
+                  printf "%-12s %-20s %-8s\n" \
                     "$nic" \
                     "${nic_models[$nic]:-UNKNOWN}" \
                     "${nic_has_sriov[$nic]:-UNKNOWN}"
+                fi
             done
-            printf "%-12s %-20s %-8s\n"  "$OVN_INTERFACE"  ""  "OVN main"
 
             
             # Find a suitable SRIOV NIC (first one without SRIOV configured)
@@ -257,10 +290,11 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh
             local sriov_model=""
             
             for nic in $available_nics; do
+                [[ "$nic"  == "${OVN_INTERFACE}" ]] && continue
                 if [[ "${nic_models[$nic]}" != "unknown" ]] && [[ "${nic_has_sriov[$nic]}" == "no" ]]; then
                     sriov_nic=$nic
                     sriov_model=${nic_models[$nic]}
-                    DPRINT $LINENO "Found suitable SRIOV NIC: $sriov_nic ($sriov_model)"
+                    INFO $LINENO "Found suitable SRIOV NIC: $sriov_nic ($sriov_model)"
                     break
                 fi
             done
@@ -310,10 +344,10 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh
                 
                 # Count NICs of each model and keep track of them
                 for nic in $available_nics; do
+                    [[ "$nic"  == "${OVN_INTERFACE}" ]] && continue
                     local model=${nic_models[$nic]}
                     DPRINT $LINENO "For DPDK, examine $nic of model ${model} has SRIOV ${nic_has_sriov[$nic]}"
-                    #if [[ "$model" != "unknown" ]] && [[ "${nic_has_sriov[$nic]}" == "no" ]]; then
-                    if [[ "$model" != "unknown" ]] && [[ "${nic_has_sriov[$nic]}" == "no" ]]; then
+                    if dpdk_acceptable "$model" && [[ "${nic_has_sriov[$nic]}" == "no" ]]; then
                         # Increment count for this model
                         if [ -z "${model_count[$model]}" ]; then
                             model_count[$model]=1
