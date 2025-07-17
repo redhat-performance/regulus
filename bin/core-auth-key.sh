@@ -1,5 +1,12 @@
+#
+# Install auth key onto a node in order to shupport ssh core@<node_ip>
+#
+# Limitation: Can be invoked from jumphost/bastion only
+#
 
 #!/bin/bash
+
+SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ConnectTimeout=20"
 
 oc_append_key_to_node() {
   local NODE_NAME="$1"
@@ -77,7 +84,7 @@ oc_append_key_to_node() {
   echo "[SUCCESS] Appended '$LOCAL_FILE' content to '$NODE_NAME:$TARGET_FILE'"
 }
 
-if ssh core@$1 "pwd" ; then
+if ssh $SSH_OPTS core@$1 "pwd" ; then
     # ssh core@$1 is ready
     exit 0
 fi
