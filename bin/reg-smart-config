@@ -155,7 +155,7 @@ get_node_ip() {
 get_ovn_interface() {
     local node_ip=$1
     DPRINT $LINENO "Getting OVN interface for node IP $node_ip..."
-    local ovn_interface=$(do_ssh  $DEST "ssh core@$node_ip" "nmcli | grep ovs-port-phys0 | awk '{print \$1}' | tr -d ':'")
+    local ovn_interface=$(do_ssh  $DEST "ssh $SSH_OPTS core@$node_ip" "nmcli | grep ovs-port-phys0 | awk '{print \$1}' | tr -d ':'")
     INFO $LINENO "OVN interface for node IP $node_ip: $ovn_interface"
     echo "$ovn_interface"
 }
@@ -184,7 +184,7 @@ configure_main() {
     
     if [ ! -z "$WORKER_IP" ]; then
         DPRINT $LINENO "Testing SSH: do_ssh  core@$WORKER_IP..."
-        if do_ssh $DEST "ssh core@$WORKER_IP" "echo 'SSH connection successful'" >/dev/null 2>&1; then
+        if do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "echo 'SSH connection successful'" >/dev/null 2>&1; then
             OVN_INTERFACE=$(get_ovn_interface "$WORKER_IP")
             INFO $LINENO "OVN_INTERFACE=$OVN_INTERFACE"
             
