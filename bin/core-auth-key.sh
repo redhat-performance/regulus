@@ -3,6 +3,9 @@
 #
 # Limitation: Can be invoked from jumphost/bastion only
 #
+# Usage:  core-auth-key.sh <node-name> [public.key]
+#         core-auth-key.sh <worker-0>  /root/.ssh/id_rsa.pub
+#
 
 #!/bin/bash
 
@@ -84,8 +87,14 @@ oc_append_key_to_node() {
   echo "[SUCCESS] Appended '$LOCAL_FILE' content to '$NODE_NAME:$TARGET_FILE'"
 }
 
-if ssh $SSH_OPTS core@$1 "pwd" ; then
-    # ssh core@$1 is ready
+node_ip=$(kubectl get node $1 -o json | jq -r '.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))')
+if [ -z "$node_ip" ]; then
+    echo "Error: Could not get IP for node $node" >&2
+    exit 1
+fi
+
+if ssh $SSH_OPTS core@$node_ip "pwd" ; then
+    # ssh core@<node_ip> is ready
     exit 0
 fi
 
