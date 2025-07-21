@@ -22,5 +22,5 @@ init: confirm_bastion
 install: confirm_bastion
 	@bash ./install.sh
 
-cleanup: confirm_bastion
-	@source ${REG_ROOT}/lab.config && source ${REG_ROOT}/SRIOV-config/config.env && bash ./cleanup.sh
+cleanup:
+	@bash ./cleanup.sh
