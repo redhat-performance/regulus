@@ -173,6 +173,21 @@ dpdk_acceptable() {
     esac
 }
 
+macvlan_mtu_check() {
+    # cannot be larger than PF
+    local node_ip=$1
+    local nic=$2
+    local mtu=$3
+
+    local pf_mtu=$(do_ssh  $DEST "ssh $SSH_OPTS core@$node_ip" "cat /sys/class/net/$nic/mtu")
+    if [ "${pf_mtu}" -ge "${mtu}" ] 2>/dev/null; then
+        return 0
+    else
+        echo "($LINENO)" "INFO: $nic MTU is $pf_mtu. User may consider other mtu i.e. 9000"
+        return 1
+    fi
+}
+
 # Configure main env's i.e. SRIOV,MACVLAN and DPDK NICs 
 configure_main() {
   if [ ! -z "$OCP_WORKER_0" ]; then
@@ -215,6 +230,7 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
             declare -A nic_drivers
             declare -A nic_models
             declare -A nic_has_sriov
+            declare -A nic_mtu
             
             for nic in $available_nics; do
                 # Get driver
@@ -262,76 +278,111 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                 else
                     nic_has_sriov[$nic]="yes"
                 fi
+                # get mtu
+                local nic_mtu[$nic]=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "cat /sys/class/net/$nic/mtu")
                 
-                DPRINT $LINENO "NIC $nic - driver: $driver, model: $model, SRIOV configured: ${nic_has_sriov[$nic]}"
+                DPRINT $LINENO "NIC $nic - driver: $driver, model: $model, SRIOV configured: ${nic_has_sriov[$nic]}  MTU  ${nic_mtu[$nic]}"
             done
 
 			# Print header
-			printf "%-12s %-20s %-8s\n" "NIC" "Model" "SRIOV exists"
-			printf "%-12s %-20s %-8s\n" "------------" "--------------------" "------------"
+			printf "%-12s %-14s %-14s %-8s\n" "NIC" "Model" "SRIOV exists"   "MTU"
+			printf "%-12s %-14s %-14s %-8s\n" "------------" "--------------" "------------"  "----------"
 			# Print each NIC's info
             for nic in $available_nics; do
                 if [ "$nic" == "${OVN_INTERFACE}" ] ; then
-                   printf "%-12s %-20s %-8s\n" \
+                   printf "%-12s %-14s %-14s %-8s\n" \
                     "$nic" \
                     "${nic_models[$nic]:-UNKNOWN}" \
-                    "OVN main"
+                    "OVN main" \
+                    "${nic_mtu[$nic]}" 
                 else
-                  printf "%-12s %-20s %-8s\n" \
+                  printf "%-12s %-14s %-14s %-8s\n" \
                     "$nic" \
                     "${nic_models[$nic]:-UNKNOWN}" \
-                    "${nic_has_sriov[$nic]:-UNKNOWN}"
+                    "${nic_has_sriov[$nic]:-UNKNOWN}" \
+                    "${nic_mtu[$nic]}" 
                 fi
             done
 
             
-            # Find a suitable SRIOV NIC (first one without SRIOV configured)
             local sriov_nic=""
             local sriov_model=""
-            
-            for nic in $available_nics; do
-                [[ "$nic"  == "${OVN_INTERFACE}" ]] && continue
-                if [[ "${nic_models[$nic]}" != "unknown" ]] && [[ "${nic_has_sriov[$nic]}" == "no" ]]; then
-                    sriov_nic=$nic
-                    sriov_model=${nic_models[$nic]}
-                    INFO $LINENO "Found suitable SRIOV NIC: $sriov_nic ($sriov_model)"
-                    break
+            if [ !  -z "$REG_SRIOV_NIC" ]; then
+                # user-defined REG_SRIOV_NIC, checkit and WARN but let it continue. The user knows more than us.
+                DPRINT $LINENO "check user-defined REG_SRIOV_NIC=$REG_SRIOV_NIC"
+                if ! dpdk_acceptable "${nic_models[$REG_SRIOV_NIC]}" || [[ "${nic_has_sriov[$REG_SRIOV_NIC]}" == "yes" ]]; then
+                    DPRINT $LINENO "WARN REG_SRIOV_NIC=$REG_SRIOV_NIC is not acceptable model or has SRIOV configured"
+                else
+                    DPRINT $LINENO "$REG_SRIOV_NIC is suitable for SRIOV"
+                    sriov_nic=$REG_SRIOV_NIC
+                    sriov_model=${nic_models[$REG_SRIOV_NIC]}
                 fi
-            done
+            else
+                # Not defined. Find a suitable SRIOV NIC (first one without SRIOV configured)
+                for nic in $available_nics; do
+                    [[ "$nic"  == "${OVN_INTERFACE}" ]] && continue
+                    if dpdk_acceptable "${nic_models[$nic]}" && [[ "${nic_has_sriov[$nic]}" == "no" ]]; then
+                        sriov_nic=$nic
+                        sriov_model=${nic_models[$nic]}
+                        INFO $LINENO "Found suitable SRIOV NIC: $sriov_nic ($sriov_model)"
+                        # we choose the nic, thus we set the NIC model. just in case its user-defined value is wrong.
+                        REG_SRIOV_NIC_MODEL="$sriov_model"
+                        break
+                    fi
+                done
+            fi
             
             # Set SRIOV and MACVLAN NICs to the same NIC if found
+            DPRINT $LINENO "use $sriov_nic and $sriov_model"
             if [ -n "$sriov_nic" ] && [ -n "$sriov_model" ]; then
                 # Set SRIOV NIC
                 if [ -z "$REG_SRIOV_NIC" ]; then
                     REG_SRIOV_NIC="$sriov_nic"
-                    DPRINT $LINENO "Setting REG_SRIOV_NIC=$REG_SRIOV_NIC"
+                fi
+                # Set MTU if not already set
+                if [ -z "$REG_SRIOV_MTU" ]; then
+                    REG_SRIOV_MTU="9000"
+                fi
                     
-                    # Set MTU if not already set
-                    if [ -z "$REG_SRIOV_MTU" ]; then
-                        REG_SRIOV_MTU="9000"
-                        DPRINT $LINENO "Setting REG_SRIOV_MTU=$REG_SRIOV_MTU"
-                    fi
-                    
-                    # Set NIC model if not already set
-                    if [ -z "$REG_SRIOV_NIC_MODEL" ]; then
-                        REG_SRIOV_NIC_MODEL="$sriov_model"
-                        DPRINT $LINENO "Setting REG_SRIOV_NIC_MODEL=$REG_SRIOV_NIC_MODEL"
+                # Set NIC model if not already set
+                if [ -z "$REG_SRIOV_NIC_MODEL" ]; then
+                    REG_SRIOV_NIC_MODEL="$sriov_model"
+                else
+                    if [ "$REG_SRIOV_NIC_MODEL" !=  "$sriov_model"  ] ; then
+                        echo "($LINENO)" "WARN: user-defined REG_SRIOV_NIC_MODEL=$REG_SRIOV_NIC_MODEL is incorrect. $sriov_model perhaps "
                     fi
                 fi
-                
+
                 # Set MACVLAN NIC to the same as SRIOV NIC
                 if [ -z "$REG_MACVLAN_NIC" ]; then
+                    INFO $LINENO "Use SRIOV NIC $REG_SRIOV_NIC for MACVLAN NIC"
                     REG_MACVLAN_NIC="$sriov_nic"
                     DPRINT $LINENO "Setting REG_MACVLAN_NIC=$REG_MACVLAN_NIC (same as SRIOV)"
-                    
-                    # Set MTU if not already set
-                    if [ -z "$REG_MACVLAN_MTU" ]; then
-                        REG_MACVLAN_MTU="9000"
-                        DPRINT $LINENO "Setting REG_MACVLAN_MTU=$REG_MACVLAN_MTU"
+                fi
+                # Set macvlan MTU if not already set
+                # 1. if user-defined check, warn and auto correct.
+                # 2. if no user-defined. try mtu=9000. If not valid, auto correct to current mtu
+                if [ !  -z "$REG_MACVLAN_MTU" ]; then
+                    INFO $LINENO "validate macvlan user-define mtu=$REG_MACVLAN_MTU on $REG_MACVLAN_NIC"
+                    if ! macvlan_mtu_check "$WORKER_IP" "$REG_MACVLAN_NIC" "$REG_MACVLAN_MTU"; then
+                        echo "($LINENO) WARN: macvlan user-defined mtu=$REG_MACVLAN_MTU greater than ${nic_mtu[$REG_MACVLAN_NIC]}"
+                        REG_MACVLAN_MTU=${nic_mtu[$REG_MACVLAN_NIC]}
+                        echo "($LINENO) WARN: auto correction,  macvlan mtu=$REG_MACVLAN_MTU"
+                    fi
+                else
+                    REG_MACVLAN_MTU="9000"
+                    if  ! macvlan_mtu_check "$WORKER_IP" "$REG_MACVLAN_NIC" "9000"; then
+                        REG_MACVLAN_MTU=${nic_mtu[$REG_MACVLAN_NIC]}
+                        INFO $LINENO "set macvlan mtu=$REG_MACVLAN_MTU on $REG_MACVLAN_NIC"
                     fi
                 fi
+
             else
                 DPRINT $LINENO "No suitable NIC found for SRIOV or MACVLAN"
+            fi
+
+            if [ "${REG_SRIOV_MTU}" != "${REG_MACVLAN_MTU}"  ]; then
+                echo "($LINENO)" "WARN: REG_SRIOV_MTU=${REG_SRIOV_MTU} REG_MACVLAN_MTU=${REG_MACVLAN_MTU}" 
             fi
             
             # For DPDK, find two NICs of the same type if available

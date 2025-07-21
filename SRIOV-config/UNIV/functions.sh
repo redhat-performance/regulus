@@ -1,14 +1,20 @@
+
+function ECHO {
+    echo "ECHO: $@"
+    "$@"
+}
+
 get_ocp_channel () {
     local channel=$(oc get clusterversion -o json | jq -r '.items[0].spec.channel' | sed -r -n 's/.*-(.*)/\1/p')
     echo ${channel}
 }
 
 pause_mcp () {
-    ECHO skip oc patch --type=merge --patch='{"spec":{"paused":true}}' machineconfigpool/${MCP}
+    echo skip oc patch --type=merge --patch='{"spec":{"paused":true}}' machineconfigpool/${MCP}
 }
 
 resume_mcp () {
-    ECHO resume_mcp skip: oc patch --type=merge --patch='{"spec":{"paused":false}}' machineconfigpool/${MCP}
+    echo resume_mcp skip: oc patch --type=merge --patch='{"spec":{"paused":false}}' machineconfigpool/${MCP}
 }
 
 # return True if either worker or my mcp is still updating.
@@ -179,6 +185,3 @@ function prompt_continue {
 
 }
 
-function ECHO {
-	echo ECHO: $@
-}
