@@ -22,5 +22,5 @@ init:
 install: ../setting.env
 	@bash ./install.sh
 
-cleanup: confirm_bastion
+cleanup:
 	@bash ./cleanup.sh

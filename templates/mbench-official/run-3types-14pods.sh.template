@@ -49,6 +49,12 @@ if [ "${DRY_RUN}" == true  ]; then
     endpoint_opt+=",dry-run:true"
 fi
 
+# Start a fresh project with privilege 
+do_ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+do_ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT && \
+                 kubectl label ns $OCP_PROJECT pod-security.kubernetes.io/enforce=privileged \
+                      pod-security.kubernetes.io/enforce-version=v1.27 --overwrite" 
+
 if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ] || [ "$TPL_MACVLAN" == 1 ]; then
     securityContext_file="`/bin/pwd`/securityContext.json"
     endpoint_opt+=",securityContext:default:$securityContext_file"
@@ -57,10 +63,7 @@ fi
 if [ "${TPL_SRIOV}" == 1  ]; then
 	source ${REG_ROOT}/SRIOV-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
-    do_ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
-    do_ssh ${DEST} "kubectl create ns $OCP_PROJECT"
-
-    # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
+    # New project. Recretate NAD
     do_ssh ${DEST} "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
     # sometime the network-attachment takes a few seconds to be ready.
     sleep 5
@@ -69,10 +72,7 @@ fi
 if [ "${TPL_MACVLAN}" == 1  ]; then
 	source ${REG_ROOT}/MACVLAN-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
-    do_ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
-    do_ssh ${DEST} "kubectl create ns $OCP_PROJECT"
-
-    # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
+    # New project. Recretate NAD
     do_ssh ${DEST} "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_MACVLAN_NAD}"
     # sometime the network-attachment takes a few seconds to be ready.
     sleep 5
@@ -86,11 +86,6 @@ if [ "$DURATION" != 0 ]; then
 		sed -i 's/\({ "arg": "time", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
 	done
 fi
-# Give our project privilege 
-do_ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
-do_ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT && \
-                 kubectl label ns $OCP_PROJECT pod-security.kubernetes.io/enforce=privileged \
-                      pod-security.kubernetes.io/enforce-version=v1.27 --overwrite" 
 
  ARGS="--mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\
