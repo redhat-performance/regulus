@@ -7,6 +7,6 @@ if ! ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get node  &>/dev/null"; then
     exit 1
 fi
 
-ssh $REG_KNI_USER@$REG_OCPHOST "cd $REG_DIR && source bootstrap.sh && cd GW-config/METALLB/ && bash cleanup.sh "  
+ssh $REG_KNI_USER@$REG_OCPHOST "cd $REG_DIR && source bootstrap.sh && cd IPsec-FULL-config && bash cleanup.sh"  
 
 # Done
