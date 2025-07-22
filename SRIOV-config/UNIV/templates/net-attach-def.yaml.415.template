@@ -15,7 +15,7 @@ spec:
     "type": "whereabouts",
     "ipRanges": [
         {"range": "10.20.30.0/25"},
-        {"range": "2001::00/64"}
+        {"range_v6": "2001::00/64"}
     ]
   }
 }'

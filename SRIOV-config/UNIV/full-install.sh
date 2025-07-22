@@ -207,11 +207,7 @@ config_SriovNetworkNodePolicy
 
 function create_network {
     # debug:  oc get SriovNetwork/sriov-node-policy.yaml.template
-    if [ "${OCP_CHANNEL}" == "4.14" ] ||  [ "${OCP_CHANNEL}" == "4.15" ] ; then
-    	envsubst < templates/net-attach-def.yaml.415.template > ${MANIFEST_DIR}/net-attach-def.yaml
-    else
-    	envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
-    fi
+    envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
     if oc get network-attachment-definition/regulus-sriov-net -n ${MCP}  &>/dev/null; then
         echo "SriovNetworkexists. Skip creation"
     else

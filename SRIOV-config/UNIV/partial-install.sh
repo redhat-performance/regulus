@@ -103,10 +103,7 @@ config_SriovNetworkNodePolicy
 
 function create_network {
     # debug:  oc get SriovNetwork/sriov-node-policy.yaml.template
-    envsubst < templates/net-attach-def.yaml.415.template > ${MANIFEST_DIR}/net-attach-def.yaml
-
-    # OLDER, pre 4.14	envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
-
+    envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
     return # lately we create NAD per test. So no need to create now
 
     if oc get network-attachment-definition/regulus-sriov-net -n ${MCP}  &>/dev/null; then
