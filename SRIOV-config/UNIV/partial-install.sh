@@ -56,7 +56,7 @@ function add_mc_realloc {
     fi
 }
 
-if [ ${NIC_MODEL} == "CX6" ]; then
+if [[ ${NIC_MODEL} == CX* ]]; then
    echo "next, add add_mc_realloc"
    prompt_continue
    add_mc_realloc
