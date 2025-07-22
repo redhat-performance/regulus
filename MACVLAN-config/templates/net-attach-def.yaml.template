@@ -13,8 +13,7 @@ spec:
   "ipam": {
     "type": "whereabouts",
     "ipRanges": [
-        {"range": "10.30.30.0/25"},
-        {"range_v6": "2001::00/64"}
+        {"range": "10.30.30.0/25"}${REG_IPV6_RANGE}
     ]
   }
 }'
