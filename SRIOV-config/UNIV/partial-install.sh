@@ -41,7 +41,9 @@ function add_label {
         oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}=""
     done
 }
-add_label
+
+# skip adding label as this is partial install. The label done by user by hand
+#add_label
 
 # add this if necessary
 function add_mc_realloc {
