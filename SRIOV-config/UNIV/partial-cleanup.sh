@@ -38,12 +38,16 @@ echo "Next remove node labels ..."
 prompt_continue
 
 # step 2 - remove label from nodes
-if [ "${MCP}" != "master" ]; then
+function del_label {
+  if [ "${MCP}" != "master" ]; then
     echo "removing worker node labels"
     for NODE in $WORKER_LIST; do
         oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
-fi
+  fi
+}
+# no del_label as this is partial cleanup. The label is done by user by hand
+#del_label
 
 # MCP does go to UPDATING after clear label.
 wait_mcp
