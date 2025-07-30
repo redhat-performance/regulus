@@ -12,8 +12,6 @@ spec:
   mtu: ${SRIOV_MTU}
   numVfs: 32 
   nicSelector:
-    rootDevices:
-    - ${REGULUS_INTERFACE_PCI}
     pfNames:
     - ${REGULUS_INTERFACE}
   deviceType: netdevice
