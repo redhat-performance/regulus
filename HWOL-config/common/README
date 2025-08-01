@@ -1,0 +1,6 @@
+This dir is the common dir for MLX NIC types.
+**** Do not **** invoke ./install.sh and ./clean.sh directly from here.
+
+In the normal usage, from the REGULUS controller, "cd $REG_ROOT/SETUP-group/DKDK && make run"
+Or, if you are on the bastion, for a specific NIC_TYPE i.e CX6, cd to that dir, 
+and invoke "bash {install.sh,cleanup.sh}" directly.
