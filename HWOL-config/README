@@ -1,0 +1,13 @@
+If you are on the bastion you can "make {init,install.cleanup}" here. 
+The real use is jobs.config. Via job item "./SETUP_GROUP/HWOL/{INSTALL,CLEANUP}" it invokes
+these operations from the crucible controller which may not be the bastion.
+
+## DEBUG
+oc get csv -n openshift-sriov-network-operator
+oc debug node/<node-name>
+chroot /host
+cat /sys/class/net/<interface>/compat/devlink/compat/devlink/devlink/features
+  # look for hw_tc_offload: on
+ethtool -k <interface> | grep hw-tc-offload
+  # look for hw-tc-offload: on
+
