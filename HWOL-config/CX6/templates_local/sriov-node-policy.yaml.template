@@ -1,0 +1,17 @@
+---
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovNetworkNodePolicy
+metadata:
+  name: sriov-node-policy 
+  namespace: openshift-sriov-network-operator
+spec:
+  deviceType: netdevice 
+  eSwitchMode: "switchdev" 
+  nicSelector:
+    pfNames:
+    - ${REG_HWOL_NIC}
+  nodeSelector:
+    feature.node.kubernetes.io/network-sriov.capable: "true"
+  numVfs: 64
+  priority: 5
+  resourceName: reg_mlxnics
