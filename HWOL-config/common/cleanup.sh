@@ -6,7 +6,7 @@ SINGLE_STEP=${SINGLE_STEP:-true}
 source ./setting.env
 source ../common/functions.sh
 
-MANIFEST_DIR=./generated
+MANIFEST_DIR=../generated_manifests
 
 parse_args $@
 

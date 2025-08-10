@@ -60,7 +60,7 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; 
     securityContext_file="`/bin/pwd`/securityContext.json"
 fi
 
-if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_MACVLAN" == 1 ]; then
+if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_MACVLAN" == 1 ] || [ "$TPL_HWOL" == 1 ] ; then
     annotations="`/bin/pwd`/annotations.json"  &> /dev/null
 fi
 if [ "$TPL_PAO" == 1 ] ; then
@@ -74,6 +74,13 @@ if [ "$TPL_SRIOV" == 1 ] ; then
     #KNI_HOME=$(do_ssh $k8susr@$ocphost "pwd")
     #do_ssh $k8susr@$ocphost "kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
 
+    # sometime network-attachment takes a few seconds to be available
+    sleep 5
+fi
+if [ "$TPL_HWOL" == 1 ] ; then
+    source ${REG_ROOT}/HWOL-config/config.env
+    # New project. Recreate neworkAttachmentDefinition. 
+    do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_HWOL_NAD}"
     # sometime network-attachment takes a few seconds to be available
     sleep 5
 fi
@@ -238,6 +245,12 @@ for num_pods in $scale_up_factor; do
             echo "Computing resource file: $resource_file"
             gen_resource_file $per_pod_cpu
         fi
+        # some workloads i.e. HWOL has extra VF resources
+        if [ -n "$TPL_EXTRA_RESOURCES"  ]; then
+           merge_resources "$TPL_EXTRA_RESOURCES" "$resource_file" "combined-resources.json"
+           resource_file="`/bin/pwd`/combined-resources.json" 
+        fi
+
         do_ssh $k8susr@$ocphost "kubectl get nodes/$first_worker -o json" >worker.json
         kernel=`jq -r .status.nodeInfo.kernelVersion worker.json`
         rcos=`jq -r .status.nodeInfo.osImage  worker.json | awk -F"CoreOS " '{print $2}' | awk '{print $1}'`
@@ -348,7 +361,6 @@ for num_pods in $scale_up_factor; do
     if [ "$TPL_HOSTNETWORK" == 1 ]; then
        endpoint_opt+=",hostNetwork:1"
     fi
-
 
 ARGS=" --tags $tags \
         --mv-params $mv_params_file \

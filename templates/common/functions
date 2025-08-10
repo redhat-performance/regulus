@@ -1,4 +1,6 @@
 
+#!/bin/bash
+
 function do_ssh() {
     local user_host="$1"
     shift
@@ -27,3 +29,38 @@ function do_ssh() {
     return $rc
 }
 
+
+# function to merge 2 resource files
+merge_resources() {
+    local file1="$1"
+    local file2="$2"
+    local output="$3"
+
+    python3 <<EOF
+import yaml, json
+
+def load_resource(path):
+    with open(path) as f:
+        return yaml.safe_load(f).get("resources", {})
+
+res1 = load_resource("$file1")
+res2 = load_resource("$file2")
+
+combined = {
+    "requests": {},
+    "limits": {}
+}
+
+for res in [res1, res2]:
+    if "requests" in res:
+        combined["requests"].update(res["requests"])
+    if "limits" in res:
+        combined["limits"].update(res["limits"])
+
+final = {k: v for k, v in combined.items() if v}
+
+with open("$output", "w") as out:
+    out.write('"resources": ' + json.dumps(final, indent=4) + "\n")
+EOF
+}
+# EOF
