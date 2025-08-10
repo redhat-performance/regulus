@@ -1,0 +1,2 @@
+reg_expand.sh outputs identical to 4IP
+Runtime: they run under undersriovNetowkNodePolicy switchdev mode,  

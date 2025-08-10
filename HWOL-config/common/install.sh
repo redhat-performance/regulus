@@ -14,7 +14,7 @@ source ../common/functions.sh
 
 parse_args $@
 
-MANIFEST_DIR=./generated
+MANIFEST_DIR=../generated_manifests
 
 mkdir -p ${MANIFEST_DIR}/
 
@@ -54,16 +54,19 @@ function install_sriov_operator {
         sleep 10
     fi
 
-    ### install SRIOV operator config. Required since 4.18
-    if oc get sriovoperatorconfig  -n openshift-sriov-network-operator &>/dev/null; then 
-        echo "SRIOV Operator config already installed: done"
+    ### install HWOL SRIOV Operator Config. 
+    envsubst  < templates/sriov-operator-config.yaml.template > ${MANIFEST_DIR}/sriov-operator-config.yaml
+    resource_count=$(oc get sriovoperatorconfig -n openshift-sriov-network-operator --no-headers 2>/dev/null | wc -l)
+    if [ "$resource_count" -gt 0 ]; then
+        echo $LINEO "INFO: a SRIOV Operator Config exists. Overwrite it"
+        RUN_CMD oc apply -f ${MANIFEST_DIR}/sriov-operator-config.yaml
     else
-        echo "Installing SRIOV Operator config ..."
-        envsubst  < templates/sriov-operator-config.yaml.template > ${MANIFEST_DIR}/sriov-operator-config.yaml
-        RUN_CMD oc create -f ${MANIFEST_DIR}//sriov-operator-config.yaml
-        echo "install SRIOV Operator: done"
-        sleep 10
-    fi
+        echo "Installing SRIOV Operator Config ..."
+        RUN_CMD oc create -f ${MANIFEST_DIR}/sriov-operator-config.yaml
+    fi 
+    echo "install SRIOV Operator: done"
+    # Nodes need a reboot for this /sriov-operator-config
+    RUN_CMD wait_mcp
 }
 
 install_sriov_operator
@@ -171,7 +174,7 @@ function config_SriovNetworkNodePolicy {
         RUN_CMD oc label --overwrite node $NODE feature.node.kubernetes.io/network-sriov.capable=true
     done
 
-    if oc get SriovNetworkNodePolicy $DIR-sriov-node-policy -n openshift-sriov-network-operator  2>/dev/null; then
+    if oc get SriovNetworkNodePolicy hwol-sriov-node-policy -n openshift-sriov-network-operator  2>/dev/null; then
         echo "SriovNetworkNodePolicy exists. Skip creation"
     else
         echo "create SriovNetworkNodePolicy ..."
@@ -185,7 +188,7 @@ RUN_CMD wait_mcp
 
 function create_network_attachment {
     # debug:  oc get networkattachmentdefinition.k8s.cni.cncf.io/$NAD_NAME
-    envsubst < templates//net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
+    envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
     echo "generating ${MANIFEST_DIR}/net-attach-def.yaml: done"
     if oc get networkattachmentdefinition.k8s.cni.cncf.io/$NET_ATTACH_NAME  &>/dev/null; then
         echo "NetworkAttachmentDefinition exists. Skip creation"
