@@ -2,7 +2,7 @@
 apiVersion: sriovnetwork.openshift.io/v1
 kind: SriovNetworkNodePolicy
 metadata:
-  name: sriov-node-policy 
+  name: hwol-sriov-node-policy
   namespace: openshift-sriov-network-operator
 spec:
   deviceType: netdevice 
@@ -10,6 +10,7 @@ spec:
   nicSelector:
     pfNames:
     - ${REG_HWOL_NIC}
+    - ${REG_SRIOV_NIC}
   nodeSelector:
     feature.node.kubernetes.io/network-sriov.capable: "true"
   numVfs: 64

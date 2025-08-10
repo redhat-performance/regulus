@@ -1,0 +1,2 @@
+reg_exapand.sh outputs are idential to 4SRIOV, 
+runtime: net1, TC offload is active by a SriovNetworkNodePolicy in switchdev mode.

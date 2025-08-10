@@ -6,6 +6,5 @@ metadata:
 spec:
   enableInjector: true
   enableOperatorWebhook: true
-  configDaemonNodeSelector: {}
+  configurationMode: "systemd" # for h/w offload 
   logLevel: 2
-  disableDrain: false

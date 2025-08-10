@@ -64,18 +64,18 @@ function install_sriov_operator {
         sleep 10
     fi
 
-    ### install SRIOV operator config. Required since 4.18
+    ### install iregular SRIOV operator config. Required since 4.18 - HWOL uses a different config, so should overwrite it
+    envsubst < templates/sriov-operator-config.yaml.template > ${MANIFEST_DIR}/sriov-operator-config.yaml
 	resource_count=$(oc get sriovoperatorconfig -n openshift-sriov-network-operator --no-headers 2>/dev/null | wc -l)
 	if [ "$resource_count" -gt 0 ]; then
-        echo $LINENO "SRIOV Operator config already installed: done"
+        echo $LINENO "INFO: a SRIOV Operator Config exists. Overwritte it."
+        oc apply -f ${MANIFEST_DIR}/sriov-operator-config.yaml
 	else
-        echo $LINENO "Installing SRIOV Operator config ..."
-        envsubst < templates/sriov-operator-config.yaml.template > ${MANIFEST_DIR}/sriov-operator-config.yaml
+        echo $LINENO "Installing SRIOV Operator Config ..."
         oc create -f ${MANIFEST_DIR}/sriov-operator-config.yaml
-        echo "install SRIOV Operator: done"
-        sleep 10
-	fi
-
+    fi
+    wait_mcp
+    echo $LINENO "install SRIOV Operator: done"
 }
 
 install_sriov_operator
