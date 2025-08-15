@@ -1,0 +1,1 @@
+"annotations": { "k8s.v1.cni.cncf.io/networks": "default/sriov", "description": "A standard eth0 and a HWOL net1 interface" }

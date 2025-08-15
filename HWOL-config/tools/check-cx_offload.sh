@@ -14,6 +14,8 @@
 #   ./check_cx_offload.sh -s ens8f0          # Status only
 #   ./check_cx_offload.sh -a ens8f0          # Full analysis
 #   ./check_cx_offload.sh ens8f0             # Status only (default)
+#
+# Env: run this script from the bastion.
 
 set -e
 

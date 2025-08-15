@@ -64,7 +64,7 @@ function install_sriov_operator {
         sleep 10
     fi
 
-    ### install iregular SRIOV operator config. Required since 4.18 - HWOL uses a different config, so should overwrite it
+    ### install regular SRIOV operator config. Required since 4.18 - HWOL uses a different config, so should overwrite it
     envsubst < templates/sriov-operator-config.yaml.template > ${MANIFEST_DIR}/sriov-operator-config.yaml
 	resource_count=$(oc get sriovoperatorconfig -n openshift-sriov-network-operator --no-headers 2>/dev/null | wc -l)
 	if [ "$resource_count" -gt 0 ]; then

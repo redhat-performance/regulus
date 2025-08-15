@@ -1,23 +1,19 @@
 #!/bin/bash
-# uperf NO-PAO,SRIOV,IPv4,INTER_NODE,2 Pods
+# uperf NO-PAO,SRIOV,IPv4,INTER_NODE,16 Pods
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 REG_TEMPLATES=${REG_ROOT}/templates/uperf
 REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
 
-export TPL_SCALE_UP_FACTOR=1
+export TPL_SCALE_UP_FACTOR=8
 export TPL_TOPO=internode
-export TPL_HWOL_SRIOV=1
-export TPL_EXTRA_RESOURCES=./resource-hwol-be.json
+export TPL_SRIOV=1
 
-envsubst '$TPL_HWOL_SRIOV,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
+envsubst '$TPL_SRIOV,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 export TPL_INTF=net1
 export TPL_IPV=4
 envsubst '$TPL_INTF,$TPL_IPV' <  ${REG_TEMPLATES}/tcp-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
-
 cp ${REG_COMMON}/tool-params.json.template  ${MANIFEST_DIR}/tool-params.json
 cp ${REG_COMMON}/securityContext.json.template  ${MANIFEST_DIR}/securityContext.json
-cp ${REG_COMMON}/annotations-hwol-sriov.json.template  ${MANIFEST_DIR}/annotations.json
-cp ${REG_COMMON}/resource-hwol-be.json.template ${MANIFEST_DIR}/resource-hwol-be.json
-
+cp ${REG_COMMON}/annotations-sriov.json.template  ${MANIFEST_DIR}/annotations.json

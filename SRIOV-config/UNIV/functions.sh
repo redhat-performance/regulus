@@ -1,20 +1,44 @@
+# to be sourced
 
 function ECHO {
     echo "ECHO: $@"
     "$@"
 }
 
+DRY=false
+DRY=${DRY:-false}
+
+DEBUG=true  # set to true to print debug
+RUN_CMD() {
+    if $DEBUG; then
+        echo "[DEBUG] Command: $*"
+    fi
+    if [ "${DRY}" == "false" ]; then
+        "$@"
+    else
+        echo $LINENO DRY: "$*"
+    fi
+}
+
+assert_sriov_sync() {
+   kubectl get sriovnetworknodestates -n openshift-sriov-network-operator --no-headers 2>/dev/null | awk '$2 != "Succeeded" {print "ERROR: SR-IOV node " $1 " is in state: " $2; exit 1}' || exit 1
+}
 get_ocp_channel () {
     local channel=$(oc get clusterversion -o json | jq -r '.items[0].spec.channel' | sed -r -n 's/.*-(.*)/\1/p')
     echo ${channel}
 }
 
 pause_mcp () {
-    echo skip oc patch --type=merge --patch='{"spec":{"paused":true}}' machineconfigpool/${MCP}
+  if oc get machineconfigpool "${MCP}" >/dev/null 2>&1; then
+       RUN_CMD oc patch --type=merge --patch='{"spec":{"paused":true}}' machineconfigpool/${MCP}
+  fi
+
 }
 
 resume_mcp () {
-    echo resume_mcp skip: oc patch --type=merge --patch='{"spec":{"paused":false}}' machineconfigpool/${MCP}
+  if oc get machineconfigpool "${MCP}" >/dev/null 2>&1; then
+      RUN_CMD oc patch --type=merge --patch='{"spec":{"paused":false}}' machineconfigpool/${MCP}
+  fi
 }
 
 # return True if either worker or my mcp is still updating.
@@ -58,6 +82,7 @@ wait_mcp () {
         status=$(get_mcp_progress_status)
     done
     printf "\nmcp complete on the baremetal host in %d sec\n" $(( (300-count) * 10 ))
+    assert_sriov_sync
 }
 
 wait_pod_in_namespace () {

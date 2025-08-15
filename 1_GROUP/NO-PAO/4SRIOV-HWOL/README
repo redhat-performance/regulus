@@ -1,2 +1,3 @@
-reg_exapand.sh outputs are idential to 4SRIOV, 
-runtime: net1, TC offload is active by a SriovNetworkNodePolicy in switchdev mode.
+reg_exapand.sh outputs that use hwol annotation (differs 4SRIOV annotation)
+runtime: net1, hwol is active by a SriovNetworkNodePolicy in switchdev mode.
+

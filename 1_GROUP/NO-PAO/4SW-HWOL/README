@@ -1,2 +1,3 @@
-reg_expand.sh outputs identical to 4IP
-Runtime: they run under undersriovNetowkNodePolicy switchdev mode,  
+reg_expand.sh generates outputs identical to 4IP
+Runtime: Under a sriovNetworkNodePolicy in switchdev mode, AMD pod has no hwol annotation.
+         In other words, ./SETUP_GROUP/HWOL/INSTALL must be run prior.
