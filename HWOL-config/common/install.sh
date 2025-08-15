@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PAUSE=${PAUSE:-false}
-SINGLE_STEP=${SINGLE_STEP:-true}
+SINGLE_STEP=${SINGLE_STEP:-false}
 
 if [ $PAUSE == true ]; then
   echo true PAUSE=$PAUSE
@@ -11,13 +11,11 @@ fi
 source ./setting.env
 source ../common/functions.sh
 
-
 parse_args $@
 
 MANIFEST_DIR=../generated_manifests
 
 mkdir -p ${MANIFEST_DIR}/
-
 
 if [ -z "${WORKER_LIST}"  ]; then
     echo no WORKER_LIST
@@ -197,6 +195,8 @@ function create_network_attachment {
         RUN_CMD oc create -f ${MANIFEST_DIR}/net-attach-def.yaml
         echo "create SriovNetwork net-attach-def: done"
     fi
+    # prepare another NAD for SRIOV (WARNING this is not yet supported as of 4.18)
+    envsubst < templates/sriov-net-attach-def.yaml.template > ${MANIFEST_DIR}/sriov-net-attach-def.yaml
 }
 
 DPRINT $LINENO "next create NAD"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SINGLE_STEP=${SINGLE_STEP:-true}
+SINGLE_STEP=${SINGLE_STEP:-false}
 
 #set -euo pipefail
 source ./setting.env

@@ -10,7 +10,6 @@ spec:
   nicSelector:
     pfNames:
     - ${REG_HWOL_NIC}
-    - ${REG_SRIOV_NIC}
   nodeSelector:
     feature.node.kubernetes.io/network-sriov.capable: "true"
   numVfs: 64
