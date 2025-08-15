@@ -56,11 +56,11 @@ do_ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT && \
                  kubectl label ns $OCP_PROJECT pod-security.kubernetes.io/enforce=privileged \
                       pod-security.kubernetes.io/enforce-version=v1.27 --overwrite" 
 
-if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; then
+if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ] || [ "$TPL_HWOL" == 1 ] ||  [ "$TPL_HWOL_SRIOV" == 1 ] ; then
     securityContext_file="`/bin/pwd`/securityContext.json"
 fi
 
-if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_MACVLAN" == 1 ] || [ "$TPL_HWOL" == 1 ] ; then
+if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_MACVLAN" == 1 ]     || [ "$TPL_HWOL" == 1 ] ||  [ "$TPL_HWOL_SRIOV" == 1 ] ; then
     annotations="`/bin/pwd`/annotations.json"  &> /dev/null
 fi
 if [ "$TPL_PAO" == 1 ] ; then
@@ -71,19 +71,20 @@ if [ "$TPL_SRIOV" == 1 ] ; then
     source ${REG_ROOT}/SRIOV-config/config.env
     # New project. Recreate neworkAttachmentDefinition. 
     do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
-    #KNI_HOME=$(do_ssh $k8susr@$ocphost "pwd")
-    #do_ssh $k8susr@$ocphost "kubectl apply -f ${KNI_HOME}/${REG_SRIOV_NAD}"
-
     # sometime network-attachment takes a few seconds to be available
     sleep 5
 fi
 if [ "$TPL_HWOL" == 1 ] ; then
     source ${REG_ROOT}/HWOL-config/config.env
-    # New project. Recreate neworkAttachmentDefinition. 
     do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_HWOL_NAD}"
-    # sometime network-attachment takes a few seconds to be available
     sleep 5
 fi
+if [ "$TPL_HWOL_SRIOV" == 1 ] ; then
+    source ${REG_ROOT}/HWOL-config/config.env
+    do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_HWOL_SRIOV_NAD}"
+    sleep 5
+fi
+
 
 if [ "$TPL_MACVLAN" == 1 ] ; then
   	source ${REG_ROOT}/MACVLAN-config/config.env

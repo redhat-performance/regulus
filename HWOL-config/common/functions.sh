@@ -20,13 +20,15 @@ get_ocp_channel () {
 }
 
 pause_mcp () {
-    RUN_CMD oc patch machineconfigpool ${MCP} --type=merge -p '{"spec":{"paused":true}}'
-
-
+    if oc get machineconfigpool "${MCP}" >/dev/null 2>&1; then
+        RUN_CMD oc patch machineconfigpool ${MCP} --type=merge -p '{"spec":{"paused":true}}'
+    fi
 }
 
 resume_mcp () {
-    RUN_CMD oc patch machineconfigpool ${MCP} --type=merge -p '{"spec": {"paused": false}}'
+    if oc get machineconfigpool "${MCP}" >/dev/null 2>&1; then
+        RUN_CMD oc patch machineconfigpool ${MCP} --type=merge -p '{"spec": {"paused": false}}'
+    fi
 }
 
 # return True if either worker or my mcp is still updating.

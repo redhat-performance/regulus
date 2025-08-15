@@ -1,0 +1,8 @@
+"resources": {
+    "requests": {
+           openshift.io/reg_mlxnics: 1
+    },
+    "limits": {
+           openshift.io/reg_mlxnics: 1
+    }
+}

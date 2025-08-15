@@ -1,0 +1,23 @@
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: $NAD_SRIOV_NAME
+  namespace: $NAD_NS
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: openshift.io/reg_mlxnics
+spec:
+  config: |
+    {
+      "cniVersion": "0.4.0",
+      "type": "sriov",
+      "capabilities": {
+        "tc": true,
+        "mac": true,
+        "ips": true
+      },
+      "ipam": {
+        "type": "whereabouts",
+        "range": "192.168.100.0/24"
+      }
+    }
