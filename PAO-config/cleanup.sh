@@ -43,6 +43,8 @@ if [ "${MCP}" != "master" ]; then
     done
 fi
 
+RUN_CMD wait_mcp ${MCP}
+
 ##### Remove MCP ######
 if [ "${MCP}" != "master" ]; then
     # this is STANDARD cluster. Do it.
