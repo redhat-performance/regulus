@@ -2,6 +2,21 @@
 
 export SNO=${SNO:-false}
 
+DRY=false
+DRY=${DRY:-false}
+
+DEBUG=true  # set to true to print debug
+RUN_CMD() {
+    if $DEBUG; then
+        echo "[DEBUG] Command: $*"
+    fi
+    if [ "${DRY}" == "false" ]; then
+        "$@"
+    else
+        echo $LINENO DRY: "$*"
+    fi
+}
+
 get_python_exec () {
     local py_exec
     if command -v python3 >/dev/null 2>&1; then
@@ -56,11 +71,11 @@ get_ocp_channel () {
 }
 
 pause_mcp () {
-    oc patch --type=merge --patch='{"spec":{"paused":true}}' machineconfigpool/${MCP}
+    RUN_CMD oc patch --type=merge --patch='{"spec":{"paused":true}}' machineconfigpool/${MCP}
 }
 
 resume_mcp () {
-    oc patch --type=merge --patch='{"spec":{"paused":false}}' machineconfigpool/${MCP}
+    RUN_CMD oc patch --type=merge --patch='{"spec":{"paused":false}}' machineconfigpool/${MCP}
 }
 
 # return True if either worker or my mcp is still updating.

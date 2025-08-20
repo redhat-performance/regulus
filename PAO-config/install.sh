@@ -5,6 +5,7 @@
 # Note::
 #    - for non-SNO: hardcode 2 CPUs for housekeeping workloads.
 
+source ${REG_ROOT}/lab.config
 source ./setting.env
 source ./functions.sh
 export WORKER_LIST=${WORKER_LIST:-}
@@ -24,13 +25,13 @@ function f_ensure_no_other_mcps {
 
 if [ "${MCP}" != "master" ]; then
     # It is  a STANDARD cluster
-    f_ensure_no_other_mcps
+    RUN_CMD f_ensure_no_other_mcps
 fi
 
 # step 1 - label workers unless mcp is "master" implying SNO or 3-node compact.
 if [ "${MCP}" != "master" ]; then
     for worker in $WORKER_LIST; do
-        oc label --overwrite node ${worker} node-role.kubernetes.io/${MCP}=""
+        RUN_CMD oc label --overwrite node ${worker} node-role.kubernetes.io/${MCP}=""
     done
 fi
 
@@ -39,7 +40,7 @@ if ! oc get mcp $MCP &>/dev/null; then
     echo "create mcp for $MCP ..."
     mkdir -p ${MANIFEST_DIR}
     envsubst < templates/mcp-worker-cnf.yaml.template > ${MANIFEST_DIR}/mcp-${MCP}.yaml
-    oc create -f ${MANIFEST_DIR}/mcp-${MCP}.yaml
+    RUN_CMD oc create -f ${MANIFEST_DIR}/mcp-${MCP}.yaml
     echo "create mcp for ${MCP}: done"
 fi
 
@@ -47,7 +48,7 @@ echo "Next is label node role ${MCP}"; prompt_continue
 
 # make sure MCP is labeled
 if oc get mcp ${MCP} &> /dev/null ; then
-   oc label --overwrite mcp ${MCP} machineconfiguration.openshift.io/role=${MCP}
+   RUN_CMD oc label --overwrite mcp ${MCP} machineconfiguration.openshift.io/role=${MCP}
 fi
 
 mkdir -p ${MANIFEST_DIR}/
@@ -86,10 +87,10 @@ echo "next is is applying performance_profile"
 prompt_continue 
 
 echo "apply ${MANIFEST_DIR}/performance_profile.yaml ..."
-oc apply -f ${MANIFEST_DIR}/performance_profile.yaml
+RUN_CMD oc apply -f ${MANIFEST_DIR}/performance_profile.yaml
 
 if [[ "${WAIT_MCP}" == "true" ]]; then
-    wait_mcp ${MCP}
+    RUN_CMD wait_mcp ${MCP}
 fi
 
 echo "apply ${MANIFEST_DIR}/performance_profile.yaml: done"
