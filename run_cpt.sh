@@ -11,12 +11,14 @@ source lab.config
 
 # If we run in the double/nested ssh scenario, the destination env context may not have 
 # ssh-agent available and thus no key. In this case we must use explicit key. "ssh -i <key> ...."
+export extra_SSH_OPTS=""
 if ssh-add -l >/dev/null 2>&1; then
     echo 'SSH agent available, using agent'
-    export extra_SSH_OPTS=""
 else
     echo 'No SSH agent, using private_key'
-    export extra_SSH_OPTS=" -i /tmp/private_key"  
+    if [ -e /tmp/private_key  ]; then
+        export extra_SSH_OPTS=" -i /tmp/private_key"
+    fi
 fi
 
 function do_ssh_copy_id() {
