@@ -133,6 +133,7 @@ ln -sf $DIR latest
 pushd $DIR
 
 reg-gen-summary 
+bash horizontal.sh new-summary* > horizontal.txt
 
 # before tar pull the result-summary.txt here so rmrun can run
 find . -name result-summary.txt -exec cp {} . \;
