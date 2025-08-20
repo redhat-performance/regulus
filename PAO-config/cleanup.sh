@@ -6,6 +6,7 @@
 
 set -euo pipefail
 
+source ${REG_ROOT}/lab.config
 source ./setting.env
 source ./functions.sh
 SINGLE_STEP=${SINGLE_STEP:-false}
@@ -15,11 +16,11 @@ parse_args $@
 ##### Remove performan-profile ######
 echo "Removing performance profile ..."
 if oc get PerformanceProfile ${MCP} &>/dev/null; then
-  oc delete PerformanceProfile ${MCP}
+  RUN_CMD oc delete PerformanceProfile ${MCP}
   echo "deleted performance-profile: done"
 
   if [[ "${WAIT_MCP}" == "true" ]]; then
-      wait_mcp ${MCP}
+      RUN_CMD wait_mcp ${MCP}
    fi
 else
   echo "No performance profile: done"
@@ -38,7 +39,7 @@ echo "deleting label for $WORKER_LIST ..."
 if [ "${MCP}" != "master" ]; then
     # this is STANDARD cluster. Do it.
     for worker in $WORKER_LIST; do
-        oc label node ${worker} node-role.kubernetes.io/${MCP}-
+        RUN_CMD oc label node ${worker} node-role.kubernetes.io/${MCP}-
     done
 fi
 
@@ -46,12 +47,12 @@ fi
 if [ "${MCP}" != "master" ]; then
     # this is STANDARD cluster. Do it.
     if oc get mcp ${MCP} 2>/dev/null; then
-        oc delete mcp ${MCP}
+        RUN_CMD oc delete mcp ${MCP}
         echo "deleted mcp for ${MCP}: done"
     fi
 else
     # this is non-standard cluster that uses mcp master. Just remove the label.
-    oc label mcp ${MCP} machineconfiguration.openshift.io/role-
+    RUN_CMD oc label mcp ${MCP} machineconfiguration.openshift.io/role-
 
 fi
 

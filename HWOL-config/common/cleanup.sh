@@ -75,8 +75,8 @@ else
     done
 fi
 
-echo "short remove the mcp $MCP ..."
-exit
+#echo "short remove the mcp $MCP ..."
+#exit
 
 echo "Continue if you want to also remove the $MCP mcp  ..."
 prompt_continue
