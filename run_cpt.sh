@@ -16,7 +16,9 @@ if ssh-add -l >/dev/null 2>&1; then
     export extra_SSH_OPTS=""
 else
     echo 'No SSH agent, using private_key'
-    export extra_SSH_OPTS=" -i /tmp/private_key"  
+    if [ -e /tmp/private_key  ]; then
+        export extra_SSH_OPTS=" -i /tmp/private_key"  
+    fi
 fi
 
 function do_ssh_copy_id() {

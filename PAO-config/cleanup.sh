@@ -26,11 +26,10 @@ else
   echo "No performance profile: done"
 fi
 
-if oc get SriovNetworkNodePolicy &>/dev/null; then
+if [ -n "$(oc get SriovNetworkNodePolicy -o name 2>/dev/null)" ]; then
     echo "SRIOV is still active. Skip the rest. Done"
     exit
 fi
-
 
 echo "Next, remove node labels and MCP ${MCP}"
 prompt_continue 
@@ -42,6 +41,8 @@ if [ "${MCP}" != "master" ]; then
         RUN_CMD oc label node ${worker} node-role.kubernetes.io/${MCP}-
     done
 fi
+
+RUN_CMD wait_mcp ${MCP}
 
 ##### Remove MCP ######
 if [ "${MCP}" != "master" ]; then
