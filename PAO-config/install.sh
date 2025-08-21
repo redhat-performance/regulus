@@ -9,7 +9,7 @@ source ${REG_ROOT}/lab.config
 source ./setting.env
 source ./functions.sh
 export WORKER_LIST=${WORKER_LIST:-}
-SINGLE_STEP=${SINGLE_STEP:-true}
+SINGLE_STEP=${SINGLE_STEP:-false}
 
 parse_args $@
 
@@ -41,6 +41,7 @@ if ! oc get mcp $MCP &>/dev/null; then
     mkdir -p ${MANIFEST_DIR}
     envsubst < templates/mcp-worker-cnf.yaml.template > ${MANIFEST_DIR}/mcp-${MCP}.yaml
     RUN_CMD oc create -f ${MANIFEST_DIR}/mcp-${MCP}.yaml
+    RUN_CMD mcp_counter_add $MCP  "reg-PAO"
     echo "create mcp for ${MCP}: done"
 fi
 

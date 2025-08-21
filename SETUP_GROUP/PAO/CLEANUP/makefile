@@ -1,5 +1,5 @@
 #
-# run: run oc/kubctl to cleanup perofrmanceProfile on the testbed
+# run: run oc/kubctl to cleanup performanceProfile on the testbed
 #
 
 ifndef REG_ROOT

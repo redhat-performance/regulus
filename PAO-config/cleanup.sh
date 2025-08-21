@@ -48,8 +48,11 @@ RUN_CMD wait_mcp ${MCP}
 if [ "${MCP}" != "master" ]; then
     # this is STANDARD cluster. Do it.
     if oc get mcp ${MCP} 2>/dev/null; then
-        RUN_CMD oc delete mcp ${MCP}
-        echo "deleted mcp for ${MCP}: done"
+        mcp_counter_del $MCP  "reg-PAO"
+        if [[ $(mcp_counter_get $MCP) -eq 0 ]]; then
+            RUN_CMD oc delete mcp ${MCP}
+            echo "deleted mcp for ${MCP}: done"
+        fi
     fi
 else
     # this is non-standard cluster that uses mcp master. Just remove the label.
