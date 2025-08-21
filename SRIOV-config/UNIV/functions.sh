@@ -1,4 +1,6 @@
-# to be sourced
+#!/bin/bash
+
+source $REG_ROOT/common/mcp_support.sh
 
 function ECHO {
     echo "ECHO: $@"

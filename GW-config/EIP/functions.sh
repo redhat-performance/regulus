@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source $REG_ROOT/common/mcp_support.sh
+
 export SNO=${SNO:-false}
 
 get_python_exec () {

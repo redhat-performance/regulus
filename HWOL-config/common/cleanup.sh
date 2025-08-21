@@ -94,11 +94,14 @@ else
     done
 fi
 
-if oc get mcp $MCP -n openshift-sriov-network-operator &>/dev/null; then
-    echo "remove mcp  ..."
-    oc delete -f ${MANIFEST_DIR}/mcp-hwol.yaml
-    rm  -f ${MANIFEST_DIR}/mcp-hwol.yaml
-    echo "delete mcp for $MCP done"
+if oc get mcp $MCP &>/dev/null; then
+    mcp_counter_del $MCP  "reg-HWOL"
+    if [[ $(mcp_counter_get $MCP) -eq 0 ]]; then
+        echo "remove mcp  ..."
+        oc delete mcp $MCP
+        rm  -f ${MANIFEST_DIR}/mcp-hwol.yaml
+        echo "delete mcp for $MCP done"
+    fi
 else
     echo "No mcp $MCP to remove."
 fi
