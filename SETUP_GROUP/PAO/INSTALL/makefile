@@ -9,6 +9,7 @@ include ${REG_ROOT}/jobs.config
 include ${REG_ROOT}/lab.config
 
 init:
+	@bash ./init.sh
 
 run:
 	@bash ./install.sh

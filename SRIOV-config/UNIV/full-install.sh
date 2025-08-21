@@ -91,6 +91,7 @@ function configure_mcp {
         mkdir -p ${MANIFEST_DIR}
         envsubst < templates/mcp-regulus-vf.yaml.template > ${MANIFEST_DIR}/mcp-regulus-vf.yaml
         oc create -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
+        mcp_counter_add $MCP  "reg-SRIOV"
         echo "create mcp for ${MCP} done"
     fi
 }

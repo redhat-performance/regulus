@@ -81,6 +81,7 @@ function configure_mcp {
         mkdir -p ${MANIFEST_DIR}
         envsubst < templates/mcp-hwol.yaml.template > ${MANIFEST_DIR}/mcp-hwol.yaml
         RUN_CMD oc create -f ${MANIFEST_DIR}/mcp-hwol.yaml
+        RUN_CMD mcp_counter_add $MCP  "reg-HWOL"
         echo "create mcp for $MCP: done"
     fi
 }

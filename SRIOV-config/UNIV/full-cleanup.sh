@@ -67,11 +67,14 @@ echo "Next delete the ${MCP} mcp  ..."
 prompt_continue
 
 if [ "${MCP}" != "master" ]; then
-    if oc get mcp ${MCP} -n openshift-sriov-network-operator &>/dev/null; then
-      echo "remove mcp ${MCP}  ..."
-      oc delete mcp ${MCP} -n openshift-sriov-network-operator
-      rm  -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
-      echo "delete mcp for mcp-regulus-vf: done"
+    if oc get mcp ${MCP} &>/dev/null; then
+        mcp_counter_del $MCP  "reg-SRIOV"
+        if [[ $(mcp_counter_get $MCP) -eq 0 ]]; then
+            echo "remove mcp ${MCP}  ..."
+            oc delete mcp ${MCP} 
+            rm  -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
+            echo "delete mcp for mcp-regulus-vf: done"
+        fi
     else
       echo "No mcp ${MCP} to remove."
     fi

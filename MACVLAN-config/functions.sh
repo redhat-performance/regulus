@@ -1,3 +1,7 @@
+#!/bin/bash
+
+source $REG_ROOT/common/mcp_support.sh
+
 get_ocp_channel () {
     local channel=$(oc get clusterversion -o json | jq -r '.items[0].spec.channel' | sed -r -n 's/.*-(.*)/\1/p')
     echo ${channel}
