@@ -41,9 +41,9 @@ if ! oc get mcp $MCP &>/dev/null; then
     mkdir -p ${MANIFEST_DIR}
     envsubst < templates/mcp-worker-cnf.yaml.template > ${MANIFEST_DIR}/mcp-${MCP}.yaml
     RUN_CMD oc create -f ${MANIFEST_DIR}/mcp-${MCP}.yaml
-    RUN_CMD mcp_counter_add $MCP  "reg-PAO"
     echo "create mcp for ${MCP}: done"
 fi
+RUN_CMD mcp_counter_add $MCP  "reg-PAO"
 
 echo "Next is label node role ${MCP}"; prompt_continue 
 

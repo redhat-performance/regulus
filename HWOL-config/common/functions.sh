@@ -52,18 +52,18 @@ get_mcp_progress_status () {
     fi
 }
 
-wait_mcp () {
+wait_mcp_core () {
     resume_mcp
-    printf "waiting 30 secs before checking mcp status "
-    local count=30
-    while [[ $count -gt 0  ]]; do
+    local  state_change_delay=$1
+    printf "waiting $state_change_delay secs before checking mcp status "
+    while [[ $state_change_delay -gt 0  ]]; do
         sleep 10
         printf "."
-        count=$((count-10))
+        state_change_delay=$((state_change_delay-10))
     done
 
     local status=$(get_mcp_progress_status)
-    count=300
+    local count=300
     printf "\npolling 3000 sec for mcp complete"
     while [[ $status != "False" ]]; do
         if ((count == 0)); then
@@ -76,6 +76,14 @@ wait_mcp () {
         status=$(get_mcp_progress_status)
     done
     printf "\nmcp complete on the baremetal host in %d sec\n" $(( (300-count) * 10 ))
+}
+
+wait_mcp_delay_60sec () {
+    wait_mcp_core 60
+}
+
+wait_mcp () {
+    wait_mcp_core 30
 }
 
 wait_pod_in_namespace () {

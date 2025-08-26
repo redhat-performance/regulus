@@ -80,9 +80,9 @@ function configure_mcp {
         mkdir -p ${MANIFEST_DIR}
         envsubst < templates/mcp-intel-vf.yaml.template > ${MANIFEST_DIR}/mcp-intel-vf.yaml
         RUN_CMD oc create -f ${MANIFEST_DIR}/mcp-intel-vf.yaml
-        RUN_CMD mcp_counter_add $MCP "reg-DPDK"
         echo "create mcp for $MCP: done"
     fi
+    RUN_CMD mcp_counter_add $MCP "reg-DPDK"
 }
 
 # Create a new MCP, but if cluster is SNO or compact we only have masters, and hence use master MCP.

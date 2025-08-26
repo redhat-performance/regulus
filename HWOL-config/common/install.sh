@@ -81,9 +81,9 @@ function configure_mcp {
         mkdir -p ${MANIFEST_DIR}
         envsubst < templates/mcp-hwol.yaml.template > ${MANIFEST_DIR}/mcp-hwol.yaml
         RUN_CMD oc create -f ${MANIFEST_DIR}/mcp-hwol.yaml
-        RUN_CMD mcp_counter_add $MCP  "reg-HWOL"
         echo "create mcp for $MCP: done"
     fi
+    RUN_CMD mcp_counter_add $MCP  "reg-HWOL"
 }
 
 # Create a new MCP, but if cluster is SNO or compact we only have masters, and hence use master MCP.
@@ -183,13 +183,13 @@ function config_SriovNetworkNodePolicy {
 }
 config_SriovNetworkNodePolicy
 # !!! reboot
-RUN_CMD wait_mcp
+RUN_CMD wait_mcp_delay_60sec
 
 function create_network_attachment {
-    # debug:  oc get networkattachmentdefinition.k8s.cni.cncf.io/$NAD_NAME
+    # debug:  oc get networkattachmentdefinition.k8s.cni.cncf.io/$NAD_NAME -n ${NAD_NS}
     envsubst < templates/net-attach-def.yaml.template > ${MANIFEST_DIR}/net-attach-def.yaml
     echo "generating ${MANIFEST_DIR}/net-attach-def.yaml: done"
-    if oc get networkattachmentdefinition.k8s.cni.cncf.io/$NET_ATTACH_NAME  &>/dev/null; then
+    if oc get networkattachmentdefinition.k8s.cni.cncf.io/$NAD_NAME -n ${NAD_NS}  &>/dev/null; then
         echo "NetworkAttachmentDefinition exists. Skip creation"
     else
         echo "create NetworkAttachmentDefinition ..."
