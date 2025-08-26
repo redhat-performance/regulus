@@ -48,21 +48,25 @@ echo "Continue if you want to also remove the $MCP mcp  ..."
 prompt_continue
 
 # step 2 - remove label from nodes
-if [ ! -z "${WORKER_LIST}" ]; then
+del_label() {
+  if [ ! -z "${WORKER_LIST}" ]; then
     echo "removing worker node labels"
     for NODE in $WORKER_LIST; do
         oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
-else
+  else
     echo "removing master node labels"
     for NODE in $MASTER_LIST; do
         oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
-fi
+  fi
+  wait_mcp
+}
 
 if oc get mcp $MCP  &>/dev/null; then
     mcp_counter_del $MCP  "reg-DPDK"
     if [[ $(mcp_counter_get $MCP) -eq 0 ]]; then
+        del_label
         echo "remove mcp  ..."
         oc delete mcp $MCP
         rm  -f ${MANIFEST_DIR}/mcp-intel-vf.yaml

@@ -35,15 +35,16 @@ fi
 echo "Next, remove node labels and MCP ${MCP}"
 prompt_continue 
 
-echo "deleting label for $WORKER_LIST ..."
-if [ "${MCP}" != "master" ]; then
+del_label() {
+  echo "deleting label for $WORKER_LIST ..."
+  if [ "${MCP}" != "master" ]; then
     # this is STANDARD cluster. Do it.
     for worker in $WORKER_LIST; do
         RUN_CMD oc label node ${worker} node-role.kubernetes.io/${MCP}-
     done
-fi
-
-RUN_CMD wait_mcp ${MCP}
+  fi
+  RUN_CMD wait_mcp ${MCP}
+}
 
 ##### Remove MCP ######
 if [ "${MCP}" != "master" ]; then
@@ -51,6 +52,7 @@ if [ "${MCP}" != "master" ]; then
     if oc get mcp ${MCP} 2>/dev/null; then
         mcp_counter_del $MCP  "reg-PAO"
         if [[ $(mcp_counter_get $MCP) -eq 0 ]]; then
+            RUN_CMD del_label
             RUN_CMD oc delete mcp ${MCP}
             echo "deleted mcp for ${MCP}: done"
         fi

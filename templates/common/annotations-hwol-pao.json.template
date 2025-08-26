@@ -1,0 +1,2 @@
+"annotations" : { "irq-load-balancing.crio.io": "disable", "cpu-quota.crio.io": "disable", "v1.multus-cni.io/default-network": "default/default" }
+

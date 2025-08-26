@@ -91,9 +91,9 @@ function configure_mcp {
         mkdir -p ${MANIFEST_DIR}
         envsubst < templates/mcp-regulus-vf.yaml.template > ${MANIFEST_DIR}/mcp-regulus-vf.yaml
         oc create -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
-        mcp_counter_add $MCP  "reg-SRIOV"
         echo "create mcp for ${MCP} done"
     fi
+    mcp_counter_add $MCP  "reg-SRIOV"
 }
 
 echo "next is creating ${MCP} mcp"
@@ -188,7 +188,7 @@ function config_SriovNetworkNodePolicy {
     if oc get SriovNetworkNodePolicy regulus-sriov-node-policy -n openshift-sriov-network-operator  2>/dev/null; then
         echo "SriovNetworkNodePolicy exists. Skip creation"
     else
-        echo "create SriovNetworkNodePolicy ..."
+        echo $LINENO "create SriovNetworkNodePolicy ..."
         oc create -f ${MANIFEST_DIR}/sriov-node-policy.yaml
         echo "create SriovNetworkNodePolicy: done"
         if [ $PAUSE == false ]; then
