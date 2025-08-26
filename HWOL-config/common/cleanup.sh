@@ -18,9 +18,9 @@ fi
 echo "Next remove NAD ..."
 prompt_continue
 
-if oc get networkattachmentdefinition.k8s.cni.cncf.io/$NAD_NS &>/dev/null; then
+if oc get networkattachmentdefinition.k8s.cni.cncf.io/${NAD_NAME} -n ${NAD_NS} &>/dev/null; then
     echo "remove NetworkAttachmentDefinition ..."
-    RUN_CMD oc delete -f ${MANIFEST_DIR}/net-attach-def.yaml
+    RUN_CMD oc delete networkattachmentdefinition.k8s.cni.cncf.io/${NAD_NAME} -n ${NAD_NS}
     echo "remove NetworkAttachmentDefinition: done"
 else
     echo "No NetworkAttachmentDefinition to remove"
@@ -59,46 +59,34 @@ function rm_SriovNetworkPoolConfig {
 
 }
 rm_SriovNetworkPoolConfig
-# !!!! reboot as wait_mcp will initiate a resume !!!!
-RUN_CMD wait_mcp
-
-# remove label from nodes
-if [ ! -z "${WORKER_LIST}" ]; then
-    echo "removing worker node labels"
-    for NODE in $WORKER_LIST; do
-        RUN_CMD oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}-
-    done
-else
-    echo "removing master node labels"
-    for NODE in $MASTER_LIST; do
-        RUN_CMD oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}-
-    done
-fi
-
-#echo "short remove the mcp $MCP ..."
-#exit
+# !!!! reboot as wait_mcp will initiate a resume !!!!  - HWOL takes longer. Use longer delay mcp check
+RUN_CMD wait_mcp_delay_60sec
 
 echo "Continue if you want to also remove the $MCP mcp  ..."
 prompt_continue
 
 # step 2 - remove label from nodes
-if [ ! -z "${WORKER_LIST}" ]; then
+del_label() {
+  if [ ! -z "${WORKER_LIST}" ]; then
     echo "removing worker node labels"
     for NODE in $WORKER_LIST; do
         oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
-else
+  else
     echo "removing master node labels"
     for NODE in $MASTER_LIST; do
         oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
-fi
+  fi
+  RUN_CMD wait_mcp_delay_60sec
+}
 
 if oc get mcp $MCP &>/dev/null; then
     mcp_counter_del $MCP  "reg-HWOL"
     if [[ $(mcp_counter_get $MCP) -eq 0 ]]; then
+        RUN_CMD del_label
         echo "remove mcp  ..."
-        oc delete mcp $MCP
+        RUN_CMD oc delete mcp $MCP
         rm  -f ${MANIFEST_DIR}/mcp-hwol.yaml
         echo "delete mcp for $MCP done"
     fi

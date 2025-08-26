@@ -47,21 +47,17 @@ wait_mcp
 echo "Next remove node labels ..."
 prompt_continue
 
-if oc get PerformanceProfile ${MCP} &>/dev/null; then
-    echo "Performance profile is still active. Skip the rest. Done"
-    exit 0
-fi
 
 # step 2 - remove label from nodes
-if [ "${MCP}" != "master" ]; then
+del_label() {
+  if [ "${MCP}" != "master" ]; then
     echo "removing worker node labels"
     for NODE in $WORKER_LIST; do
         oc label node ${NODE} node-role.kubernetes.io/${MCP}-
     done
-fi
-
-# MCP does go to UPDATING after clear label.
-wait_mcp
+  fi
+  wait_mcp
+}
 
 echo "Next delete the ${MCP} mcp  ..."
 prompt_continue
@@ -70,6 +66,7 @@ if [ "${MCP}" != "master" ]; then
     if oc get mcp ${MCP} &>/dev/null; then
         mcp_counter_del $MCP  "reg-SRIOV"
         if [[ $(mcp_counter_get $MCP) -eq 0 ]]; then
+            del_label
             echo "remove mcp ${MCP}  ..."
             oc delete mcp ${MCP} 
             rm  -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml

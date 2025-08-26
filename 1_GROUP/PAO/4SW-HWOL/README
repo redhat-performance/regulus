@@ -1,0 +1,2 @@
+SW-HWOL is when HWOL-config enables switchdev, but pod has no annotation.
+In other words, the tests (reg_expand.sh) are identical to that of 4IP.
