@@ -187,17 +187,21 @@ function ECHO {
 	echo ECHO: $@
 }
 
+#DRY=true
+DRY=${DRY:-false}
+
 DEBUG=true  # set to true to print debug
 RUN_CMD() {
-    local cmd="$*"
-
     if $DEBUG; then
-        echo "[DEBUG] Command: $cmd"
-        eval "$cmd"
+        echo "[DEBUG] Command: $*"
+    fi
+    if [ "${DRY}" == "false" ]; then
+        "$@"
     else
-        eval "$cmd"
+        echo $LINENO DRY: "$*"
     fi
 }
+
 
 DPRINT() {
     if $DEBUG; then

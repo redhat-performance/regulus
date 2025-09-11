@@ -1,0 +1,20 @@
+Common debug:
+# Show binding status of all interfaces:
+ 	dpdk-devbind.py -s
+
+# Orphan interface not bound to any driver due to a bind failure somehow
+[root@nfv-intel-3a REMOTE-ICE-SRIOV]# ./dpdk-devbind.py -s   
+Network devices using kernel driver
+===================================
+0000:17:00.0 'Ethernet Controller X710 for 10GbE backplane 1581' if=eno1 drv=i40e unused=vfio-pci *Active*
+0000:17:00.2 'Ethernet Controller X710 for 10GbE backplane 1581' if=eno3 drv=i40e unused=vfio-pci
+0000:17:00.3 'Ethernet Controller X710 for 10GbE backplane 1581' if=eno4 drv=i40e unused=vfio-pci *Active*
+
+Other Network devices
+=====================
+0000:17:00.1 'Ethernet Controller X710 for 10GbE backplane 1581' unused=i40e,vfio-pci  <==== in limbo.
+
+# Fixing orphaned interface
+     rebind_kernel_auto 0000:17:00.1 
+
+- 
