@@ -55,7 +55,7 @@ function install_sriov_operator {
     fi
 
     ### install SRIOV operator config. Required since 4.18
-    if oc get sriovoperatorconfig  -n openshift-sriov-network-operator &>/dev/null; then 
+    if oc get sriovoperatorconfig default  -n openshift-sriov-network-operator &>/dev/null; then 
         echo "SRIOV Operator config already installed: done"
     else
         echo "Installing SRIOV Operator config ..."

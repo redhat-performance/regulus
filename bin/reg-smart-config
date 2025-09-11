@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Regulus smart lab.config util
+# Regulus smart lab.config utility
 #	1. Check for the required envs i.e KUBECONFIG, REG_KNI_USER, REG_OCPHOST
 # 	2. Initialize other env variables that the user has no inputs for. For example,
 #		a. OCP_WORKER_0-2
@@ -12,13 +12,14 @@
 #  Exec context:
 #       Can be called after "make init-lab" to fix up lab.config
 #       Can be called before "make init-lab" ONLY when crucible controller runs on the bastion
-#       CANNOI be called before "make init-lab" when controller is NOT running on bastion. Repo has not been mirrored to the bastion yet.
+#       CANNOT be called before "make init-lab" when controller is NOT running on bastion. Repo has not been mirrored to the bastion yet.
 #
-# Logic: if a NIC has SRIOV VFs (owned and configured by something else), or being unknown NIC type, it
-#       will not be eligible for DPDK tests.
+# Logic: For SRIOV, MACVLAN, and DPDK, interfaces must also be up (cable is good, not lab interface) and have no IP addresses assigned (in-used).
+#       if a NIC has SRIOV VFs (owned and configured by something else), or being unknown NIC type, it
+#       will not be eligible for DPDK tests. 
 #
 # Limitations: 
-#	1. Recognize only XXV710, E810, Cx5 and Cx6 NIC at this moment. For others, it is Just a matter of verifying them.
+#	1. Recognize only XXV710,X710,E810,Cx5 and Cx6 NIC at this moment. For others, it is Just a matter of verifying them.
 #
 
 set -e  # Exit on error
@@ -164,13 +165,55 @@ dpdk_acceptable() {
     local model=$1
     
     case "$model" in
-        CX7|CX8|CX6|E810|E820|XXV710)
+        CX7|CX8|CX6|E810|E820|XXV710|X710)
             return 0  # true
             ;;
         *)
             return 1  # false
             ;;
     esac
+}
+
+# Check if interface is up and has no IP addresses
+interface_ready() {
+    local node_ip=$1
+    local nic=$2
+    
+    # Check if interface is up - down interface could be the original lab interface that was disabled by jetlag, or cable-cut
+    local interface_state=$(do_ssh $DEST "ssh $SSH_OPTS core@$node_ip" "cat /sys/class/net/$nic/operstate 2>/dev/null || echo 'unknown'")
+    if [[ "$interface_state" != "up" ]]; then
+        return 1
+    fi
+    
+    # Check if interface has any IP addresses assigned - With IP means someone is using it for some purpose.
+    local ip_addresses=$(do_ssh $DEST "ssh $SSH_OPTS core@$node_ip" "ip addr show $nic | grep -E 'inet[46]?' | grep -v 'scope link' || true")
+    if [[ -n "$ip_addresses" ]]; then
+        return 1
+    fi
+    
+    return 0
+}
+
+# Get interface status for display
+get_interface_status() {
+    local node_ip=$1
+    local nic=$2
+    
+    # Check if interface is up
+    local interface_state=$(do_ssh $DEST "ssh $SSH_OPTS core@$node_ip" "cat /sys/class/net/$nic/operstate 2>/dev/null || echo 'unknown'")
+    if [[ "$interface_state" != "up" ]]; then
+        echo "down"
+        return
+    fi
+    
+    # Check if interface has any IP addresses assigned
+    local ip_addresses=$(do_ssh $DEST "ssh $SSH_OPTS core@$node_ip" "ip addr show $nic | grep -E 'inet[46]?' | grep -v 'scope link' || true")
+    if [[ -n "$ip_addresses" ]]; then
+        echo "inused"
+        return
+    fi
+    
+    echo "ready"
 }
 
 macvlan_mtu_check() {
@@ -252,6 +295,8 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                     # Check model based on lspci output
                     if echo "$lspci_info" | grep -q -i "XXV710"; then
                         model="XXV710"
+                    elif echo "$lspci_info" | grep -q -i "X710"; then
+                        model="X710"
                     elif echo "$lspci_info" | grep -q -i "E810"; then
                         model="E810"
                     elif echo "$lspci_info" | grep -q -i "ConnectX-5"; then
@@ -279,28 +324,32 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                     nic_has_sriov[$nic]="yes"
                 fi
                 # get mtu
-                local nic_mtu[$nic]=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "cat /sys/class/net/$nic/mtu")
+                nic_mtu[$nic]=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "cat /sys/class/net/$nic/mtu")
                 
                 DPRINT $LINENO "NIC $nic - driver: $driver, model: $model, SRIOV configured: ${nic_has_sriov[$nic]}  MTU  ${nic_mtu[$nic]}"
             done
 
 			# Print header
-			printf "%-12s %-14s %-14s %-8s\n" "NIC" "Model" "SRIOV exists"   "MTU"
-			printf "%-12s %-14s %-14s %-8s\n" "------------" "--------------" "------------"  "----------"
+			printf "%-12s %-14s %-14s %-8s %-8s\n" "NIC" "Model" "SRIOV exists"   "MTU" "Status"
+			printf "%-12s %-14s %-14s %-8s %-8s\n" "------------" "--------------" "------------"  "----------" "--------"
 			# Print each NIC's info
             for nic in $available_nics; do
                 if [ "$nic" == "${OVN_INTERFACE}" ] ; then
-                   printf "%-12s %-14s %-14s %-8s\n" \
+                   printf "%-12s %-14s %-14s %-8s %-8s\n" \
                     "$nic" \
                     "${nic_models[$nic]:-UNKNOWN}" \
                     "OVN main" \
-                    "${nic_mtu[$nic]}" 
+                    "${nic_mtu[$nic]}" \
+                    "N/A"
                 else
-                  printf "%-12s %-14s %-14s %-8s\n" \
+                  # Check status only when displaying
+                  local status=$(get_interface_status "$WORKER_IP" "$nic")
+                  printf "%-12s %-14s %-14s %-8s %-8s\n" \
                     "$nic" \
                     "${nic_models[$nic]:-UNKNOWN}" \
                     "${nic_has_sriov[$nic]:-UNKNOWN}" \
-                    "${nic_mtu[$nic]}" 
+                    "${nic_mtu[$nic]}" \
+                    "$status"
                 fi
             done
 
@@ -310,18 +359,18 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
             if [ !  -z "$REG_SRIOV_NIC" ]; then
                 # user-defined REG_SRIOV_NIC, checkit and WARN but let it continue. The user knows more than us.
                 DPRINT $LINENO "check user-defined REG_SRIOV_NIC=$REG_SRIOV_NIC"
-                if ! dpdk_acceptable "${nic_models[$REG_SRIOV_NIC]}" || [[ "${nic_has_sriov[$REG_SRIOV_NIC]}" == "yes" ]]; then
-                    DPRINT $LINENO "WARN REG_SRIOV_NIC=$REG_SRIOV_NIC is not acceptable model or has SRIOV configured"
+                if ! dpdk_acceptable "${nic_models[$REG_SRIOV_NIC]}" || [[ "${nic_has_sriov[$REG_SRIOV_NIC]}" == "yes" ]] || ! interface_ready "$WORKER_IP" "$REG_SRIOV_NIC"; then
+                    DPRINT $LINENO "WARN REG_SRIOV_NIC=$REG_SRIOV_NIC is not acceptable model, has SRIOV configured, or interface not ready"
                 else
                     DPRINT $LINENO "$REG_SRIOV_NIC is suitable for SRIOV"
                     sriov_nic=$REG_SRIOV_NIC
                     sriov_model=${nic_models[$REG_SRIOV_NIC]}
                 fi
             else
-                # Not defined. Find a suitable SRIOV NIC (first one without SRIOV configured)
+                # Not defined. Find a suitable SRIOV NIC (first one without SRIOV configured and interface ready)
                 for nic in $available_nics; do
                     [[ "$nic"  == "${OVN_INTERFACE}" ]] && continue
-                    if dpdk_acceptable "${nic_models[$nic]}" && [[ "${nic_has_sriov[$nic]}" == "no" ]]; then
+                    if dpdk_acceptable "${nic_models[$nic]}" && [[ "${nic_has_sriov[$nic]}" == "no" ]] && interface_ready "$WORKER_IP" "$nic"; then
                         sriov_nic=$nic
                         sriov_model=${nic_models[$nic]}
                         INFO $LINENO "Found suitable SRIOV NIC: $sriov_nic ($sriov_model)"
@@ -398,7 +447,7 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                     [[ "$nic"  == "${OVN_INTERFACE}" ]] && continue
                     local model=${nic_models[$nic]}
                     DPRINT $LINENO "For DPDK, examine $nic of model ${model} has SRIOV ${nic_has_sriov[$nic]}"
-                    if dpdk_acceptable "$model" && [[ "${nic_has_sriov[$nic]}" == "no" ]]; then
+                    if dpdk_acceptable "$model" && [[ "${nic_has_sriov[$nic]}" == "no" ]] && interface_ready "$WORKER_IP" "$nic"; then
                         # Increment count for this model
                         if [ -z "${model_count[$model]}" ]; then
                             model_count[$model]=1
@@ -407,10 +456,10 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                         else
                             model_count[$model]=$((${model_count[$model]} + 1))
                             model_nics[$model]="${model_nics[$model]} $nic"
-                            DPRINT $LINENO "For DPFK, found $nic ${model_count[$model]} NICs of model $model"
+                            DPRINT $LINENO "For DPDK, found $nic ${model_count[$model]} NICs of model $model"
                         fi
                     else 
-                        DPRINT $LINENO "For DPDK, skip $nic of model ${model_nics[$model]} "
+                        DPRINT $LINENO "For DPDK, skip $nic of model ${model}"
                     fi
                 done
                 
@@ -561,4 +610,3 @@ update_config_var "REM_DPDK_CONFIG" "false" "$LAB_CONFIG"
 DPRINT $LINENO "Updated $LAB_CONFIG successfully. Backup saved as ${LAB_CONFIG}.bak"
 
 #EOF
-

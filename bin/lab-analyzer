@@ -368,7 +368,7 @@ echo $LINENO first_worker=$first_worker >&2
 
 # Setup auth key to ssh core@<ip>
 if [[ -e "${core_auth_script_path}" ]]; then
-  do_ssh $REG_KNI_USER@$REG_OCPHOST "cd $reg_dir && bash bin/core-auth-key.sh ${first_worker} ~/.ssh/id_rsa.pub >&2"
+  do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && bash $reg_dir/bin/core-auth-key.sh ${first_worker} ~/.ssh/id_rsa.pub >&2"
 else
   echo $LINENO "$core_auth_script_path not found "
   exit 1
