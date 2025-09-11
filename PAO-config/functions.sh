@@ -2,10 +2,9 @@
 
 source $REG_ROOT/common/mcp_support.sh
 
-export SNO=${SNO:-false}
-
-DRY=false
+#DRY=true
 DRY=${DRY:-false}
+
 
 DEBUG=true  # set to true to print debug
 RUN_CMD() {
@@ -82,10 +81,19 @@ resume_mcp () {
 
 # return True if either worker or my mcp is still updating.
 get_mcp_progress_status () {
-    
-    if [[ "${SNO}" == "true" ]]; then
-       local status=$(oc get mcp master -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')
-       echo ${status}
+    if [[ "${MCP}" == "master" ]]; then
+        # SNO - Handle API unavailable during reboot
+        if ! oc get mcp master &>/dev/null; then
+            echo "True"
+            return
+        fi
+
+        local status=$(oc get mcp master -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status' 2>/dev/null)
+        if [[ "$status" == "True" ]]; then
+            echo "False"
+        else
+            echo "True"
+        fi
     else
        local my_mcp_status=True
        local worker_status=$(oc get mcp worker -o json | jq -r '.status.conditions[] | select(.type == "Updated") | .status')

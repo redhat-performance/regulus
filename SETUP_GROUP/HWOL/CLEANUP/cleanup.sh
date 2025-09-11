@@ -2,7 +2,7 @@
 
 source ${REG_ROOT}/lab.config
 
-if ! ssh $REG_KNI_USER@$REG_OCPHOST "kubectl get node  &>/dev/null"; then
+if ! ssh $REG_KNI_USER@$REG_OCPHOST "source $REG_DIR/lab.config && kubectl get node  &>/dev/null"; then
     echo "ERROR: check testbed"
     exit 1
 fi
