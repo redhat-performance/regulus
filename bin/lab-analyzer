@@ -307,7 +307,37 @@ function create_mirror_repo_on_bastion {
     #fi
 }
 
-# continue
+# Function to combine two host strings into a unique array
+# Arguments: string1 string2
+# Output: global array BM_HOST_ARR
+# Notes: string can be both comma separated or space separated tokens
+combine_hosts() {
+    local str1="$1"
+    local str2="$2"
+
+    # Replace commas with spaces
+    str1="${str1//,/ }"
+    str2="${str2//,/ }"
+
+    # Read into temporary arrays
+    read -ra arr1 <<< "$str1"
+    read -ra arr2 <<< "$str2"
+
+    # Combine arrays
+    local combined=("${arr1[@]}" "${arr2[@]}")
+
+    # Remove duplicates using associative array
+    declare -g -A uniq
+    BM_HOST_ARR=()
+    for host in "${combined[@]}"; do
+        if [[ -n "$host" && -z "${uniq[$host]}" ]]; then
+            BM_HOST_ARR+=("$host")
+            uniq[$host]=1
+        fi
+    done
+}
+
+# We are running on the Crucible controller. If the bastion is a different host, mirror Regulus repo onto it.
 #if [ "$(hostname)" != "$REG_OCPHOST" ] ; then
 if ! hostids_match "$(hostname)" "$REG_OCPHOST" ; then
     echo "$0 is NOT on the bastion ... mirror check lab.config match" >&2
@@ -322,7 +352,9 @@ else
     echo "$0 is running on the bastion ... skip lab.config match check" >&2
 fi
 
-read -a BM_HOST_ARR <<< "$BM_HOSTS"
+# Mirror Regulus repo on BM_HOSTS and TREX_HOSTS too.
+combine_hosts "$BM_HOSTS" "$TREX_HOSTS"
+echo "BM_HOST_ARR = ${BM_HOST_ARR[@]}"
 
 for host in "${BM_HOST_ARR[@]}"; do
     #if [ "$(hostname)" != "$host" ] ; then
