@@ -370,11 +370,8 @@ ARGS=" --tags $tags \
         --max-sample-failures=$max_failures \
         $endpoint_opt "
 
-    if [ -z "$ONEJSON" ]; then
-        time crucible run uperf $ARGS
-    else
-        reg-c2j-config.py --name uperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
-        time crucible run --from-file all-in-one.json
-    fi
+# OBSOLETE CLI: time crucible run uperf $ARGS
+reg-c2j-config.py --name uperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
+time crucible run --from-file all-in-one.json
 
 done
