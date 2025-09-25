@@ -354,7 +354,6 @@ fi
 
 # Mirror Regulus repo on BM_HOSTS and TREX_HOSTS too.
 combine_hosts "$BM_HOSTS" "$TREX_HOSTS"
-echo "BM_HOST_ARR = ${BM_HOST_ARR[@]}"
 
 for host in "${BM_HOST_ARR[@]}"; do
     #if [ "$(hostname)" != "$host" ] ; then
