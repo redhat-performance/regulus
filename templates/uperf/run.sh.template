@@ -338,12 +338,12 @@ for num_pods in $scale_up_factor; do
             multi_rm_hosts "server"
             # func sourced from remotehost_functions
         else
-            endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,server:1-$num_servers,userenv:$userenv "
+            endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,server:1-$num_servers,userenv:$userenv "
         fi
     elif [ "$topo" == "interhost" ]; then
         # TODO: make work for $scale_out_factor > 1
-        endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
-        endpoint_opt+=" --endpoint remotehost,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
+        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
+        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
     fi
 
     tags="sdn:$network_type,mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv,osruntime:$osruntime"
