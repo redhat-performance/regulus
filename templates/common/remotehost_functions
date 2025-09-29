@@ -78,9 +78,9 @@ function multi_rm_hosts() {
         if [ ${buckets[$i]} -ne 0 ]; then
             end=$((begin + buckets[$i] - 1))
             if [ "${dir}" == "client" ]; then
-                endpoint_opt+=" --endpoint remotehost,user:root,host:${BMLHOSTS[$i]},client:$begin-$end,userenv:$userenv "
+                endpoint_opt+=" --endpoint remotehosts,user:root,host:${BMLHOSTS[$i]},client:$begin-$end,userenv:$userenv "
             else
-                endpoint_opt+=" --endpoint remotehost,user:root,host:${BMLHOSTS[$i]},server:$begin-$end,userenv:$userenv "
+                endpoint_opt+=" --endpoint remotehosts,user:root,host:${BMLHOSTS[$i]},server:$begin-$end,userenv:$userenv "
             fi
             begin=$((begin + buckets[$i]))
         fi
