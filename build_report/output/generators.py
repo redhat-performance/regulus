@@ -645,6 +645,10 @@ class HtmlOutputGenerator:
                                 metric['test_type'] = "bitrate-range"
                         elif protocol:
                             metric['test_type'] = protocol
+
+                        length = self._get_param_value('length', unique_params, file_common_params)
+                        if length:
+                            metric['wsize'] = length
                     
                     nthreads = self._get_param_value('nthreads', unique_params, file_common_params)
                     if nthreads:
@@ -677,8 +681,8 @@ class HtmlOutputGenerator:
                                 else:
                                     metric['mean'] = str(mean)
                             
-                            if 'type' in primary_result:
-                                metric['metric_type'] = primary_result['type']
+                            #if 'type' in primary_result:
+                            #    metric['metric_type'] = primary_result['type']
                             
                             if 'unit' in primary_result:
                                 metric['unit'] = primary_result['unit']
@@ -704,10 +708,21 @@ class HtmlOutputGenerator:
         all_keys = set()
         for metric in metrics:
             all_keys.update(metric.keys())
-        
+
         # Remove status and file from main columns (they'll be handled specially)
-        columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']])
-        
+        #columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']])
+        column_order = ['config', 'test_type', 'threads', 'wsize', 'rsize', 'samples', 'mean', 'unit', 'stddev%', 'iteration']
+
+        # Sort with custom order
+        def custom_sort(col):
+            try:
+                return column_order.index(col)
+            except ValueError:
+                return 999  # Put unknown columns at end
+
+        columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']], 
+                 key=custom_sort)
+
         table = """
         <div class="metrics-table-container">
             <table class="metrics-table">
@@ -868,6 +883,10 @@ class HtmlOutputGenerator:
                                 config_parts.append("type=bitrate-range")
                         elif protocol:
                             config_parts.append(f"type={protocol}")
+
+                        length = self._get_param_value('length', unique_params, file_common_params)
+                        if length:
+                            config_parts.append(f"wsize={length}")
                     
                     nthreads = self._get_param_value('nthreads', unique_params, file_common_params)
                     if nthreads:
@@ -1103,15 +1122,18 @@ class HtmlOutputGenerator:
         
         .metrics-table-container {
             overflow-x: auto;
+            overflow-y: visible;
             margin-bottom: 20px;
+            width: 100%;
         }
         
         .metrics-table, .results-table {
-            width: 100%;
+            width: max-content;
+            min-width: 100%;
             border-collapse: collapse;
             background: white;
             border-radius: 8px;
-            overflow: hidden;
+            overflow: visible;
         }
         
         .metrics-table th, .results-table th {
