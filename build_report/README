@@ -1,0 +1,72 @@
+
+Usage:
+    $ find /home/hnhan/this-run/REPORT/ -name "__pycache__" -exec rm -rf {} +
+    $ python3.9 /home/hnhan/this-run/reg-report.py --formats html  --output nvd_report  --root /home/hnhan/nvd-44-regulus/
+
+
+# Multi-File Structure Implementation Guide
+## 📁 Directory Structure
+
+```
+build_report/
+├── __init__.py
+├── main.py
+├── models/
+│   ├── __init__.py
+│   └── data_models.py
+├── interfaces/
+│   ├── __init__.py
+│   └── protocols.py
+├── schema/
+│   ├── __init__.py
+│   ├── schema_manager.py
+│   └── versions/
+│       ├── __init__.py
+│       ├── v1_0.py
+│       ├── v1_1.py
+│       └── v2_0.py
+├── discovery/
+│   ├── __init__.py
+│   └── file_discovery.py
+├── parsing/
+│   ├── __init__.py
+│   └── content_parser.py
+├── rules/
+│   ├── __init__.py
+│   └── rule_engine.py
+├── extraction/
+│   ├── __init__.py
+│   └── data_extractor.py
+├── transformation/
+│   ├── __init__.py
+│   └── data_transformer.py
+├── output/
+│   ├── __init__.py
+│   └── generators.py
+└── orchestration/
+    ├── __init__.py
+    └── orchestrator.py
+```
+
+## 🚀 Implementation Order
+
+1. **Create base directories and `__init__.py` files**
+2. **Extract core models and interfaces**
+3. **Break out each module**
+4. **Create main entry point**
+5. **Update imports and test**
+
+## 📦 Import Strategy
+
+Each module will have clean imports:
+- Models and interfaces from their dedicated packages
+- No circular dependencies
+- Clear dependency hierarchy
+
+## 🎯 Benefits
+
+- **Independent Development**: Each module can be enhanced without affecting others
+- **Easy Testing**: Test individual modules in isolation
+- **Plugin Architecture**: Easy to add new benchmark rules, output formats, etc.
+- **Version Control**: Multiple developers can work on different modules
+- **Maintenance**: Find and fix issues in specific modules quickly
