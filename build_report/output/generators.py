@@ -626,12 +626,33 @@ class HtmlOutputGenerator:
                     # Add test configuration - use helper for ALL params
                     protocol = self._get_param_value('protocol', unique_params, file_common_params)
                     
+                    # Handle iperf benchmark specially
+                    if benchmark == 'iperf3' or benchmark == 'iperf':
+                        # For iperf, check for max-loss-pct or bitrate-range as the "test type"
+                        max_loss_pct = self._get_param_value('max-loss-pct', unique_params, file_common_params)
+                        bitrate_range = self._get_param_value('bitrate-range', unique_params, file_common_params)
+                        
+                        if max_loss_pct is not None:
+                            if protocol:
+                                metric['test_type'] = f"{protocol}, max-loss-pct={max_loss_pct}"
+                            else:
+                                metric['test_type'] = f"max-loss-pct={max_loss_pct}"
+                        elif bitrate_range:
+                            # Don't show the actual list, just use it as test type indicator
+                            if protocol:
+                                metric['test_type'] = f"{protocol}, bitrate-range"
+                            else:
+                                metric['test_type'] = "bitrate-range"
+                        elif protocol:
+                            metric['test_type'] = protocol
+                    
                     nthreads = self._get_param_value('nthreads', unique_params, file_common_params)
                     if nthreads:
                         metric['threads'] = nthreads
                     
                     test_type = self._get_param_value('test-type', unique_params, file_common_params)
                     if test_type:
+                        # Combine protocol with test-type if protocol exists (for uperf)
                         if protocol:
                             metric['test_type'] = f"{protocol}, {test_type}"
                         else:
@@ -824,10 +845,29 @@ class HtmlOutputGenerator:
                             <!-- rest of columns -->
                         </tr>
                     """)        
+#
                     # Format test configuration - use helper for ALL params
                     config_parts = []
                     
                     protocol = self._get_param_value('protocol', unique_params, file_common_params)
+                    
+                    # Handle iperf benchmark specially
+                    if result.benchmark == 'iperf3' or result.benchmark == 'iperf':
+                        max_loss_pct = self._get_param_value('max-loss-pct', unique_params, file_common_params)
+                        bitrate_range = self._get_param_value('bitrate-range', unique_params, file_common_params)
+                        
+                        if max_loss_pct is not None:
+                            if protocol:
+                                config_parts.append(f"type={protocol}, max-loss-pct={max_loss_pct}")
+                            else:
+                                config_parts.append(f"type=max-loss-pct={max_loss_pct}")
+                        elif bitrate_range:
+                            if protocol:
+                                config_parts.append(f"type={protocol}, bitrate-range")
+                            else:
+                                config_parts.append("type=bitrate-range")
+                        elif protocol:
+                            config_parts.append(f"type={protocol}")
                     
                     nthreads = self._get_param_value('nthreads', unique_params, file_common_params)
                     if nthreads:
