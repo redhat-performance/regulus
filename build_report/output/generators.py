@@ -394,11 +394,15 @@ class HtmlOutputGenerator:
     def __init__(self, template_style: str = "bootstrap", include_charts: bool = True):
         self.template_style = template_style
         self.include_charts = include_charts
+<<<<<<< HEAD
 
     def _get_param_value(self, param_name: str, unique_params: dict, common_params: dict):
         """Get parameter value: check unique_params first, then fall back to common_params."""
         return unique_params.get(param_name) or common_params.get(param_name)    
 
+=======
+    
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
     def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
         """Generate HTML output file."""
         try:
@@ -461,6 +465,7 @@ class HtmlOutputGenerator:
         # Calculate file size stats
         file_sizes = [r.data.get('file_size', 0) for r in results]
         avg_file_size = sum(file_sizes) / len(file_sizes) if file_sizes else 0
+<<<<<<< HEAD
 
         # Extract kernel and rcos from tags (NEW)
         kernels = set()
@@ -471,6 +476,9 @@ class HtmlOutputGenerator:
                 kernels.add(key_tags['kernel'])
             if 'rcos' in key_tags:
                 rcos_versions.add(key_tags['rcos'])
+=======
+        
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
         return {
             'total_files': total_files,
             'total_iterations': total_iterations,
@@ -480,8 +488,11 @@ class HtmlOutputGenerator:
             'benchmarks': benchmarks,
             'benchmark_count': len(benchmarks),
             'avg_file_size': avg_file_size,
+<<<<<<< HEAD
             'kernel': ', '.join(sorted(kernels)) if kernels else 'Unknown',
             'rcos': ', '.join(sorted(rcos_versions)) if rcos_versions else 'Unknown',
+=======
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
             'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
     
@@ -501,7 +512,10 @@ class HtmlOutputGenerator:
         <header class="header">
             <h1><i class="icon">📊</i> Regulus/Crucible Performance Report Summary</h1>
             <p class="subtitle">Generated on {stats['timestamp']}</p>
+<<<<<<< HEAD
             <p class="subtitle">Kernel: {stats['kernel']} | RCOS: {stats['rcos']}</p>
+=======
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
         </header>
         """
     
@@ -595,8 +609,11 @@ class HtmlOutputGenerator:
         for result in results:
             data = result.data
             file_name = Path(result.file_path).name
+<<<<<<< HEAD
             # Get common_params from file level
             file_common_params = data.get('common_params', {})
+=======
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
             file_path = result.file_path
             status = result.processing_metadata.get('status', 'unknown')
             
@@ -626,6 +643,7 @@ class HtmlOutputGenerator:
                         'iteration': iteration_id[:8] + '...',
                     }
                     
+<<<<<<< HEAD
                     # Add key tags in compact format (NEW)
                     key_tags = data.get('key_tags', {})
                     tag_parts = [
@@ -691,6 +709,18 @@ class HtmlOutputGenerator:
                     if rsize:
                         metric['rsize'] = rsize
 
+=======
+                    # Add test configuration
+                    if 'nthreads' in unique_params:
+                        metric['threads'] = unique_params['nthreads']
+                    if 'test-type' in unique_params:
+                        metric['test_type'] = unique_params['test-type']
+                    if 'wsize' in unique_params:
+                        metric['wsize'] = unique_params['wsize']
+                    if 'rsize' in unique_params:
+                        metric['rsize'] = unique_params['rsize']
+                    
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
                     # Extract result metrics from first/primary result
                     if iteration_results and isinstance(iteration_results, list) and len(iteration_results) > 0:
                         primary_result = iteration_results[0]  # Take first result
@@ -702,8 +732,13 @@ class HtmlOutputGenerator:
                                 else:
                                     metric['mean'] = str(mean)
                             
+<<<<<<< HEAD
                             #if 'type' in primary_result:
                             #    metric['metric_type'] = primary_result['type']
+=======
+                            if 'type' in primary_result:
+                                metric['metric_type'] = primary_result['type']
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
                             
                             if 'unit' in primary_result:
                                 metric['unit'] = primary_result['unit']
@@ -715,6 +750,7 @@ class HtmlOutputGenerator:
                                 stddev = primary_result['stddevpct']
                                 if isinstance(stddev, (int, float)) and stddev > 0:
                                     metric['stddev%'] = f"{stddev:.2f}%"
+<<<<<<< HEAD
 
                             if 'busyCPU' in primary_result:
                                 cpu = primary_result['busyCPU']
@@ -722,6 +758,8 @@ class HtmlOutputGenerator:
                                     metric['busyCPU'] = f"{cpu:.2f}"
                                 else:
                                     metric['busyCPU'] = str(cpu)
+=======
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
                     
                     metrics.append(metric)
         
@@ -736,6 +774,7 @@ class HtmlOutputGenerator:
         all_keys = set()
         for metric in metrics:
             all_keys.update(metric.keys())
+<<<<<<< HEAD
 
         # Remove status and file from main columns (they'll be handled specially)
         #columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']])
@@ -751,6 +790,12 @@ class HtmlOutputGenerator:
         columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']], 
                  key=custom_sort)
 
+=======
+        
+        # Remove status and file from main columns (they'll be handled specially)
+        columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']])
+        
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
         table = """
         <div class="metrics-table-container">
             <table class="metrics-table">
@@ -830,7 +875,10 @@ class HtmlOutputGenerator:
                     <thead>
                         <tr>
                             <th>File</th>
+<<<<<<< HEAD
                             <th>Config</th>
+=======
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
                             <th>Iteration ID</th>
                             <th>Test Config</th>
                             <th>Benchmark</th>
@@ -849,14 +897,22 @@ class HtmlOutputGenerator:
     def _generate_results_rows(self, results: List[ProcessedResult]) -> str:
         """Generate table rows - ONE ROW PER ITERATION (not per file)."""
         rows = []
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
         for result in results:
             status = result.processing_metadata.get('status', 'unknown')
             status_class = f"status-{status}"
             file_name = Path(result.file_path).name
+<<<<<<< HEAD
             # Get common_params from file level
             file_common_params = result.data.get('common_params', {})
 
+=======
+            
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
             # Get iterations from the data
             iterations = result.data.get('iterations', [])
             
@@ -878,6 +934,7 @@ class HtmlOutputGenerator:
                     unique_params = iteration.get('unique_params', {})
                     iteration_results = iteration.get('results', [])
                     
+<<<<<<< HEAD
                     key_tags = result.data.get('key_tags', {})
                     config_str = f"{key_tags.get('pods-per-worker', '?')},{key_tags.get('scale_out_factor', '?')},{key_tags.get('topo', '?')}"
                     rows.append(f"""
@@ -935,6 +992,19 @@ class HtmlOutputGenerator:
                     if rsize:
                         config_parts.append(f"rsize={rsize}")
 
+=======
+                    # Format test configuration
+                    config_parts = []
+                    if 'nthreads' in unique_params:
+                        config_parts.append(f"threads={unique_params['nthreads']}")
+                    if 'test-type' in unique_params:
+                        config_parts.append(f"type={unique_params['test-type']}")
+                    if 'wsize' in unique_params:
+                        config_parts.append(f"wsize={unique_params['wsize']}")
+                    if 'rsize' in unique_params:
+                        config_parts.append(f"rsize={unique_params['rsize']}")
+                    
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
                     config_str = ", ".join(config_parts) if config_parts else "default"
                     
                     # Format result data - show all results
@@ -1150,6 +1220,7 @@ class HtmlOutputGenerator:
         
         .metrics-table-container {
             overflow-x: auto;
+<<<<<<< HEAD
             overflow-y: visible;
             margin-bottom: 20px;
             width: 100%;
@@ -1162,6 +1233,17 @@ class HtmlOutputGenerator:
             background: white;
             border-radius: 8px;
             overflow: visible;
+=======
+            margin-bottom: 20px;
+        }
+        
+        .metrics-table, .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
         }
         
         .metrics-table th, .results-table th {

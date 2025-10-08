@@ -41,7 +41,10 @@ class StandardDataTransformer:
             "benchmark": extracted_data.benchmark,
             "run_id": extracted_data.run_id,
             "common_params": extracted_data.common_params,
+<<<<<<< HEAD
             "key_tags": extracted_data.extraction_metadata.get('key_tags', {}),
+=======
+>>>>>>> c6aaf49 (uperf,iperf,mbench working)
             "file_size": extracted_data.file_info.size,
             "file_modified": extracted_data.file_info.modified_time,
             "total_iterations": len(extracted_data.iterations),
