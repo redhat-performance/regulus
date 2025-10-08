@@ -31,6 +31,7 @@ class RegexDataExtractor:
         run_id = self._extract_run_id(content)
         common_params = self._extract_common_params(content)
         tags = self._extract_tags(content)
+        key_tags = self._extract_key_tags(tags)
         
         # Extract all iterations
         iterations = self._extract_iterations(content, benchmark)
@@ -41,7 +42,8 @@ class RegexDataExtractor:
             'iterations_found': len(iterations),
             'total_samples': sum(len(it.samples) for it in iterations),
             'benchmark_detected': benchmark,
-            'tags': tags
+            'tags': tags,
+             'key_tags': key_tags
         }
         
         if self.enable_timing:
@@ -347,6 +349,18 @@ class RegexDataExtractor:
             results=results
         )
 
+    def _extract_key_tags(self, tags_str: str) -> Dict[str, str]:
+        """Extract key tags: pods-per-worker, scale_out_factor, topo."""
+        key_tags = {}
+    
+        # Parse tags string
+        for tag in tags_str.split():
+            if '=' in tag:
+                key, value = tag.split('=', 1)
+                if key in ['pods-per-worker', 'scale_out_factor', 'topo']:
+                    key_tags[key] = value
+    
+        return key_tags
 
 class MultiPassDataExtractor:
     """Data extractor that performs multiple passes for complex extractions."""

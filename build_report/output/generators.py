@@ -608,6 +608,15 @@ class HtmlOutputGenerator:
                         'iteration': iteration_id[:8] + '...',
                     }
                     
+                    # Add key tags in compact format (NEW)
+                    key_tags = data.get('key_tags', {})
+                    tag_parts = [
+                        key_tags.get('pods-per-worker', '?'),
+                        key_tags.get('scale_out_factor', '?'),
+                        key_tags.get('topo', '?')
+                    ]
+                    metric['config'] = ','.join(tag_parts)
+
                     # Add test configuration
                     if 'nthreads' in unique_params:
                         metric['threads'] = unique_params['nthreads']
@@ -739,6 +748,7 @@ class HtmlOutputGenerator:
                     <thead>
                         <tr>
                             <th>File</th>
+                            <th>Config</th>
                             <th>Iteration ID</th>
                             <th>Test Config</th>
                             <th>Benchmark</th>
@@ -757,12 +767,12 @@ class HtmlOutputGenerator:
     def _generate_results_rows(self, results: List[ProcessedResult]) -> str:
         """Generate table rows - ONE ROW PER ITERATION (not per file)."""
         rows = []
-        
+
         for result in results:
             status = result.processing_metadata.get('status', 'unknown')
             status_class = f"status-{status}"
             file_name = Path(result.file_path).name
-            
+
             # Get iterations from the data
             iterations = result.data.get('iterations', [])
             
@@ -784,6 +794,16 @@ class HtmlOutputGenerator:
                     unique_params = iteration.get('unique_params', {})
                     iteration_results = iteration.get('results', [])
                     
+                    key_tags = result.data.get('key_tags', {})
+                    config_str = f"{key_tags.get('pods-per-worker', '?')},{key_tags.get('scale_out_factor', '?')},{key_tags.get('topo', '?')}"
+                    rows.append(f"""
+                        <tr>
+                            <td class="file-name"><a href="{result.file_path}" target="_blank">{file_name}</a></td>
+                            <td style="font-size: 0.85rem;">{config_str}</td>  <!-- NEW -->
+                            <td><code style="font-size: 0.75rem;">{iteration_id[:8]}...</code></td>
+                            <!-- rest of columns -->
+                        </tr>
+                    """)        
                     # Format test configuration
                     config_parts = []
                     if 'nthreads' in unique_params:
