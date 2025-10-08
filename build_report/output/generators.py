@@ -1,0 +1,1252 @@
+"""
+Output generation implementations. V24
+
+Handles creating various output formats for the processed results.
+Now with full support for multiple iterations and multiple results per iteration.
+"""
+
+import json
+import csv
+import xml.etree.ElementTree as ET
+from typing import Dict, List, Any, Optional
+from pathlib import Path
+import datetime
+
+from ..interfaces.protocols import OutputGeneratorInterface
+from ..models.data_models import ProcessedResult, SchemaInfo
+from ..schema.schema_manager import SchemaManager
+
+
+class JsonOutputGenerator:
+    """JSON output generator."""
+    
+    def __init__(self, indent: int = 2, ensure_ascii: bool = False):
+        self.indent = indent
+        self.ensure_ascii = ensure_ascii
+    
+    def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
+        """Generate JSON output file."""
+        summary = self._build_summary_structure(results)
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(summary, f, indent=self.indent, ensure_ascii=self.ensure_ascii)
+            print(f"JSON output generated: {output_path}")
+        except Exception as e:
+            print(f"Error generating JSON output: {e}")
+    
+    def _build_summary_structure(self, results: List[ProcessedResult]) -> Dict[str, Any]:
+        """Build the summary data structure."""
+        return {
+            "generation_info": {
+                "total_results": len(results),
+                "timestamp": datetime.datetime.now().isoformat(),
+                "benchmarks": list(set(r.benchmark for r in results))
+            },
+            "results": [r.data for r in results],
+            "summary_by_benchmark": self._create_benchmark_summary(results),
+            "processing_metadata": [r.processing_metadata for r in results]
+        }
+    
+    def _create_benchmark_summary(self, results: List[ProcessedResult]) -> Dict[str, Any]:
+        """Create summary grouped by benchmark."""
+        summary = {}
+        for result in results:
+            benchmark = result.benchmark
+            if benchmark not in summary:
+                summary[benchmark] = {"count": 0, "files": []}
+            summary[benchmark]["count"] += 1
+            summary[benchmark]["files"].append(result.file_path)
+        return summary
+
+
+class SchemaAwareOutputGenerator(JsonOutputGenerator):
+    """Output generator with schema awareness and validation."""
+    
+    def __init__(self, schema_manager: SchemaManager, **kwargs):
+        super().__init__(**kwargs)
+        self.schema_manager = schema_manager
+        self.validate_output = True
+    
+    def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
+        """Generate schema-compliant output with validation."""
+        summary = self._build_schema_compliant_summary(results)
+        
+        # Validate against schema
+        if self.validate_output:
+            is_valid, error_msg = self.schema_manager.validate_report(summary)
+            if not is_valid:
+                print(f"Schema validation failed: {error_msg}")
+                summary["validation_report"] = {
+                    "schema_validation": False,
+                    "validation_errors": [error_msg] if error_msg else [],
+                    "validation_warnings": [],
+                    "data_quality_score": 0.0
+                }
+            else:
+                summary["validation_report"] = {
+                    "schema_validation": True,
+                    "validation_errors": [],
+                    "validation_warnings": [],
+                    "data_quality_score": 1.0
+                }
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(summary, f, indent=self.indent, ensure_ascii=self.ensure_ascii)
+            print(f"Schema-compliant output generated: {output_path}")
+            
+            # Also export the schema
+            schema_path = output_path.replace('.json', '_schema.json')
+            self.schema_manager.export_schema(schema_path)
+            
+        except Exception as e:
+            print(f"Error generating output: {e}")
+    
+    def _build_schema_compliant_summary(self, results: List[ProcessedResult]) -> Dict[str, Any]:
+        """Build summary structure compliant with current schema version."""
+        schema_info = self.schema_manager.get_schema_info()
+        successful_results = [r for r in results if r.processing_metadata.get('status') != 'failed']
+        failed_results = [r for r in results if r.processing_metadata.get('status') == 'failed']
+        
+        summary = {
+            "schema_info": schema_info.to_dict(),
+            "generation_info": {
+                "total_results": len(results),
+                "successful_results": len(successful_results),
+                "failed_results": len(failed_results),
+                "timestamp": datetime.datetime.now().isoformat(),
+                "benchmarks": list(set(r.benchmark for r in results)),
+                "processing_duration_seconds": 0.0
+            },
+            "benchmark_definitions": self._generate_benchmark_definitions(results),
+            "results": [self._enhance_result_data(r) for r in results],
+            "summary_by_benchmark": self._create_enhanced_benchmark_summary(results)
+        }
+        
+        return summary
+    
+    def _enhance_result_data(self, result: ProcessedResult) -> Dict[str, Any]:
+        """Enhance result data with schema-compliant structure."""
+        enhanced = result.data.copy()
+        enhanced.update({
+            "processing_status": result.processing_metadata.get('status', 'success'),
+            "file_metadata": {
+                "size_bytes": enhanced.get('file_size', 0),
+                "modified_timestamp": enhanced.get('file_modified', 0)
+            },
+            "extraction_metadata": {
+                "rules_applied": result.processing_metadata.get('extraction_metadata', {}).get('rules_applied', 0),
+                "fields_extracted": len(enhanced) - 4
+            }
+        })
+        return enhanced
+    
+    def _generate_benchmark_definitions(self, results: List[ProcessedResult]) -> Dict[str, Any]:
+        """Generate benchmark definitions based on observed data."""
+        definitions = {}
+        
+        benchmark_fields = {}
+        for result in results:
+            benchmark = result.benchmark
+            if benchmark not in benchmark_fields:
+                benchmark_fields[benchmark] = set()
+            benchmark_fields[benchmark].update(result.data.keys())
+        
+        for benchmark, fields in benchmark_fields.items():
+            definitions[benchmark] = {
+                "description": f"Auto-generated definition for {benchmark} benchmark",
+                "required_fields": ["file_path", "benchmark"],
+                "optional_fields": list(fields - {"file_path", "benchmark"}),
+                "result_format": "structured",
+                "validation_rules": []
+            }
+        
+        return definitions
+    
+    def _create_enhanced_benchmark_summary(self, results: List[ProcessedResult]) -> Dict[str, Any]:
+        """Create enhanced benchmark summary with success metrics."""
+        summary = {}
+        
+        for result in results:
+            benchmark = result.benchmark
+            if benchmark not in summary:
+                summary[benchmark] = {
+                    "count": 0,
+                    "successful_count": 0,
+                    "failed_count": 0,
+                    "files": [],
+                    "success_rate": 0.0
+                }
+            
+            summary[benchmark]["count"] += 1
+            summary[benchmark]["files"].append(result.file_path)
+            
+            status = result.processing_metadata.get('status', 'success')
+            if status == 'success':
+                summary[benchmark]["successful_count"] += 1
+            else:
+                summary[benchmark]["failed_count"] += 1
+        
+        # Calculate success rates
+        for benchmark_data in summary.values():
+            if benchmark_data["count"] > 0:
+                benchmark_data["success_rate"] = benchmark_data["successful_count"] / benchmark_data["count"]
+        
+        return summary
+
+
+class CsvOutputGenerator:
+    """CSV output generator for tabular data export."""
+    
+    def __init__(self, delimiter: str = ',', include_metadata: bool = False):
+        self.delimiter = delimiter
+        self.include_metadata = include_metadata
+    
+    def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
+        """Generate CSV output file."""
+        if not results:
+            print("No results to export to CSV")
+            return
+        
+        try:
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f, delimiter=self.delimiter)
+                
+                # Write header
+                headers = self._generate_headers(results)
+                writer.writerow(headers)
+                
+                # Write data rows
+                for result in results:
+                    row = self._result_to_row(result, headers)
+                    writer.writerow(row)
+            
+            print(f"CSV output generated: {output_path}")
+        except Exception as e:
+            print(f"Error generating CSV output: {e}")
+    
+    def _generate_headers(self, results: List[ProcessedResult]) -> List[str]:
+        """Generate CSV headers from all result fields."""
+        all_fields = set()
+        for result in results:
+            all_fields.update(result.data.keys())
+            if self.include_metadata:
+                all_fields.update(f"meta_{k}" for k in result.processing_metadata.keys())
+        
+        # Sort for consistent ordering
+        return sorted(list(all_fields))
+    
+    def _result_to_row(self, result: ProcessedResult, headers: List[str]) -> List[str]:
+        """Convert a result to a CSV row."""
+        row = []
+        for header in headers:
+            if header.startswith("meta_") and self.include_metadata:
+                meta_key = header[5:]  # Remove "meta_" prefix
+                value = result.processing_metadata.get(meta_key, '')
+            else:
+                value = result.data.get(header, '')
+            
+            # Handle complex values
+            if isinstance(value, (dict, list)):
+                value = json.dumps(value)
+            elif value is None:
+                value = ''
+            
+            row.append(str(value))
+        
+        return row
+
+
+class XmlOutputGenerator:
+    """XML output generator."""
+    
+    def __init__(self, root_element: str = "build_report", pretty_print: bool = True):
+        self.root_element = root_element
+        self.pretty_print = pretty_print
+    
+    def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
+        """Generate XML output file."""
+        try:
+            root = ET.Element(self.root_element)
+            
+            # Add metadata
+            metadata_elem = ET.SubElement(root, "metadata")
+            ET.SubElement(metadata_elem, "timestamp").text = datetime.datetime.now().isoformat()
+            ET.SubElement(metadata_elem, "total_results").text = str(len(results))
+            
+            # Add results
+            results_elem = ET.SubElement(root, "results")
+            for result in results:
+                self._add_result_to_xml(results_elem, result)
+            
+            # Write to file
+            tree = ET.ElementTree(root)
+            if self.pretty_print:
+                self._indent(root)
+            
+            tree.write(output_path, encoding='utf-8', xml_declaration=True)
+            print(f"XML output generated: {output_path}")
+            
+        except Exception as e:
+            print(f"Error generating XML output: {e}")
+    
+    def _add_result_to_xml(self, parent: ET.Element, result: ProcessedResult) -> None:
+        """Add a result to the XML structure."""
+        result_elem = ET.SubElement(parent, "result")
+        result_elem.set("benchmark", result.benchmark)
+        result_elem.set("file_path", result.file_path)
+        
+        for key, value in result.data.items():
+            if key in ["benchmark", "file_path"]:
+                continue  # Already added as attributes
+            
+            elem = ET.SubElement(result_elem, key)
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    sub_elem = ET.SubElement(elem, sub_key)
+                    sub_elem.text = str(sub_value)
+            elif isinstance(value, list):
+                for item in value:
+                    item_elem = ET.SubElement(elem, "item")
+                    item_elem.text = str(item)
+            else:
+                elem.text = str(value)
+    
+    def _indent(self, elem: ET.Element, level: int = 0) -> None:
+        """Add indentation for pretty printing."""
+        indent = "\n" + level * "  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = indent + "  "
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = indent
+            for elem in elem:
+                self._indent(elem, level + 1)
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = indent
+        else:
+            if level and (not elem.tail or not elem.tail.strip()):
+                elem.tail = indent
+
+
+class MultiFormatOutputGenerator:
+    """Output generator that can produce multiple formats simultaneously."""
+    
+    def __init__(self, schema_manager: Optional[SchemaManager] = None):
+        self.schema_manager = schema_manager
+        self.generators = {
+            'json': SchemaAwareOutputGenerator(schema_manager) if schema_manager else JsonOutputGenerator(),
+            'csv': CsvOutputGenerator(),
+            'xml': XmlOutputGenerator()
+        }
+        self.enabled_formats = ['json']  # Default to JSON only
+    
+    def enable_format(self, format_name: str) -> bool:
+        """Enable a specific output format."""
+        if format_name in self.generators:
+            if format_name not in self.enabled_formats:
+                self.enabled_formats.append(format_name)
+            return True
+        return False
+    
+    def disable_format(self, format_name: str) -> bool:
+        """Disable a specific output format."""
+        if format_name in self.enabled_formats:
+            self.enabled_formats.remove(format_name)
+            return True
+        return False
+    
+    def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
+        """Generate output in all enabled formats."""
+        base_path = Path(output_path)
+        base_name = base_path.stem
+        base_dir = base_path.parent
+        
+        for format_name in self.enabled_formats:
+            if format_name in self.generators:
+                try:
+                    if format_name == 'json':
+                        format_path = base_dir / f"{base_name}.json"
+                    elif format_name == 'csv':
+                        format_path = base_dir / f"{base_name}.csv"
+                    elif format_name == 'xml':
+                        format_path = base_dir / f"{base_name}.xml"
+                    else:
+                        format_path = base_dir / f"{base_name}.{format_name}"
+                    
+                    self.generators[format_name].generate_output(results, str(format_path))
+                except Exception as e:
+                    print(f"Error generating {format_name} output: {e}")
+    
+    def add_custom_generator(self, format_name: str, generator: OutputGeneratorInterface):
+        """Add a custom output generator."""
+        self.generators[format_name] = generator
+    
+    def get_enabled_formats(self) -> List[str]:
+        """Get list of currently enabled formats."""
+        return self.enabled_formats.copy()
+
+
+class HtmlOutputGenerator:
+    """HTML output generator with rich formatting and full iteration support."""
+    
+    def __init__(self, template_style: str = "bootstrap", include_charts: bool = True):
+        self.template_style = template_style
+        self.include_charts = include_charts
+    
+    def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
+        """Generate HTML output file."""
+        try:
+            html_content = self._build_html_report(results)
+            
+            # Ensure .html extension
+            if not output_path.endswith('.html'):
+                output_path = output_path.replace('.json', '.html').replace('.xml', '.html')
+                if not output_path.endswith('.html'):
+                    output_path += '.html'
+            
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            print(f"HTML report generated: {output_path}")
+        except Exception as e:
+            print(f"Error generating HTML output: {e}")
+    
+    def _build_html_report(self, results: List[ProcessedResult]) -> str:
+        """Build complete HTML report."""
+        summary_stats = self._calculate_summary_stats(results)
+        benchmark_data = self._group_by_benchmark(results)
+        
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dataplane Performance Report Summary</title>
+    {self._get_css_styles()}
+    {self._get_chart_scripts() if self.include_charts else ''}
+</head>
+<body>
+    <div class="container">
+        {self._generate_header(summary_stats)}
+        {self._generate_summary_cards(summary_stats)}
+        {self._generate_benchmark_sections(benchmark_data)}
+        {self._generate_detailed_results_table(results)}
+        {self._generate_charts_section(benchmark_data) if self.include_charts else ''}
+        {self._generate_footer()}
+    </div>
+    {self._get_javascript() if self.include_charts else ''}
+</body>
+</html>"""
+        return html
+    
+    def _calculate_summary_stats(self, results: List[ProcessedResult]) -> Dict[str, Any]:
+        """Calculate summary statistics including iteration counts."""
+        total_files = len(results)
+        successful = len([r for r in results if r.processing_metadata.get('status') == 'success'])
+        failed = total_files - successful
+        benchmarks = list(set(r.benchmark for r in results))
+        
+        # Calculate total iterations across all files
+        total_iterations = 0
+        for result in results:
+            iterations = result.data.get('iterations', [])
+            total_iterations += len(iterations)
+        
+        # Calculate file size stats
+        file_sizes = [r.data.get('file_size', 0) for r in results]
+        avg_file_size = sum(file_sizes) / len(file_sizes) if file_sizes else 0
+        
+        return {
+            'total_files': total_files,
+            'total_iterations': total_iterations,
+            'successful': successful,
+            'failed': failed,
+            'success_rate': (successful / total_files * 100) if total_files > 0 else 0,
+            'benchmarks': benchmarks,
+            'benchmark_count': len(benchmarks),
+            'avg_file_size': avg_file_size,
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+    
+    def _group_by_benchmark(self, results: List[ProcessedResult]) -> Dict[str, List[ProcessedResult]]:
+        """Group results by benchmark type."""
+        groups = {}
+        for result in results:
+            benchmark = result.benchmark
+            if benchmark not in groups:
+                groups[benchmark] = []
+            groups[benchmark].append(result)
+        return groups
+    
+    def _generate_header(self, stats: Dict[str, Any]) -> str:
+        """Generate HTML header section."""
+        return f"""
+        <header class="header">
+            <h1><i class="icon">📊</i> Regulus/Crucible Performance Report Summary</h1>
+            <p class="subtitle">Generated on {stats['timestamp']}</p>
+        </header>
+        """
+    
+    def _generate_summary_cards(self, stats: Dict[str, Any]) -> str:
+        """Generate summary cards section."""
+        return f"""
+        <section class="summary-cards">
+            <div class="card success">
+                <div class="card-header">
+                    <h3>📁 Total Files</h3>
+                </div>
+                <div class="card-body">
+                    <div class="metric">{stats['total_files']}</div>
+                    <div class="detail">Files processed</div>
+                </div>
+            </div>
+            
+            <div class="card info">
+                <div class="card-header">
+                    <h3>🔄 Total Iterations</h3>
+                </div>
+                <div class="card-body">
+                    <div class="metric">{stats['total_iterations']}</div>
+                    <div class="detail">Test iterations found</div>
+                </div>
+            </div>
+            
+            <div class="card {'success' if stats['success_rate'] > 90 else 'warning' if stats['success_rate'] > 70 else 'danger'}">
+                <div class="card-header">
+                    <h3>✅ Success Rate</h3>
+                </div>
+                <div class="card-body">
+                    <div class="metric">{stats['success_rate']:.1f}%</div>
+                    <div class="detail">{stats['successful']}/{stats['total_files']} successful</div>
+                </div>
+            </div>
+            
+            <div class="card neutral">
+                <div class="card-header">
+                    <h3>🔧 Benchmarks</h3>
+                </div>
+                <div class="card-body">
+                    <div class="metric">{stats['benchmark_count']}</div>
+                    <div class="detail">Different types found</div>
+                </div>
+            </div>
+        </section>
+        """
+    
+    def _generate_benchmark_sections(self, benchmark_data: Dict[str, List[ProcessedResult]]) -> str:
+        """Generate sections for each benchmark type."""
+        sections = []
+        
+        for benchmark, results in benchmark_data.items():
+            success_count = len([r for r in results if r.processing_metadata.get('status') == 'success'])
+            
+            # Count total iterations for this benchmark
+            total_iterations = sum(len(r.data.get('iterations', [])) for r in results)
+            
+            # Extract key metrics for this benchmark
+            key_metrics = self._extract_benchmark_metrics(benchmark, results)
+            
+            section = f"""
+            <section class="benchmark-section">
+                <h2>🚀 {benchmark.title()} Benchmark</h2>
+                <div class="benchmark-stats">
+                    <span class="stat">Files: {len(results)}</span>
+                    <span class="stat">Iterations: {total_iterations}</span>
+                    <span class="stat">Success: {success_count}/{len(results)}</span>
+                    <span class="stat">Rate: {(success_count/len(results)*100):.1f}%</span>
+                </div>
+                
+                {self._generate_metrics_table(key_metrics)}
+                
+                <details class="file-list">
+                    <summary>📋 Files in this benchmark ({len(results)})</summary>
+                    <ul class="file-list-items">
+                        {self._generate_file_list(results)}
+                    </ul>
+                </details>
+            </section>
+            """
+            sections.append(section)
+        
+        return '\n'.join(sections)
+    
+    def _extract_benchmark_metrics(self, benchmark: str, results: List[ProcessedResult]) -> List[Dict[str, Any]]:
+        """Extract key metrics for a benchmark - ONE METRIC PER ITERATION."""
+        metrics = []
+        
+        for result in results:
+            data = result.data
+            file_name = Path(result.file_path).name
+            file_path = result.file_path
+            status = result.processing_metadata.get('status', 'unknown')
+            
+            # Get all iterations from this file
+            iterations = data.get('iterations', [])
+            
+            if not iterations:
+                # No iterations found - create single metric entry
+                metrics.append({
+                    'file': file_name,
+                    'file_path': file_path,
+                    'status': status,
+                    'iteration': 'N/A',
+                    'result': 'No iterations found'
+                })
+            else:
+                # Create one metric entry per iteration
+                for iteration in iterations:
+                    iteration_id = iteration.get('iteration_id', 'unknown')
+                    unique_params = iteration.get('unique_params', {})
+                    iteration_results = iteration.get('results', [])  # Now plural - list of results
+                    
+                    metric = {
+                        'file': file_name,
+                        'file_path': file_path,
+                        'status': status,
+                        'iteration': iteration_id[:8] + '...',
+                    }
+                    
+                    # Add key tags in compact format (NEW)
+                    key_tags = data.get('key_tags', {})
+                    tag_parts = [
+                        key_tags.get('pods-per-worker', '?'),
+                        key_tags.get('scale_out_factor', '?'),
+                        key_tags.get('topo', '?')
+                    ]
+                    metric['config'] = ','.join(tag_parts)
+
+                    # Add test configuration
+                    if 'nthreads' in unique_params:
+                        metric['threads'] = unique_params['nthreads']
+                    if 'test-type' in unique_params:
+                        metric['test_type'] = unique_params['test-type']
+                    if 'wsize' in unique_params:
+                        metric['wsize'] = unique_params['wsize']
+                    if 'rsize' in unique_params:
+                        metric['rsize'] = unique_params['rsize']
+                    
+                    # Extract result metrics from first/primary result
+                    if iteration_results and isinstance(iteration_results, list) and len(iteration_results) > 0:
+                        primary_result = iteration_results[0]  # Take first result
+                        if isinstance(primary_result, dict):
+                            if 'mean' in primary_result:
+                                mean = primary_result['mean']
+                                if isinstance(mean, (int, float)):
+                                    metric['mean'] = f"{mean:,.2f}"
+                                else:
+                                    metric['mean'] = str(mean)
+                            
+                            if 'type' in primary_result:
+                                metric['metric_type'] = primary_result['type']
+                            
+                            if 'unit' in primary_result:
+                                metric['unit'] = primary_result['unit']
+                            
+                            if 'sample_count' in primary_result:
+                                metric['samples'] = primary_result['sample_count']
+                            
+                            if 'stddevpct' in primary_result:
+                                stddev = primary_result['stddevpct']
+                                if isinstance(stddev, (int, float)) and stddev > 0:
+                                    metric['stddev%'] = f"{stddev:.2f}%"
+                    
+                    metrics.append(metric)
+        
+        return metrics
+    
+    def _generate_metrics_table(self, metrics: List[Dict[str, Any]]) -> str:
+        """Generate metrics table for a benchmark."""
+        if not metrics:
+            return "<p>No metrics available</p>"
+        
+        # Get all unique keys (columns)
+        all_keys = set()
+        for metric in metrics:
+            all_keys.update(metric.keys())
+        
+        # Remove status and file from main columns (they'll be handled specially)
+        columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']])
+        
+        table = """
+        <div class="metrics-table-container">
+            <table class="metrics-table">
+                <thead>
+                    <tr>
+                        <th>📄 File</th>
+                        <th>📊 Status</th>
+        """
+        
+        for col in columns:
+            table += f"<th>{col.title().replace('_', ' ')}</th>"
+        
+        table += """
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        
+        for metric in metrics:
+            status_class = {
+                'success': 'status-success',
+                'failed': 'status-failed', 
+                'partial': 'status-warning'
+            }.get(metric.get('status', 'unknown'), 'status-unknown')
+            file_path = metric.get('file_path', '#')
+            
+            table += f"""
+                    <tr>
+                        <td class="file-name"><a href="{file_path}" target="_blank">{metric.get('file', 'Unknown')}</a></td>
+                        <td><span class="status-badge {status_class}">{metric.get('status', 'unknown').title()}</span></td>
+            """
+            
+            for col in columns:
+                value = metric.get(col, 'N/A')
+                table += f"<td>{value}</td>"
+            
+            table += "</tr>"
+        
+        table += """
+                </tbody>
+            </table>
+        </div>
+        """
+        
+        return table
+    
+    def _generate_file_list(self, results: List[ProcessedResult]) -> str:
+        """Generate file list items."""
+        items = []
+        for result in results:
+            status_icon = {
+                'success': '✅',
+                'failed': '❌',
+                'partial': '⚠️'
+            }.get(result.processing_metadata.get('status', 'unknown'), '❓')
+            
+            # Count iterations in this file
+            iterations = result.data.get('iterations', [])
+            iter_count = len(iterations)
+            
+            items.append(f"""
+                <li>
+                    {status_icon} <code>{Path(result.file_path).name}</code>
+                    <small>({iter_count} iteration{'s' if iter_count != 1 else ''}, {self._format_file_size(result.data.get('file_size', 0))})</small>
+                </li>
+            """)
+        
+        return ''.join(items)
+    
+    def _generate_detailed_results_table(self, results: List[ProcessedResult]) -> str:
+        """Generate detailed results table with one row per iteration."""
+        return f"""
+        <section class="detailed-results">
+            <h2>📋 Detailed Results (All Iterations)</h2>
+            <div class="table-container">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Config</th>
+                            <th>Iteration ID</th>
+                            <th>Test Config</th>
+                            <th>Benchmark</th>
+                            <th>Status</th>
+                            <th>Results</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {self._generate_results_rows(results)}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        """
+    
+    def _generate_results_rows(self, results: List[ProcessedResult]) -> str:
+        """Generate table rows - ONE ROW PER ITERATION (not per file)."""
+        rows = []
+
+        for result in results:
+            status = result.processing_metadata.get('status', 'unknown')
+            status_class = f"status-{status}"
+            file_name = Path(result.file_path).name
+
+            # Get iterations from the data
+            iterations = result.data.get('iterations', [])
+            
+            if not iterations:
+                # Fallback: show file-level row if no iterations found
+                rows.append(f"""
+                    <tr>
+                        <td class="file-name"><a href="{result.file_path}" target="_blank">{file_name}</a></td>
+                        <td colspan="2"><em>No iterations found</em></td>
+                        <td><span class="benchmark-badge">{result.benchmark}</span></td>
+                        <td><span class="status-badge {status_class}">{status.title()}</span></td>
+                        <td class="key-data">N/A</td>
+                    </tr>
+                """)
+            else:
+                # Show ONE ROW per iteration
+                for iteration in iterations:
+                    iteration_id = iteration.get('iteration_id', 'unknown')
+                    unique_params = iteration.get('unique_params', {})
+                    iteration_results = iteration.get('results', [])
+                    
+                    key_tags = result.data.get('key_tags', {})
+                    config_str = f"{key_tags.get('pods-per-worker', '?')},{key_tags.get('scale_out_factor', '?')},{key_tags.get('topo', '?')}"
+                    rows.append(f"""
+                        <tr>
+                            <td class="file-name"><a href="{result.file_path}" target="_blank">{file_name}</a></td>
+                            <td style="font-size: 0.85rem;">{config_str}</td>  <!-- NEW -->
+                            <td><code style="font-size: 0.75rem;">{iteration_id[:8]}...</code></td>
+                            <!-- rest of columns -->
+                        </tr>
+                    """)        
+                    # Format test configuration
+                    config_parts = []
+                    if 'nthreads' in unique_params:
+                        config_parts.append(f"threads={unique_params['nthreads']}")
+                    if 'test-type' in unique_params:
+                        config_parts.append(f"type={unique_params['test-type']}")
+                    if 'wsize' in unique_params:
+                        config_parts.append(f"wsize={unique_params['wsize']}")
+                    if 'rsize' in unique_params:
+                        config_parts.append(f"rsize={unique_params['rsize']}")
+                    
+                    config_str = ", ".join(config_parts) if config_parts else "default"
+                    
+                    # Format result data - show all results
+                    result_str = self._format_iteration_results(iteration_results)
+                    
+                    rows.append(f"""
+                        <tr>
+                            <td class="file-name"><a href="{result.file_path}" target="_blank">{file_name}</a></td>
+                            <td><code style="font-size: 0.75rem;">{iteration_id[:8]}...</code></td>
+                            <td style="font-size: 0.85rem;">{config_str}</td>
+                            <td><span class="benchmark-badge">{result.benchmark}</span></td>
+                            <td><span class="status-badge {status_class}">{status.title()}</span></td>
+                            <td class="key-data">{result_str}</td>
+                        </tr>
+                    """)
+        
+        return ''.join(rows)
+    
+    def _format_iteration_results(self, results_list: List[Dict[str, Any]]) -> str:
+        """Format multiple iteration results for display."""
+        if not results_list:
+            return "N/A"
+        
+        # Format each result
+        formatted_results = []
+        for result_data in results_list:
+            if not isinstance(result_data, dict):
+                continue
+            
+            parts = []
+            
+            if 'type' in result_data:
+                parts.append(f"<strong>{result_data['type']}</strong>")
+            
+            if 'mean' in result_data:
+                mean = result_data['mean']
+                unit = result_data.get('unit', '')
+                if isinstance(mean, (int, float)):
+                    parts.append(f"{mean:,.2f} {unit}")
+                else:
+                    parts.append(f"{mean} {unit}")
+            
+            if 'sample_count' in result_data and result_data['sample_count'] > 1:
+                parts.append(f"({result_data['sample_count']} samples)")
+            
+            if 'stddevpct' in result_data and result_data.get('stddevpct', 0) > 0:
+                stddev = result_data['stddevpct']
+                if isinstance(stddev, (int, float)):
+                    parts.append(f"±{stddev:.1f}%")
+            
+            if parts:
+                formatted_results.append(" ".join(parts))
+        
+        # Join multiple results with line breaks
+        return "<br>".join(formatted_results) if formatted_results else "N/A"
+    
+    def _generate_charts_section(self, benchmark_data: Dict[str, List[ProcessedResult]]) -> str:
+        """Generate charts section."""
+        return f"""
+        <section class="charts-section">
+            <h2>📊 Visual Analysis</h2>
+            <div class="charts-container">
+                <div class="chart-item">
+                    <canvas id="benchmarkChart"></canvas>
+                </div>
+                <div class="chart-item">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </section>
+        """
+    
+    def _format_file_size(self, size: int) -> str:
+        """Format file size in human readable format."""
+        if size < 1024:
+            return f"{size} B"
+        elif size < 1024 * 1024:
+            return f"{size / 1024:.1f} KB"
+        elif size < 1024 * 1024 * 1024:
+            return f"{size / (1024 * 1024):.1f} MB"
+        else:
+            return f"{size / (1024 * 1024 * 1024):.1f} GB"
+    
+    def _generate_footer(self) -> str:
+        """Generate footer."""
+        return f"""
+        <footer class="footer">
+            <p>Generated by Modular Regulus Report Generator v2.4.0 | 
+               <a href="#top">Back to top ↑</a></p>
+        </footer>
+        """
+    
+    def _get_css_styles(self) -> str:
+        """Get CSS styles for the HTML report."""
+        return """
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8fafc;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .icon { font-size: 1.2em; margin-right: 10px; }
+        .subtitle { font-size: 1.1rem; opacity: 0.9; }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .card-header {
+            padding: 15px 20px 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .card-header h3 {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 15px 20px 20px;
+        }
+        
+        .metric {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+        
+        .detail {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .card.success .metric { color: #10b981; }
+        .card.warning .metric { color: #f59e0b; }
+        .card.danger .metric { color: #ef4444; }
+        .card.info .metric { color: #3b82f6; }
+        .card.neutral .metric { color: #6b7280; }
+        
+        .benchmark-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .benchmark-section h2 {
+            color: #1e293b;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .benchmark-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .stat {
+            background: #f1f5f9;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .metrics-table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        
+        .metrics-table, .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .metrics-table th, .results-table th {
+            background: #f8fafc;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .metrics-table td, .results-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .metrics-table tr:hover, .results-table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .file-name {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .file-name a {
+            color: #6366f1;
+            text-decoration: none;
+        }
+        
+        .file-name a:hover {
+            text-decoration: underline;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .status-success { background: #dcfce7; color: #166534; }
+        .status-failed { background: #fee2e2; color: #991b1b; }
+        .status-warning { background: #fef3c7; color: #92400e; }
+        .status-unknown { background: #f3f4f6; color: #6b7280; }
+        
+        .benchmark-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .file-list {
+            margin-top: 20px;
+        }
+        
+        .file-list summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #4f46e5;
+            padding: 10px 0;
+        }
+        
+        .file-list summary:hover {
+            color: #4338ca;
+        }
+        
+        .file-list-items {
+            list-style: none;
+            padding: 15px 0 5px 20px;
+        }
+        
+        .file-list-items li {
+            padding: 5px 0;
+            color: #6b7280;
+        }
+        
+        .file-list-items code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #1e293b;
+        }
+        
+        .detailed-results {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .detailed-results h2 {
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            max-height: 800px;
+            overflow-y: auto;
+        }
+        
+        .key-data {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            color: #4f46e5;
+            max-width: 300px;
+        }
+        
+        .charts-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+        
+        .chart-item {
+            position: relative;
+            height: 300px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 40px;
+        }
+        
+        .footer a {
+            color: #4f46e5;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .summary-cards { grid-template-columns: 1fr; }
+            .benchmark-stats { flex-direction: column; gap: 10px; }
+            .charts-container { grid-template-columns: 1fr; }
+        }
+    </style>
+        """
+    
+    def _get_chart_scripts(self) -> str:
+        """Get Chart.js script."""
+        return """
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        """
+    
+    def _get_javascript(self) -> str:
+        """Get JavaScript for charts."""
+        return """
+    <script>
+        // Charts initialization
+        console.log('Charts would be initialized here');
+    </script>
+        """
+
+
+# Enhanced MultiFormatOutputGenerator to include HTML
+class EnhancedMultiFormatOutputGenerator(MultiFormatOutputGenerator):
+    """Extended multi-format generator with HTML support."""
+    
+    def __init__(self, schema_manager=None):
+        super().__init__(schema_manager)
+        self.generators['html'] = HtmlOutputGenerator()
+    
+    def generate_output(self, results, output_path):
+        """Generate output with HTML support."""
+        base_path = Path(output_path)
+        base_name = base_path.stem
+        base_dir = base_path.parent
+        
+        for format_name in self.enabled_formats:
+            if format_name in self.generators:
+                try:
+                    if format_name == 'html':
+                        format_path = base_dir / f"{base_name}.html"
+                    elif format_name == 'json':
+                        format_path = base_dir / f"{base_name}.json"
+                    elif format_name == 'csv':
+                        format_path = base_dir / f"{base_name}.csv"
+                    elif format_name == 'xml':
+                        format_path = base_dir / f"{base_name}.xml"
+                    else:
+                        format_path = base_dir / f"{base_name}.{format_name}"
+                    
+                    self.generators[format_name].generate_output(results, str(format_path))
+                except Exception as e:
+                    print(f"Error generating {format_name} output: {e}")
+
