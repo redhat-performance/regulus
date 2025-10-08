@@ -394,7 +394,11 @@ class HtmlOutputGenerator:
     def __init__(self, template_style: str = "bootstrap", include_charts: bool = True):
         self.template_style = template_style
         self.include_charts = include_charts
-    
+
+    def _get_param_value(self, param_name: str, unique_params: dict, common_params: dict):
+        """Get parameter value: check unique_params first, then fall back to common_params."""
+        return unique_params.get(param_name) or common_params.get(param_name)    
+
     def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
         """Generate HTML output file."""
         try:
@@ -579,6 +583,8 @@ class HtmlOutputGenerator:
         for result in results:
             data = result.data
             file_name = Path(result.file_path).name
+            # Get common_params from file level
+            file_common_params = data.get('common_params', {})
             file_path = result.file_path
             status = result.processing_metadata.get('status', 'unknown')
             
@@ -617,16 +623,28 @@ class HtmlOutputGenerator:
                     ]
                     metric['config'] = ','.join(tag_parts)
 
-                    # Add test configuration
-                    if 'nthreads' in unique_params:
-                        metric['threads'] = unique_params['nthreads']
-                    if 'test-type' in unique_params:
-                        metric['test_type'] = unique_params['test-type']
-                    if 'wsize' in unique_params:
-                        metric['wsize'] = unique_params['wsize']
-                    if 'rsize' in unique_params:
-                        metric['rsize'] = unique_params['rsize']
+                    # Add test configuration - use helper for ALL params
+                    protocol = self._get_param_value('protocol', unique_params, file_common_params)
                     
+                    nthreads = self._get_param_value('nthreads', unique_params, file_common_params)
+                    if nthreads:
+                        metric['threads'] = nthreads
+                    
+                    test_type = self._get_param_value('test-type', unique_params, file_common_params)
+                    if test_type:
+                        if protocol:
+                            metric['test_type'] = f"{protocol}, {test_type}"
+                        else:
+                            metric['test_type'] = test_type
+                    
+                    wsize = self._get_param_value('wsize', unique_params, file_common_params)
+                    if wsize:
+                        metric['wsize'] = wsize
+                    
+                    rsize = self._get_param_value('rsize', unique_params, file_common_params)
+                    if rsize:
+                        metric['rsize'] = rsize
+
                     # Extract result metrics from first/primary result
                     if iteration_results and isinstance(iteration_results, list) and len(iteration_results) > 0:
                         primary_result = iteration_results[0]  # Take first result
@@ -772,6 +790,8 @@ class HtmlOutputGenerator:
             status = result.processing_metadata.get('status', 'unknown')
             status_class = f"status-{status}"
             file_name = Path(result.file_path).name
+            # Get common_params from file level
+            file_common_params = result.data.get('common_params', {})
 
             # Get iterations from the data
             iterations = result.data.get('iterations', [])
@@ -804,17 +824,30 @@ class HtmlOutputGenerator:
                             <!-- rest of columns -->
                         </tr>
                     """)        
-                    # Format test configuration
+                    # Format test configuration - use helper for ALL params
                     config_parts = []
-                    if 'nthreads' in unique_params:
-                        config_parts.append(f"threads={unique_params['nthreads']}")
-                    if 'test-type' in unique_params:
-                        config_parts.append(f"type={unique_params['test-type']}")
-                    if 'wsize' in unique_params:
-                        config_parts.append(f"wsize={unique_params['wsize']}")
-                    if 'rsize' in unique_params:
-                        config_parts.append(f"rsize={unique_params['rsize']}")
                     
+                    protocol = self._get_param_value('protocol', unique_params, file_common_params)
+                    
+                    nthreads = self._get_param_value('nthreads', unique_params, file_common_params)
+                    if nthreads:
+                        config_parts.append(f"threads={nthreads}")
+                    
+                    test_type = self._get_param_value('test-type', unique_params, file_common_params)
+                    if test_type:
+                        if protocol:
+                            config_parts.append(f"type={protocol}, {test_type}")
+                        else:
+                            config_parts.append(f"type={test_type}")
+                    
+                    wsize = self._get_param_value('wsize', unique_params, file_common_params)
+                    if wsize:
+                        config_parts.append(f"wsize={wsize}")
+                    
+                    rsize = self._get_param_value('rsize', unique_params, file_common_params)
+                    if rsize:
+                        config_parts.append(f"rsize={rsize}")
+
                     config_str = ", ".join(config_parts) if config_parts else "default"
                     
                     # Format result data - show all results
