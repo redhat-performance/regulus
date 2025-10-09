@@ -4,6 +4,31 @@
 # 	1. Discover cluster_type, num_workers and num_cpus (per worker)
 # 	2. Confim the user-intent workers specified in lab.config.
 #
+# Usage: lab-analyzer -o <out-file>
+#
+
+set -euo pipefail
+
+OUTPUT_FILE=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --output|-o)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "$OUTPUT_FILE" ]]; then
+    echo "[ERROR] Missing required --output argument" >&2
+    exit 1
+fi
+
+
 auto_fix="true"
 
 source ${REG_ROOT}/lab.config
@@ -14,6 +39,12 @@ source ${REG_ROOT}/lab.config
 # We need to identify the relative path from the bastion user's HOME. That is the "path/regulus" so that we can ssh to the bastion and cd to "path/regulus"
 reg_dir="${PWD#"$HOME"/}"
 echo reg_dir=$reg_dir >&2
+
+if [ "$(hostname)" == "$REG_OCPHOST" ] ; then
+    iam="bastion"
+else
+    iam="local"
+fi
 
 # We compute the number of CPUs for each pod based on the node.allocatable.cpu.
 # We learn this value during during lab-analyzer time, and this value can go down
@@ -111,7 +142,7 @@ function do_ssh() {
     ssh_cmd="ssh $SSH_OPTS $user_host \"bash -c '$@'\""
 
     # Echo the command for debugging
-    echo "CMD: $ssh_cmd" >&2
+    echo "($iam) CMD: $ssh_cmd" >&2
 
     # Execute the command
     eval $ssh_cmd
@@ -167,16 +198,15 @@ echo IN: f_verify_lab_config  >&2
         fi
     fi
 
-    # The bastion also needs lab-init (for CLUSTER_TYPE) before we can init SRIOV/UNIV/
+    # The bastion also needs init-lab (for CLUSTER_TYPE) before we can init SRIOV/UNIV/
     if [ "$auto_fix" == "true" ]; then
-        echo "CMD: ssh $DEST cd $reg_dir && source bootstrap.sh && make init-lab" >&2
+        echo "$LINENO bastion CMD: ssh $DEST cd $reg_dir && source bootstrap.sh && make init-lab" >&2
         #ssh $DEST "cd $reg_dir && source bootstrap.sh && make init-lab"
         do_ssh $DEST "cd $reg_dir && source bootstrap.sh && make init-lab"
     fi
 
     # Check SRIOV-config and PAO-config ready on the bastion
-    file=$(do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/UNIV && ls setting.env")
-    if [ -z "$file" ] ; then
+    if ! do_ssh "$DEST" "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/ && ls setting.env" >/dev/null 2>&1 ; then
         if [ "$auto_fix" == "true" ]; then
             echo "WARN: SRIOV-config/UNIV is not yet initialized on the bastion" >&2
             echo "auto_fix is ON. Fixing it"  >&2
@@ -189,8 +219,7 @@ echo IN: f_verify_lab_config  >&2
         fi
     fi
 
-    file=$(do_ssh $DEST "cd $reg_dir && source bootstrap.sh && cd PAO-config && ls setting.env")
-    if [ -z "$file" ] ; then
+    if ! do_ssh "$DEST" "cd $reg_dir && source bootstrap.sh && cd SRIOV-config/ && ls setting.env" >/dev/null 2>&1 ; then
         if [ "$auto_fix" == "true" ]; then
             echo "WARN: PAO-config is not yet initialized on the bastion" >&2
             echo "auto_fix is ON. Fixing it"  >&2
@@ -207,6 +236,7 @@ echo IN: f_verify_lab_config  >&2
     return
 }
 
+updated_json="{}"
 function f_update_tb_info {
 	# Read the JSON file
 	json=$tb_info
@@ -299,9 +329,10 @@ function create_mirror_repo_on_bastion {
         do_ssh ${remote_user}@${remote_host} "cd ${reg_dir} && git checkout ${current_branch}"
 
         # finally copy mirror lab.config and jobs.config to remote
-        scp lab.config ${remote_user}@${remote_host}:~/${reg_dir}/
-        scp jobs.config ${remote_user}@${remote_host}:~/${reg_dir}/
-        scp bin/lab-analyzer ${remote_user}@${remote_host}:~/${reg_dir}/bin/
+        scp lab.config ${remote_user}@${remote_host}:${reg_dir}/
+        scp jobs.config ${remote_user}@${remote_host}:${reg_dir}/
+        scp makefile ${remote_user}@${remote_host}:${reg_dir}/
+        scp bin/lab-analyzer ${remote_user}@${remote_host}:${reg_dir}/bin/
 
         echo "Repository has been successfully created and mirrored to the bastion host. The branch '${current_branch}' has been checked out."  >&2
     #fi
@@ -330,7 +361,7 @@ combine_hosts() {
     declare -g -A uniq
     BM_HOST_ARR=()
     for host in "${combined[@]}"; do
-        if [[ -n "$host" && -z "${uniq[$host]}" ]]; then
+        if [[ -n "$host" && -z "${uniq[$host]-}" ]]; then
             BM_HOST_ARR+=("$host")
             uniq[$host]=1
         fi
@@ -395,8 +426,6 @@ fi
 tb_useable_cpus=$(($tb_alloc_cpus-$RESERVED_CPUS))
 echo "useable_cpus=$tb_useable_cpus" >&2
 
-echo $LINENO first_worker=$first_worker >&2
-
 # Setup auth key to ssh core@<ip>
 if [[ -e "${core_auth_script_path}" ]]; then
   do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && bash $reg_dir/bin/core-auth-key.sh ${first_worker} ~/.ssh/id_rsa.pub >&2"
@@ -417,11 +446,9 @@ echo "core-per-socket=$tb_cps" >&2
 
 f_update_tb_info
 
-if [ "$(hostname)" == "$REG_OCPHOST" ] ; then
-    iam="bastion"
-else
-    iam="local"
-fi
-echo "$0 on $iam completed" >&2
+# write result to out
+printf "%s\n" "$updated_json" > "$OUTPUT_FILE"
+
+echo "($iam) $0 completed" >&2
 
 # done

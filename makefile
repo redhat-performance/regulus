@@ -107,7 +107,7 @@ LAB_TARGET_ENV := ${GEN_LAB_ENV}
 
 LAB_SOURCE := ${REG_ROOT}/lab.config
 
-$(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
+$(OLAB_TARGET): $(OLAB_SOURCE) ./bin/lab-analyzer
 	@output=$$(./bin/lab-analyzer); \
 	if [ $$? -ne 0 ]; then \
 		echo "Error: lab-analyzer failed"; \
@@ -116,11 +116,24 @@ $(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
 	echo "$$output" > $@; \
 	jq -r 'to_entries | .[] | "\(.key)=\(.value)"' $@ > ${LAB_TARGET_ENV};
 
+$(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
+	@set -e; \
+	tmpfile=$$(mktemp); \
+	echo "Running lab-analyzer..."; \
+	./bin/lab-analyzer --output "$$tmpfile"; \
+	if [ $$? -ne 0 ]; then \
+		echo "Error: lab-analyzer failed"; \
+		rm -f "$$tmpfile"; \
+		exit 1; \
+	fi; \
+	mv "$$tmpfile" $@; \
+	jq -r 'to_entries | .[] | "\(.key)=\(.value)"' $@ > ${LAB_TARGET_ENV}
+
 
 # This top setting.env is needed before other  *-config can run. 
 SRIOV_INIT:
-	@pushd SETUP_GROUP/SRIOV/INSTALL > /dev/null 2>&1 && make --no-print-directory init \
-	 && popd > /dev/null 2>&1 && cd SRIOV-config/UNIV && make --no-print-directory init
+	@cd SETUP_GROUP/SRIOV/INSTALL && make --no-print-directory init >/dev/null 2>&1 || true 
+	@cd SRIOV-config/UNIV && make --no-print-directory init >/dev/null 2>&1 || true         
 
 # Init LAB info if lab.config changes. Do not output anything to spoil the json file
 init-lab: $(LAB_TARGET) SRIOV_INIT
