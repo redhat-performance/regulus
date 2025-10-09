@@ -461,7 +461,16 @@ class HtmlOutputGenerator:
         # Calculate file size stats
         file_sizes = [r.data.get('file_size', 0) for r in results]
         avg_file_size = sum(file_sizes) / len(file_sizes) if file_sizes else 0
-        
+
+        # Extract kernel and rcos from tags (NEW)
+        kernels = set()
+        rcos_versions = set()
+        for result in results:
+            key_tags = result.data.get('key_tags', {})
+            if 'kernel' in key_tags:
+                kernels.add(key_tags['kernel'])
+            if 'rcos' in key_tags:
+                rcos_versions.add(key_tags['rcos'])
         return {
             'total_files': total_files,
             'total_iterations': total_iterations,
@@ -471,6 +480,8 @@ class HtmlOutputGenerator:
             'benchmarks': benchmarks,
             'benchmark_count': len(benchmarks),
             'avg_file_size': avg_file_size,
+            'kernel': ', '.join(sorted(kernels)) if kernels else 'Unknown',
+            'rcos': ', '.join(sorted(rcos_versions)) if rcos_versions else 'Unknown',
             'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
     
@@ -490,6 +501,7 @@ class HtmlOutputGenerator:
         <header class="header">
             <h1><i class="icon">📊</i> Regulus/Crucible Performance Report Summary</h1>
             <p class="subtitle">Generated on {stats['timestamp']}</p>
+            <p class="subtitle">Kernel: {stats['kernel']} | RCOS: {stats['rcos']}</p>
         </header>
         """
     
