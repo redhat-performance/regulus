@@ -313,7 +313,8 @@ function create_mirror_repo_on_bastion {
         do_ssh ${remote_user}@${remote_host} "cd ${reg_dir} && git init 2>/dev/null"
 
         # Add the remote repository to local Git config. But remove remote first if there was a old one.
-        git remote remove $local_basename-peer-regulus  2>/dev/null 
+        echo "CMD: git remote remove $local_basename-peer-regulus" >&2
+        git remote remove $local_basename-peer-regulus  2>/dev/null  || true
         echo "CMD: git remote add $local_basename-peer-regulus ${remote_user}@${remote_host}:${reg_dir}" >&2
 
 
