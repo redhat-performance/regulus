@@ -63,4 +63,116 @@ with open("$output", "w") as out:
     out.write('"resources": ' + json.dumps(final, indent=4) + "\n")
 EOF
 }
+
+# merge_all_resources <file1> <file2> ... <fileN>
+# Output is always printed to stdout; use > to redirect.
+# Example usage:
+#   FILES=(resource*.json)
+#    merge_all_resources "${FILES[@]}" > combined-resources.json
+merge_all_resources() {
+    local files=("$@")
+
+    if [ "${#files[@]}" -lt 1 ]; then
+        echo "No files provided" >&2
+        return 1
+    fi
+
+    # Start with the first file
+    local tmp_result="${files[0]}"
+
+    # Loop over remaining files
+    for ((i=1; i<${#files[@]}; i++)); do
+        local next_file="${files[i]}"
+        local tmp_out
+        tmp_out=$(mktemp)
+
+        # Merge without touching original files
+        merge_resources "$tmp_result" "$next_file" "$tmp_out"
+
+        # Remove previous temporary file if not the first input
+        if [[ "$tmp_result" != "${files[0]}" ]]; then
+            rm -f "$tmp_result"
+        fi
+
+        tmp_result="$tmp_out"
+    done
+
+    # Print final merged JSON to stdout
+    cat "$tmp_result"
+
+    # Clean up the last temp file
+    if [[ "$tmp_result" != "${files[0]}" ]]; then
+        rm -f "$tmp_result"
+    fi
+}
+
+# function to merge 2 annotation files
+merge_annotations() {
+    local file1="$1"
+    local file2="$2"
+    local output="$3"
+
+    python3 <<EOF
+import yaml, json
+
+def load_annotation(path):
+    with open(path) as f:
+        return yaml.safe_load(f).get("annotations", {})
+
+ann1 = load_annotation("$file1")
+ann2 = load_annotation("$file2")
+
+# Merge dictionaries
+combined = {}
+for ann in [ann1, ann2]:
+    combined.update(ann)
+
+# Write only the "annotations": {...} pair, without extra {}
+with open("$output", "w") as out:
+    out.write('"annotations": ' + json.dumps(combined, indent=4) + "\n")
+EOF
+}
+
+# merge_all_annotations <file1> <file2> ... <fileN>
+# Output is always printed to stdout; use > to redirect.
+# Example usage:
+#   FILES=(annot*.json)
+#    merge_all_annotations "${FILES[@]}" > combined-annotations.json
+merge_all_annotations() {
+    local files=("$@")
+
+    if [ "${#files[@]}" -lt 1 ]; then
+        echo "No files provided" >&2
+        return 1
+    fi
+
+    # Start with the first file
+    local tmp_result="${files[0]}"
+
+    # Loop over remaining files
+    for ((i=1; i<${#files[@]}; i++)); do
+        local next_file="${files[i]}"
+        local tmp_out
+        tmp_out=$(mktemp)
+
+        # Merge without touching original files
+        merge_annotations "$tmp_result" "$next_file" "$tmp_out"
+
+        # Remove previous temporary file if not the first input
+        if [[ "$tmp_result" != "${files[0]}" ]]; then
+            rm -f "$tmp_result"
+        fi
+
+        tmp_result="$tmp_out"
+    done
+
+    # Print final merged JSON to stdout
+    cat "$tmp_result"
+
+    # Clean up the last temp file
+    if [[ "$tmp_result" != "${files[0]}" ]]; then
+        rm -f "$tmp_result"
+    fi
+}
+
 # EOF

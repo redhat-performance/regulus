@@ -13,11 +13,11 @@ include ${REG_ROOT}/jobs.config
 TAG ?= DRY
 RUN=reg-run
 
-init:
-	./reg_expand.sh
-
 run:
 	${RUN} --label ${TAG}
+
+init:
+	./reg_expand.sh
 
 dry-run:
 	DRY_RUN=true NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label DRY

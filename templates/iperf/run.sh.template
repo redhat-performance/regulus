@@ -10,6 +10,7 @@ source ${REG_ROOT}/templates/common/remotehost_functions
 source ${REG_ROOT}/templates/common/functions
 
 DURATION=${DURATION:-0}
+TPL_QOS=${TPL_QOS:-burstable}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 
 scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair.  Consider using even numbers due to NUMA carving
@@ -41,7 +42,7 @@ mv_params_file=mv-params.json # All benchmark-iterations are built from this fil
 num_cpus=${USEABLE_CPUS}  # A few fewer than the number of *Allocatable* cpus on each of the workers.
              # as reported by oc describe node/node-name
              # This is  automatically calculated by lab-analyzer
-pod_qos=burstable # static = guaranteed pod, burstable = default pos qos
+pod_qos=$TPL_QOS # static = guaranteed pod, burstable = default pos qos
 ocphost=$REG_OCPHOST
 if [ "$(hostname)" == "${REG_OCPHOST}" ]; then
     # use IP if running on the bastion
@@ -60,9 +61,6 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; 
     securityContext_file="`/bin/pwd`/securityContext.json"
 fi
 
-if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_MACVLAN" == 1 ]; then
-    annotations="`/bin/pwd`/annotations.json"  &> /dev/null
-fi
 if [ "$TPL_PAO" == 1 ] ; then
     runtimeClassNameOpt=",runtimeClassName:performance-${MCP}"
 fi
@@ -122,7 +120,7 @@ function gen_resource_file() {
         # if scale factor= 1, and number of cpu is greater than 2 * (CORE_PERSOCKET - 3) will hit not enough resource.
         if [ $scale_up_factor == 1 ]; then
             max=$(( (CORE_PERSOCKET - 3) * 2 ))
-            if [ $cpu > $max ]; then
+            if [ $cpu -gt $max ]; then
                 cpu=$max
             fi
         fi
@@ -146,6 +144,31 @@ function gen_resource_file() {
     fi
 }
 
+collect_more_tags() {
+	if [ "$TPL_SRIOV" == 1 ],; then
+        other_tags+=",model:SRIOV"
+    elif [ "$TPL_HOSTNETWORK" == 1 ]; then
+        other_tags+=",model:HOSTNETWORK"
+ 
+    elif [ "$TPL_MACVLAN" == 1 ]; then
+        other_tags+=",model:MACVLAN"
+    else
+        other_tags+=",model:OVNK"
+    fi
+
+	if [ "$TPL_PAO" == 1 ]; then
+        other_tags+=",perf:PAO"
+    else
+        other_tags+=",perf:none"
+    fi
+    if [ "$TPL_HWOL" == 1 ]; then
+        other_tags+=",offload:HWOL"
+    elif [ "$TPL_DPF" == 1 ]; then
+        other_tags+=",offload:DPU"
+    else
+        other_tags+=",offload:none"
+    fi
+}
 
 # check for dependencies
 bins="jq bc do_ssh sed crucible"
@@ -159,21 +182,17 @@ if [ ! -z "$missing_bins" ]; then
     exit 1
 fi
     
-
-# What is below is code to generate the appropriate crucible command to tun your test.
-# There is a ton of duplicated code that needs to be consolidated.
-
-if [ ! -z "$annotations" ]; then
-    if [ -f "$annotations" ]; then
-        echo "Using annotations: $annotations"
-        anno_opt=",annotations:default:$annotations"
-    else
-        echo "Annoations file missing: $annotations"
-        exit
-    fi
+# combine all annotations
+if ls annota*.json 1> /dev/null 2>&1; then
+    echo "Using annotations: $annotations"
+    FILES=(annotat*.json)
+    merge_all_annotations "${FILES[@]}"  > COMBINED_ANNOTATIONS.json
+    annotations="`/bin/pwd`/COMBINED_ANNOTATIONS.json"
+    anno_opt=",annotations:default:$annotations"
 else
     anno_opt=""
 fi
+
 
 if [ "$DURATION" != 0 ]; then
 	# There is env-defined duration. Use it.
@@ -237,6 +256,7 @@ for num_pods in $scale_up_factor; do
             echo "Computing resource file: $resource_file"
             gen_resource_file $per_pod_cpu
         fi
+
         do_ssh $k8susr@$ocphost "kubectl get nodes/$first_worker -o json" >worker.json
         kernel=`jq -r .status.nodeInfo.kernelVersion worker.json`
         rcos=`jq -r .status.nodeInfo.osImage  worker.json | awk -F"CoreOS " '{print $2}' | awk '{print $1}'`
@@ -288,7 +308,13 @@ for num_pods in $scale_up_factor; do
         fi
         endpoint_opt+=",${node_selector}"
         endpoint_opt+=",userenv:$userenv"
-        endpoint_opt+=",resources:default:$resource_file"
+
+        if ls resource*.json 1> /dev/null 2>&1; then
+            FILES=(resource*.json)
+            merge_all_resources "${FILES[@]}"  > COMBINED_RESOURCES.json
+            resource_file="`/bin/pwd`/COMBINED_RESOURCES.json"
+            endpoint_opt+=",resources:default:$resource_file"
+        fi
         endpoint_opt+=",osruntime:${osruntime}"
         endpoint_opt+="$anno_opt"
         endpoint_opt+="${runtimeClassNameOpt}"
@@ -335,8 +361,9 @@ for num_pods in $scale_up_factor; do
     if [ "$topo" == "internode" -a "$topo" == "intranode" ]; then
         tags+=",pod_qos:$pod_qos"
     fi
+    collect_more_tags
     if [ ! -z "$other_tags" ]; then
-        tags+="other_tags"
+        tags+="$other_tags"
     fi
     if [ "$DRY_RUN" == true  ]; then
         echo DRY=true
@@ -353,8 +380,7 @@ ARGS=" --tags $tags \
         --max-sample-failures=$max_failures \
         $endpoint_opt "
 
-    # OBSOLETE CLI: time crucible run iperf $ARGS
-	reg-c2j-config.py --name iperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
+    reg-c2j-config.py --name iperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
     time crucible run --from-file all-in-one.json
 
 done
