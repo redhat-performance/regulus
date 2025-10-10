@@ -683,23 +683,21 @@ bench="mbench"
 # look at run.sh to discover bench prefix i.e iperf, uperf, flexran to know what blob to process. It will process "iperf--run-xxxxx"
 
 while read line; do
-    # Determine bench by detecting "crucible run [iperf, uperf, flexran] ..."
+    # Determine bench by detecting "reg-c2j-config.py --name uperf/iperf/flexran  ..."
     # This form, "./run-3types.sh  scalelab-withHWOL-sut" is mbench type
-    tok=$(echo $line | grep -Po 'crucible run\s*\K\S*')
+    tok=$(echo "$line" | grep -oP '(?<=--name )\S+')
     if [[ "$tok" != "" ]]; then
         if [[ "$tok" == *","* ]]; then
-            # "crucible run iperf,uperf ..." form
+            # Not "reg-c2j-config.py --name [uperf | iperf | flexran ...]" form
             bench="mbench"
             break
         else
-           # "crucibe run iperf ... "
+           # "reg-c2j-config.py --name [uperf | iperf | flexran ...]" form
             bench=$tok
             break
         fi
     fi
 done < "../run.sh"
-
-echo bench=$bench
 
 # if mbench the blob namd iperf--uperf*
 if [ "$bench" == "mbench" ]; then
