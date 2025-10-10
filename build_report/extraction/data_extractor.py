@@ -357,7 +357,7 @@ class RegexDataExtractor:
         for tag in tags_str.split():
             if '=' in tag:
                 key, value = tag.split('=', 1)
-                if key in ['kernel', 'rcos', 'pods-per-worker', 'scale_out_factor', 'topo']:
+                if key in ['model', 'perf', 'offload', 'kernel', 'rcos', 'pods-per-worker', 'scale_out_factor', 'topo']:
                     key_tags[key] = value
     
         return key_tags

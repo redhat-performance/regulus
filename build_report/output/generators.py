@@ -635,6 +635,13 @@ class HtmlOutputGenerator:
                     ]
                     metric['config'] = ','.join(tag_parts)
 
+                    if 'model' in key_tags:
+                        metric['model'] = key_tags['model']
+                    if 'offload' in key_tags:
+                        metric['offload'] = key_tags['offload']
+                    if 'perf' in key_tags:
+                        metric['perf'] = key_tags['perf']
+
                     # Add test configuration - use helper for ALL params
                     protocol = self._get_param_value('protocol', unique_params, file_common_params)
                     
@@ -723,7 +730,7 @@ class HtmlOutputGenerator:
 
         # Remove status and file from main columns (they'll be handled specially)
         #columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']])
-        column_order = ['config', 'test_type', 'threads', 'wsize', 'rsize', 'samples', 'mean', 'unit', 'stddev%', 'iteration']
+        column_order = ['model','perf', 'offload', 'config', 'test_type', 'threads', 'wsize', 'rsize', 'samples', 'mean', 'unit', 'stddev%', 'iteration']
 
         # Sort with custom order
         def custom_sort(col):
