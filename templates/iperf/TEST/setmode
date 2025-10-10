@@ -1,7 +1,7 @@
 #!/bin/bash
 # copy "full" or "one" to the current mv-params.
 
-MV_FILES="tcp-bitrate-mv-params.json.template udp-bitrate-mv-params.json.template  udp-drop-mv-params.json.template"
+MV_FILES="tcp-bitrate-mv-params.json.template tcp-mv-params.json.template udp-bitrate-mv-params.json.template  udp-drop-mv-params.json.template"
 
 for file in $MV_FILES; do
     if [ "$1" == "full" ]; then

@@ -1,0 +1,21 @@
+{
+  "global-options": [
+    {
+      "name": "common-params",
+      "params": [
+        { "arg": "time", "vals": ["120"] },
+        { "arg": "protocol", "vals": ["tcp"] },
+        { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
+        { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "length", "vals": ["130000"] }
+      ]
+    }
+  ]
+}
