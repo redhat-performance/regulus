@@ -713,6 +713,13 @@ class HtmlOutputGenerator:
                                 stddev = primary_result['stddevpct']
                                 if isinstance(stddev, (int, float)) and stddev > 0:
                                     metric['stddev%'] = f"{stddev:.2f}%"
+
+                            if 'CPU' in primary_result:
+                                cpu = primary_result['CPU']
+                                if isinstance(cpu, (int, float)):
+                                    metric['cpu'] = f"{cpu:.2f}"
+                                else:
+                                    metric['cpu'] = str(cpu)
                     
                     metrics.append(metric)
         
@@ -730,7 +737,7 @@ class HtmlOutputGenerator:
 
         # Remove status and file from main columns (they'll be handled specially)
         #columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']])
-        column_order = ['model','perf', 'offload', 'config', 'test_type', 'threads', 'wsize', 'rsize', 'samples', 'mean', 'unit', 'stddev%', 'iteration']
+        column_order = ['model','perf', 'offload', 'config', 'test_type', 'threads', 'wsize', 'rsize', 'samples', 'mean', 'unit', 'cpu', 'stddev%', 'iteration']
 
         # Sort with custom order
         def custom_sort(col):
