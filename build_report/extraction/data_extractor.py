@@ -266,7 +266,7 @@ class RegexDataExtractor:
             }
 
             if cpu_value is not None:
-                result['CPU'] = cpu_value
+                result['busyCPU'] = cpu_value
 
             return result  
     
@@ -321,7 +321,7 @@ class RegexDataExtractor:
                 'unit': self._infer_unit(metric_type)
             }
             if cpu_value is not None:
-                result['CPU'] = cpu_value
+                result['busyCPU'] = cpu_value
 
             return result  
         
@@ -380,7 +380,7 @@ class RegexDataExtractor:
         for tag in tags_str.split():
             if '=' in tag:
                 key, value = tag.split('=', 1)
-                if key in ['model', 'perf', 'offload', 'kernel', 'rcos', 'pods-per-worker', 'scale_out_factor', 'topo']:
+                if key in ['model', 'perf', 'offload', 'kernel', 'rcos', 'pods-per-worker', 'scale_out_factor', 'topo', 'cpu']:
                     key_tags[key] = value
     
         return key_tags
