@@ -219,7 +219,7 @@ class RegexDataExtractor:
     def _extract_uperf_result(self, line: str) -> Dict[str, Any]:
         """Extract uperf result format from a single line."""
         # Pattern: result: (uperf::Gbps) samples: X Y Z mean: M min: N max: O stddev: P stddevpct: Q
-        pattern = r'result:\s*\(uperf::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)'
+        pattern = r'result:\s*\(uperf::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)(?:\s*CPU:\s*([0-9.]+))?'
         
         match = re.search(pattern, line, re.IGNORECASE)
         if match:
@@ -244,8 +244,15 @@ class RegexDataExtractor:
                 stddevpct = float(match.group(7))
             except ValueError:
                 stddevpct = 0.0
-            
-            return {
+            # parse CPU
+            cpu_value = None
+            if match.group(8):
+                try:
+                    cpu_value = float(match.group(8))
+                except (ValueError, TypeError):
+                    pass
+
+            result = {
                 'type': metric_type,
                 'sample_values': sample_values,
                 'sample_count': len(sample_values),
@@ -257,13 +264,18 @@ class RegexDataExtractor:
                 'range': float(match.group(5)) - float(match.group(4)),
                 'unit': self._infer_unit(metric_type)
             }
-        
+
+            if cpu_value is not None:
+                result['CPU'] = cpu_value
+
+            return result  
+    
         return {'raw': 'No result found', 'type': 'unknown'}
     
     def _extract_iperf_result(self, line: str) -> Dict[str, Any]:
         """Extract iperf result format from a single line (same as uperf format)."""
         # Pattern: result: (iperf::rx-Gbps) samples: X mean: M min: N max: O stddev: P stddevpct: Q
-        pattern = r'result:\s*\(iperf::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)'
+        pattern = r'result:\s*\(iperf::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)(?:\s*CPU:\s*([0-9.]+))?'
         
         match = re.search(pattern, line, re.IGNORECASE)
         if match:
@@ -288,8 +300,15 @@ class RegexDataExtractor:
                 stddevpct = float(match.group(7))
             except ValueError:
                 stddevpct = 0.0
-            
-            return {
+            # parse CPU
+            cpu_value = None
+            if match.group(8):
+                try:
+                    cpu_value = float(match.group(8))
+                except (ValueError, TypeError):
+                    pass
+
+            result = {
                 'type': metric_type,
                 'sample_values': sample_values,
                 'sample_count': len(sample_values),
@@ -301,6 +320,10 @@ class RegexDataExtractor:
                 'range': float(match.group(5)) - float(match.group(4)),
                 'unit': self._infer_unit(metric_type)
             }
+            if cpu_value is not None:
+                result['CPU'] = cpu_value
+
+            return result  
         
         return {'raw': 'No result found', 'type': 'unknown'}
     
