@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+ Usage:
+    $ find /home/hnhan/this-run/REPORT/ -name "__pycache__" -exec rm -rf {} +
+    $ python3.9 /home/hnhan/this-run/reg-report.py --formats html  --output nvd_report  --root /home/hnhan/nvd-44-regulus/
+
+"""
 import argparse
 from build_report.factories import create_multi_format_orchestrator
 import sys
