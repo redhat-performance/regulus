@@ -1,7 +1,8 @@
 
 Usage:
-    $ find /home/hnhan/this-run/REPORT/ -name "__pycache__" -exec rm -rf {} +
-    $ python3.9 /home/hnhan/this-run/reg-report.py --formats html  --output nvd_report  --root /home/hnhan/nvd-44-regulus/
+    $ cd $REG_ROOT
+    $ find build_report/ -name "__pycache__" -exec rm -rf {} +
+    $ python3.9 -m build_report.reg-report --formats html --output foo-report --root /home/hnhan/nvd-44-regulus
 
 
 # Multi-File Structure Implementation Guide

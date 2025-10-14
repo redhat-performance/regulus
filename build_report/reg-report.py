@@ -6,7 +6,7 @@
 
 """
 import argparse
-from build_report.factories import create_multi_format_orchestrator
+from .factories import create_multi_format_orchestrator
 import sys
 
 # CLI parser for wrapper
