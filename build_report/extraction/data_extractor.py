@@ -31,10 +31,7 @@ class RegexDataExtractor:
         run_id = self._extract_run_id(content)
         common_params = self._extract_common_params(content)
         tags = self._extract_tags(content)
-<<<<<<< HEAD
         key_tags = self._extract_key_tags(tags)
-=======
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
         
         # Extract all iterations
         iterations = self._extract_iterations(content, benchmark)
@@ -45,12 +42,8 @@ class RegexDataExtractor:
             'iterations_found': len(iterations),
             'total_samples': sum(len(it.samples) for it in iterations),
             'benchmark_detected': benchmark,
-<<<<<<< HEAD
             'tags': tags,
              'key_tags': key_tags
-=======
-            'tags': tags
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
         }
         
         if self.enable_timing:
@@ -226,11 +219,7 @@ class RegexDataExtractor:
     def _extract_uperf_result(self, line: str) -> Dict[str, Any]:
         """Extract uperf result format from a single line."""
         # Pattern: result: (uperf::Gbps) samples: X Y Z mean: M min: N max: O stddev: P stddevpct: Q
-<<<<<<< HEAD
         pattern = r'result:\s*\(uperf::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)(?:\s*CPU:\s*([0-9.]+))?'
-=======
-        pattern = r'result:\s*\(uperf::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)'
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
         
         match = re.search(pattern, line, re.IGNORECASE)
         if match:
@@ -255,7 +244,6 @@ class RegexDataExtractor:
                 stddevpct = float(match.group(7))
             except ValueError:
                 stddevpct = 0.0
-<<<<<<< HEAD
             # parse CPU
             cpu_value = None
             if match.group(8):
@@ -265,10 +253,6 @@ class RegexDataExtractor:
                     pass
 
             result = {
-=======
-            
-            return {
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
                 'type': metric_type,
                 'sample_values': sample_values,
                 'sample_count': len(sample_values),
@@ -280,26 +264,18 @@ class RegexDataExtractor:
                 'range': float(match.group(5)) - float(match.group(4)),
                 'unit': self._infer_unit(metric_type)
             }
-<<<<<<< HEAD
 
             if cpu_value is not None:
                 result['busyCPU'] = cpu_value
 
             return result  
     
-=======
-        
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
         return {'raw': 'No result found', 'type': 'unknown'}
     
     def _extract_iperf_result(self, line: str) -> Dict[str, Any]:
         """Extract iperf result format from a single line (same as uperf format)."""
         # Pattern: result: (iperf::rx-Gbps) samples: X mean: M min: N max: O stddev: P stddevpct: Q
-<<<<<<< HEAD
         pattern = r'result:\s*\(iperf::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)(?:\s*CPU:\s*([0-9.]+))?'
-=======
-        pattern = r'result:\s*\(iperf::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)'
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
         
         match = re.search(pattern, line, re.IGNORECASE)
         if match:
@@ -324,7 +300,6 @@ class RegexDataExtractor:
                 stddevpct = float(match.group(7))
             except ValueError:
                 stddevpct = 0.0
-<<<<<<< HEAD
             # parse CPU
             cpu_value = None
             if match.group(8):
@@ -334,10 +309,6 @@ class RegexDataExtractor:
                     pass
 
             result = {
-=======
-            
-            return {
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
                 'type': metric_type,
                 'sample_values': sample_values,
                 'sample_count': len(sample_values),
@@ -349,13 +320,10 @@ class RegexDataExtractor:
                 'range': float(match.group(5)) - float(match.group(4)),
                 'unit': self._infer_unit(metric_type)
             }
-<<<<<<< HEAD
             if cpu_value is not None:
                 result['busyCPU'] = cpu_value
 
             return result  
-=======
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
         
         return {'raw': 'No result found', 'type': 'unknown'}
     
@@ -404,7 +372,6 @@ class RegexDataExtractor:
             results=results
         )
 
-<<<<<<< HEAD
     def _extract_key_tags(self, tags_str: str) -> Dict[str, str]:
         """Extract key tags: pods-per-worker, scale_out_factor, topo."""
         key_tags = {}
@@ -417,8 +384,6 @@ class RegexDataExtractor:
                     key_tags[key] = value
     
         return key_tags
-=======
->>>>>>> c6aaf49 (uperf,iperf,mbench working)
 
 class MultiPassDataExtractor:
     """Data extractor that performs multiple passes for complex extractions."""
