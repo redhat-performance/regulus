@@ -1,12 +1,56 @@
 #!/usr/bin/env python3
 """
-Script to add the Busy-CPU value to result-summary.txt.
-It extract the Busy-CPU values from the horizontal.sh script output.
-Matches TPUT and CPU values order of appearance.
-"""
+    Script to add the Busy-CPU value to result-summary.txt.
+    It extract the Busy-CPU values from the horizontal.sh script output.
+    Also adds num CPU and datapath model to the tags line.
+    Matches TPUT and CPU values order of appearance.
 
+    Usage: reg-enhance-results.py horizontal.txt result-summary.tx <outfile>
+"""
 import re
 import sys
+import subprocess
+import os
+
+def get_cpu_resources():
+    """Get CPU resources by invoking the reg-get-numcpu.py script."""
+    try:
+        reg_root = os.environ.get('REG_ROOT', '')
+        script_path = os.path.join(reg_root, 'bin', 'reg-get-numcpu.py') if reg_root else 'reg-get-numcpu.py'
+        
+        result = subprocess.run(
+            ['python3', script_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return None
+    except FileNotFoundError:
+        print(f"Warning: reg-get-numcpu.py not found at {script_path}", file=sys.stderr)
+        return None
+
+def get_datapath_model():
+    """Get datapath model by invoking the reg-get-model.py script."""
+    try:
+        reg_root = os.environ.get('REG_ROOT', '')
+        script_path = os.path.join(reg_root, 'bin', 'reg-get-model.py') if reg_root else 'reg-get-model.py'
+        
+        result = subprocess.run(
+            ['python3', script_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return None
+    except FileNotFoundError:
+        print(f"Warning: reg-get-model.py not found at {script_path}", file=sys.stderr)
+        return None
 
 def parse_source_file(source_path):
     """Parse source file and extract TPUT and CPU values."""
@@ -35,15 +79,33 @@ def parse_source_file(source_path):
         'cpu': cpu_values
     }
 
-def update_destination_file(dest_path, values, output_path=None):
-    """Update destination file with extracted values."""
+def update_destination_file(dest_path, values, cpu_resource, datapath_model, output_path=None):
+    """Update destination file with extracted values and metadata."""
     with open(dest_path, 'r') as f:
         lines = f.readlines()
     
     updated_lines = []
     iteration_count = 0
+    tags_updated = False
     
     for i, line in enumerate(lines):
+        # Update tags line with CPU resource and datapath model
+        if line.strip().startswith('tags:') and not tags_updated:
+            updated_line = line.rstrip('\n')
+            
+            # Add datapath model if available
+            if datapath_model:
+                updated_line += f' model={datapath_model}'
+            
+            # Add CPU resource if available
+            if cpu_resource:
+                updated_line += f' cpu={cpu_resource}'
+            
+            updated_line += '\n'
+            updated_lines.append(updated_line)
+            tags_updated = True
+            continue
+        
         # Check for result line with result:
         if 'result:' in line:
             # Make sure we have values for this iteration
@@ -96,6 +158,10 @@ def update_destination_file(dest_path, values, output_path=None):
         f.writelines(updated_lines)
     
     print(f"\nSuccessfully updated {output_file}")
+    if cpu_resource:
+        print(f"Added CPU resource: {cpu_resource}")
+    if datapath_model:
+        print(f"Added datapath model: {datapath_model}")
     print(f"Updated {iteration_count} iterations")
     print(f"TPUT values applied: {', '.join(str(v) for v in values['tput'][:iteration_count])}")
     if values['cpu']:
@@ -111,6 +177,10 @@ def main():
     dest_file = sys.argv[2]
     output_file = sys.argv[3] if len(sys.argv) > 3 else None
     
+    # Get CPU resources and datapath model
+    cpu_resource = get_cpu_resources()
+    datapath_model = get_datapath_model()
+    
     # Parse source file
     values = parse_source_file(source_file)
     print(f"Found {len(values['tput'])} TPUT values in source file")
@@ -118,7 +188,7 @@ def main():
         print(f"Found {len(values['cpu'])} CPU values in source file")
     
     # Update destination file
-    update_destination_file(dest_file, values, output_file)
+    update_destination_file(dest_file, values, cpu_resource, datapath_model, output_file)
 
 if __name__ == "__main__":
     main()
