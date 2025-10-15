@@ -7,7 +7,7 @@ REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
 
 export TPL_SCALE_UP_FACTOR=6
-export TPL_QOS=static
+export TPL_QOS=guaranteed
 export TPL_TOPO=intranode
 export TPL_PAO=1
 export TPL_DPF=1

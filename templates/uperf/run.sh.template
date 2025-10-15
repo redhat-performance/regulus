@@ -13,6 +13,8 @@ source ${REG_ROOT}/templates/common/functions
 DURATION=${DURATION:-0}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 TPL_QOS=${TPL_QOS:-burstable}
+TPL_NUMCPUS=${TPL_NUMCPUS:-0}
+CPUS_PER_CORE=${CPUS_PER_CORE:-2}
 
 scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair. Consider using even numbers due to NUMA carving
 
@@ -43,13 +45,15 @@ mv_params_file=mv-params.json # All benchmark-iterations are built from this fil
 num_cpus=${USEABLE_CPUS}  # A few fewer than the number of *Allocatable* cpus on each of the workers.
              # as reported by oc describe node/node-name
              # This is  automatically calculated by lab-analyzer
-pod_qos=$TPL_QOS  # static = guaranteed pod, burstable = default pos qos
+pod_qos=$TPL_QOS  # guaranteed or burstable -  default is burstable
+[[ "$pod_qos" =~ ^(burstable|guaranteed)$ ]] || { echo "($LINENO) invalid qos: $pod_qos" >&2; exit 1; }
 ocphost=$REG_OCPHOST
 if [ "$(hostname)" == "${REG_OCPHOST}" ]; then
     # use IP if running on the bastion
     ocphost="$(hostname -i)"
 fi
 k8susr=$REG_KNI_USER # Might be "root" or "kni" for some installations
+
 
 # Start a clean project with privilege 
 do_ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
@@ -63,6 +67,8 @@ fi
 
 if [ "$TPL_PAO" == 1 ] ; then
     runtimeClassNameOpt=",runtimeClassName:performance-${MCP}"
+    do_ssh $k8susr@$ocphost "kubectl get performanceprofile ${MCP} -o json" > performanceprofile.json
+    numa_mode="$(get_pp_policy)"
 fi
 
 if [ "$TPL_SRIOV" == 1 ] ; then
@@ -109,30 +115,12 @@ if [ -f "${TPL_RESOURCES}" ]; then
 else
    resource_file="`/bin/pwd`/resource.json"
 fi
-    
+ 
 # Create a resource JSON to size the pods
+cpu=0
 function gen_resource_file() {
-    local cpu=$1
-    if [ "$pod_qos" == "static" ]; then
-        # static has number of cpu constraints.
-        #   1. multiple number of cores i.e. 2,4,6 and cannot be 1,3,5,7 when HT is on
-        #   2. if 2 CPUs per core (HT), each 2 CPU must be on the same core, In other words, the
-        #      number of CPUs cannot be great than the numbe of cores*2. And we know some
-        #      CPUs have been used the system. So we just make a best guess available cores=cores-3
-
-        # strip the last char 'm', and convert to num of whole CPU
-        local stripped_cpu="${cpu%?}"
-        local whole=$(( stripped_cpu / 1000 ))
-        # divisable by 2, since mostly we have HT on. So gu CPU must be full core.
-        cpu=$(( whole / 2 * 2 ))
-
-        # if scale factor= 1, and number of cpu is greater than 2 * (CORE_PERSOCKET - 3) will hit not enough resource.
-        if [ $scale_up_factor == 1 ]; then
-            max=$(( (CORE_PERSOCKET - 3) * 2 ))
-            if [ $cpu -gt $max ]; then
-                cpu=$max
-            fi
-        fi
+    cpu=$1
+    if [ "$pod_qos" == "guaranteed" ]; then
 
         echo '"resources": {'     >$resource_file
         echo '    "requests": {' >>$resource_file
@@ -153,29 +141,13 @@ function gen_resource_file() {
     fi
 }
 
+other_tags=""
 collect_more_tags() {
-	if [ "$TPL_SRIOV" == 1 ],; then
-        other_tags+=",model:SRIOV"
-    elif [ "$TPL_HOSTNETWORK" == 1 ]; then
-        other_tags+=",model:HOSTNETWORK"
- 
-    elif [ "$TPL_MACVLAN" == 1 ]; then
-        other_tags+=",model:MACVLAN"
-    else
-        other_tags+=",model:OVNK"
-    fi
-
 	if [ "$TPL_PAO" == 1 ]; then
-        other_tags+=",perf:PAO"
-    else
-        other_tags+=",perf:none"
+        other_tags+=",perf:$numa_mode"
     fi
     if [ "$TPL_HWOL" == 1 ]; then
         other_tags+=",offload:HWOL"
-    elif [ "$TPL_DPF" == 1 ]; then
-        other_tags+=",offload:DPU"
-    else
-        other_tags+=",offload:none"
     fi
 }
 
@@ -240,7 +212,7 @@ for num_pods in $scale_up_factor; do
 
         first_worker=`echo ${workers[0]}`
         if [ -z "$first_worker" ]; then
-            "First worker not defined, exiting"
+            echo "$(LINENO) First worker not defined, exiting"
             exit 1
         fi
         if [ "$topo" == "internode" ]; then
@@ -262,6 +234,17 @@ for num_pods in $scale_up_factor; do
             echo "User-provided: $resource_file"
         else
             echo "Computing resource file: $resource_file"
+            per_pod_cpu=$(compute_cpus_per_pod "$num_cpus" "$CORE_PERSOCKET"\
+                         "$topo" "$scale_up_factor" "$TPL_NUMCPUS" \
+                          "$TPL_QOS" "$numa_mode" "$CPUS_PER_CORE" )
+            if [[ $? -ne 0 ]]; then
+                echo "($LINENO) ERROR: Failed to compute/validate CPUs per pod" >&2
+                echo "$result" >&2
+                exit 1
+            else
+                echo "($LINENO): compute cpu=$per_pod_cpu"
+            fi
+
             gen_resource_file $per_pod_cpu
         fi
 
@@ -278,7 +261,7 @@ for num_pods in $scale_up_factor; do
             # Create a nodeSelector JSON to place pods
             for i in `seq 1 $scale_out_factor`; do
                 for j in 0 $(($nodes_per_client_server-1)); do
-                    if [ "$topo" == "ingress" -o "$topo" == "egress" ]; then
+                    if [ "$topo" == "ingress" -o "$topo" == "egress" -o "$topo" == "intranode" ]; then
                        idx=`echo "($i-1)" | bc`
                     else
                       idx=`echo "($i-1)*2+$j" | bc`
@@ -368,7 +351,8 @@ for num_pods in $scale_up_factor; do
     tags="sdn:$network_type,mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv,osruntime:$osruntime"
     tags+=",topo:$topo,pods-per-worker:$num_pods,scale_out_factor:$scale_out_factor"
     if [ "$topo" == "internode" -a "$topo" == "intranode" ]; then
-        tags+=",pod_qos:$pod_qos"
+        #tags+=",pod_qos:$pod_qos"
+        :
     fi
     collect_more_tags
     if [ ! -z "$other_tags" ]; then
@@ -391,6 +375,7 @@ ARGS=" --tags $tags \
         $endpoint_opt "
 
     reg-c2j-config.py --name uperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
+    reg-enhance-tags.py all-in-one.json model:$REG_ROOT/bin/reg-get-model.py,cpu:$REG_ROOT/bin/reg-get-numcpu.py  &&\
     time crucible run --from-file all-in-one.json
 
 done

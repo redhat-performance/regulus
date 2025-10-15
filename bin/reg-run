@@ -138,6 +138,14 @@ bash horizontal.sh new-summary* > horizontal.txt
 # before tar pull the result-summary.txt here so rmrun can run
 find . -name result-summary.txt -exec cp {} . \;
 
+if [ -x ${REG_ROOT}/bin/reg-add-cpu-result.py ]; then
+    ${REG_ROOT}/bin/reg-add-cpu-result.py horizontal.txt result-summary.txt result-summary.tmp &&
+    mv result-summary.tmp result-summary.txt
+
+else
+    echo "($LINENO) - could not find reg-add-cpu-result.py add CPU"
+fi
+
 echo tar-result iperf
 #reg-tar-result iperf
 #reg-tar-result uperf

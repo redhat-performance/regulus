@@ -175,4 +175,13 @@ merge_all_annotations() {
     fi
 }
 
+get_pp_policy() {
+    do_ssh "$k8susr@$ocphost" \
+        "kubectl get performanceprofile reghwol -o jsonpath='{.spec.numa.topologyPolicy}'" 2>/dev/null \
+        | tr -d '[:space:]'
+}
+
+# Source numcpu.sh 
+source "$(dirname "${BASH_SOURCE[0]}")/numcpu.sh"
+
 # EOF

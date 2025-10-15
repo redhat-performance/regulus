@@ -7,12 +7,13 @@ REG_COMMON=${REG_ROOT}/templates/common
 MANIFEST_DIR=./
 
 export TPL_SCALE_UP_FACTOR=6
-export TPL_QOS=static
+export TPL_QOS=guaranteed
 export TPL_TOPO=intranode
 export TPL_PAO=1
 export TPL_DPF=1
+export TPL_NUMCPUS=
 
-envsubst '$TPL_QOS,$TPL_PAO,$TPL_DPF,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
+envsubst '$TPL_QOS,$TPL_PAO,$TPL_DPF,$TPL_NUMCPUS,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 export TPL_INTF=eth0
 export TPL_IPV=4
 envsubst '$TPL_INTF,$TPL_IPV' <  ${REG_TEMPLATES}/tcp-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
