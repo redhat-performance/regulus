@@ -165,7 +165,7 @@ dpdk_acceptable() {
     local model=$1
     
     case "$model" in
-        CX7|CX8|CX6|E810|E820|XXV710|X710)
+        CX7|CX8|CX6|E810|E820|XXV710|X710|X550)
             return 0  # true
             ;;
         *)
@@ -297,6 +297,8 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                         model="XXV710"
                     elif echo "$lspci_info" | grep -q -i "X710"; then
                         model="X710"
+                    elif echo "$lspci_info" | grep -q -i "X550"; then
+                        model="X550"
                     elif echo "$lspci_info" | grep -q -i "E810"; then
                         model="E810"
                     elif echo "$lspci_info" | grep -q -i "ConnectX-5"; then
