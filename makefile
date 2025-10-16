@@ -14,7 +14,7 @@
 #
 include ./jobs.config
 SHELL := /bin/bash
-.PHONY: confirm_execute
+.PHONY: confirm_execute summary
 
 LOG_FILE := jobs.log-$(shell date "+%Y-%m-%d-%H-%M-%S")
 
@@ -65,6 +65,9 @@ dry-run-jobs: init-lab
 # Lazy aliasing "make run-jobs > log" to "make jobs"
 jobs:
 	@make run-jobs 2>&1 | tee $(LOG_FILE)
+
+summary:
+	@bash build_report/build_report
 
 confirm_execute:
 	@echo "Are you sure you want to execute the target? [y/N] " && read ans && [ $${ans:-N} = y ]
@@ -132,8 +135,14 @@ $(LAB_TARGET): $(LAB_SOURCE) ./bin/lab-analyzer
 
 # This top setting.env is needed before other  *-config can run. 
 SRIOV_INIT:
-	@cd SETUP_GROUP/SRIOV/INSTALL && make --no-print-directory init >/dev/null 2>&1 || true 
-	@cd SRIOV-config/UNIV && make --no-print-directory init >/dev/null 2>&1 || true         
+	@echo "[SRIOV_INIT] initializing..." >&2
+	@{ \
+	  pushd SETUP_GROUP/SRIOV/INSTALL >/dev/null && \
+	  make --no-print-directory init || exit 1; \
+	  popd >/dev/null; \
+	  cd SRIOV-config/UNIV && make --no-print-directory init || exit 1; \
+	} || { echo "❌ SRIOV_INIT failed" >&2; exit 1; }
+
 
 # Init LAB info if lab.config changes. Do not output anything to spoil the json file
 init-lab: $(LAB_TARGET) SRIOV_INIT

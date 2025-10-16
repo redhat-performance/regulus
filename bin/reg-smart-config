@@ -163,9 +163,20 @@ get_ovn_interface() {
 
 dpdk_acceptable() {
     local model=$1
-    
     case "$model" in
         CX7|CX8|CX6|E810|E820|XXV710|X710)
+            return 0  # true
+            ;;
+        *)
+            return 1  # false
+            ;;
+    esac
+}
+
+sriov_acceptable() {
+    local model=$1
+    case "$model" in
+        CX7|CX8|CX6|E810|E820|XXV710|X710|X550)
             return 0  # true
             ;;
         *)
@@ -295,6 +306,8 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                     # Check model based on lspci output
                     if echo "$lspci_info" | grep -q -i "XXV710"; then
                         model="XXV710"
+                    elif echo "$lspci_info" | grep -q -i "X550"; then
+                        model="X550"
                     elif echo "$lspci_info" | grep -q -i "X710"; then
                         model="X710"
                     elif echo "$lspci_info" | grep -q -i "E810"; then
@@ -329,9 +342,9 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                 DPRINT $LINENO "NIC $nic - driver: $driver, model: $model, SRIOV configured: ${nic_has_sriov[$nic]}  MTU  ${nic_mtu[$nic]}"
             done
 
-			# Print header
-			printf "%-12s %-14s %-14s %-8s %-8s\n" "NIC" "Model" "SRIOV exists"   "MTU" "Status"
-			printf "%-12s %-14s %-14s %-8s %-8s\n" "------------" "--------------" "------------"  "----------" "--------"
+            # Print header
+            printf "%-12s %-14s %-14s %-8s %-8s\n" "NIC" "Model" "SRIOV exists"   "MTU" "Status"
+            printf "%-12s %-14s %-14s %-8s %-8s\n" "------------" "--------------" "------------"  "----------" "--------"
 			# Print each NIC's info
             for nic in $available_nics; do
                 if [ "$nic" == "${OVN_INTERFACE}" ] ; then
@@ -359,7 +372,7 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
             if [ !  -z "$REG_SRIOV_NIC" ]; then
                 # user-defined REG_SRIOV_NIC, checkit and WARN but let it continue. The user knows more than us.
                 DPRINT $LINENO "check user-defined REG_SRIOV_NIC=$REG_SRIOV_NIC"
-                if ! dpdk_acceptable "${nic_models[$REG_SRIOV_NIC]}" || [[ "${nic_has_sriov[$REG_SRIOV_NIC]}" == "yes" ]] || ! interface_ready "$WORKER_IP" "$REG_SRIOV_NIC"; then
+                if ! sriov_acceptable "${nic_models[$REG_SRIOV_NIC]}" || [[ "${nic_has_sriov[$REG_SRIOV_NIC]}" == "yes" ]] || ! interface_ready "$WORKER_IP" "$REG_SRIOV_NIC"; then
                     DPRINT $LINENO "WARN REG_SRIOV_NIC=$REG_SRIOV_NIC is not acceptable model, has SRIOV configured, or interface not ready"
                 else
                     DPRINT $LINENO "$REG_SRIOV_NIC is suitable for SRIOV"
@@ -369,8 +382,9 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
             else
                 # Not defined. Find a suitable SRIOV NIC (first one without SRIOV configured and interface ready)
                 for nic in $available_nics; do
+                    DPRINT $LINENO "considering $nic for SRIOV"
                     [[ "$nic"  == "${OVN_INTERFACE}" ]] && continue
-                    if dpdk_acceptable "${nic_models[$nic]}" && [[ "${nic_has_sriov[$nic]}" == "no" ]] && interface_ready "$WORKER_IP" "$nic"; then
+                    if sriov_acceptable "${nic_models[$nic]}" && [[ "${nic_has_sriov[$nic]}" == "no" ]] && interface_ready "$WORKER_IP" "$nic"; then
                         sriov_nic=$nic
                         sriov_model=${nic_models[$nic]}
                         INFO $LINENO "Found suitable SRIOV NIC: $sriov_nic ($sriov_model)"
