@@ -140,7 +140,6 @@ SRIOV_INIT:
 	  pushd SETUP_GROUP/SRIOV/INSTALL >/dev/null && \
 	  make --no-print-directory init || exit 1; \
 	  popd >/dev/null; \
-	  cd SRIOV-config/UNIV && make --no-print-directory init || exit 1; \
 	} || { echo "❌ SRIOV_INIT failed" >&2; exit 1; }
 
 
