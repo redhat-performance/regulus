@@ -66,8 +66,8 @@ dry-run-jobs: init-lab
 jobs:
 	@make run-jobs 2>&1 | tee $(LOG_FILE)
 
-summary:
-	@bash build_report/build_report
+report-summary:
+	@bash build_report/build_report --formats html --output report
 
 confirm_execute:
 	@echo "Are you sure you want to execute the target? [y/N] " && read ans && [ $${ans:-N} = y ]
