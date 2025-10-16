@@ -1,0 +1,5 @@
+#!/bin/bash
+# usage:  $REG_ROOT/build_report/build_report --formats html --output report
+#
+export PYTHONPATH=/home/hnhan/JSON-REPORT/report-cpu-regulus:$PYTHONPATH
+python3.9 -m build_report.reg-report "$@"
