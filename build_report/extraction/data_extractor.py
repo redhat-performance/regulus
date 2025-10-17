@@ -38,7 +38,7 @@ class RegexDataExtractor:
         
         # Build extraction metadata
         extraction_metadata = {
-            'rules_applied': len(rules.rules),
+            'rules_applied': [rule.__class__.__name__ for rule in rules.rules] if hasattr(rules, 'rules') else [],
             'iterations_found': len(iterations),
             'total_samples': sum(len(it.samples) for it in iterations),
             'benchmark_detected': benchmark,
