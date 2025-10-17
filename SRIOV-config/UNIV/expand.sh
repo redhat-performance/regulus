@@ -68,8 +68,8 @@ export OCP_WORKER_LIST
 required_vars=("MCP" "REG_SRIOV_MTU" "REG_SRIOV_NIC" "REG_SRIOV_NIC_MODEL")
 for var in "${required_vars[@]}"; do
     if [[ -z "${!var}" ]]; then
-        echo "Error: Required variable $var is not set" >&2
-        exit 1
+        echo "WARNING: Required variable $var is not set" >&2
+        #exit 1
     fi
 done
 
