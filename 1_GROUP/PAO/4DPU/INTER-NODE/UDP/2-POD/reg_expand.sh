@@ -9,7 +9,6 @@ MANIFEST_DIR=./
 export TPL_SCALE_UP_FACTOR=1
 export TPL_QOS=burstable
 export TPL_TOPO=internode
-export TPL_QOS=burstable
 export TPL_PAO=1
 export TPL_DPF=1
 

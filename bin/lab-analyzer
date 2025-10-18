@@ -248,20 +248,40 @@ function f_update_tb_info {
 }
 
 function f_get_cluster_type {
-	# number of node is 1 or 3 or more
-	num_node="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get nodes --no-headers" | wc -l)"
-	case $num_node in
-		1)
-			echo "SNO"
-			;;
-		3)
-			echo "COMPACT"
-			;;
-		*)
-			echo "STANDARD"
-			;;
-	esac
+    # get all nodes with their roles
+    nodes_info="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get nodes -o custom-columns=NAME:.metadata.name,ROLES:.metadata.labels.kubernetes\\.io/role --no-headers")"
+
+    # count number of nodes
+    num_node=$(echo "$nodes_info" | wc -l)
+
+    if [[ "$num_node" -eq 1 ]]; then
+        echo "SNO"
+        return
+    fi
+
+    if [[ "$num_node" -eq 3 ]]; then
+        # check roles for each node
+        compact=true
+        while read -r name roles; do
+            # COMPACT cluster requires both control-plane and worker roles
+            if [[ "$roles" != *control-plane* ]] || [[ "$roles" != *worker* ]]; then
+                compact=false
+                break
+            fi
+        done <<< "$nodes_info"
+
+        if $compact; then
+            echo "COMPACT"
+        else
+            echo "STANDARD"
+        fi
+        return
+    fi
+
+    # fallback for all other cases
+    echo "STANDARD"
 }
+
 
 function f_validate_worker_nodes {
 	workers="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get nodes --no-headers --selector=node-role.kubernetes.io/worker=")"

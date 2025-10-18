@@ -5,7 +5,7 @@
       "params": [
         { "arg": "duration", "vals": ["120"] },
         { "arg": "protocol", "vals": ["udp"] },
-        { "arg": "nthreads", "vals": ["1","64"] },
+        { "arg": "nthreads", "vals": ["1","32"] },
         { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
       ]
     }

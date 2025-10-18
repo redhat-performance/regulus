@@ -147,8 +147,8 @@ else
 fi
 
 echo tar-result iperf
-#reg-tar-result iperf
-#reg-tar-result uperf
+reg-tar-result iperf
+reg-tar-result uperf
 
 popd
 

@@ -13,7 +13,7 @@ export TPL_DPF=1
 export TPL_QOS=guaranteed
 export TPL_NUMCPUS=
 
-envsubst '$TPL_NUMSPUS,$TPL_QOS,$MCP,$TPL_DPF,$TPL_PAO,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
+envsubst '$TPL_NUMCPUS,$TPL_QOS,$MCP,$TPL_DPF,$TPL_PAO,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 export TPL_INTF=eth0
 export TPL_IPV=4
 envsubst '$TPL_INTF,$TPL_IPV' <  ${REG_TEMPLATES}/tcp-mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
