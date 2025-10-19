@@ -14,7 +14,6 @@ DURATION=${DURATION:-0}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 TPL_QOS=${TPL_QOS:-burstable}
 TPL_NUMCPUS=${TPL_NUMCPUS:-0}
-CPUS_PER_CORE=${CPUS_PER_CORE:-2}
 
 scale_up_factor=$TPL_SCALE_UP_FACTOR # Number of client-server pairs per host/node/node-pair. Consider using even numbers due to NUMA carving
 
@@ -234,9 +233,15 @@ for num_pods in $scale_up_factor; do
             echo "User-provided: $resource_file"
         else
             echo "Computing resource file: $resource_file"
-            per_pod_cpu=$(compute_cpus_per_pod "$num_cpus" "$CORE_PERSOCKET"\
-                         "$topo" "$scale_up_factor" "$TPL_NUMCPUS" \
-                          "$TPL_QOS" "$numa_mode" "$CPUS_PER_CORE" )
+            per_pod_cpu=$(compute_cpus_per_pod \
+                            "$num_cpus"\
+                            "$CORE_PERSOCKET"\
+                            "$CPUS_PERCORE" \
+                            "$topo" \
+                            "$scale_up_factor" \
+                            "burstable" \
+                            "$numa_mode" \
+                            "$TPL_NUMCPUS" )
             if [[ $? -ne 0 ]]; then
                 echo "($LINENO) ERROR: Failed to compute/validate CPUs per pod" >&2
                 echo "$result" >&2

@@ -59,7 +59,8 @@ tb_info='{
     "NUM_WORKERS": 			"value3",
     "ALLOCATABLE_CPUS": 	"value3",
     "USEABLE_CPUS": 		"value3",
-    "CORE_PERSOCKET": 		"value3"
+    "CORE_PERSOCKET": 		"value3",
+    "CPUS_PERCORE": 		"value3"
 }'
 
 function exit_error() {
@@ -242,7 +243,7 @@ function f_update_tb_info {
 	json=$tb_info
 	updated_json=$(echo "$json" | jq ".CLUSTER_TYPE = \"$tb_cluster_type\" | .NUM_WORKERS = \"$tb_num_workers\" \
 								|     .ALLOCATABLE_CPUS = \"$tb_alloc_cpus\" |  .USEABLE_CPUS = \"$tb_useable_cpus\" \
-                                |     .CORE_PERSOCKET = \"$tb_cps\"")
+                                |     .CORE_PERSOCKET = \"$tb_cps\" | .CPUS_PERCORE = \"$tb_cpc\"")
 	# Write the JSON content to a file
 	echo "$updated_json" 
 }
@@ -456,14 +457,20 @@ else
 fi
 
 # get worker cpu topology
-cps_string="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "ssh $SSH_OPTS core@$first_worker_ip lscpu" | grep Core)"
-if [ -z "$cps_string" ]; then
+lscpu_output="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "ssh $SSH_OPTS core@$first_worker_ip lscpu")"
+
+if [ -z "$lscpu_output" ]; then
     echo "Failed to ssh core@$first_worker_ip. Please setup 'core' login" >&2
-    exit 
+    exit 1
 fi
+
 # extract the number from like "Core(s) per socket:  28"
-tb_cps=$(echo "$cps_string" | awk '{print $NF}')
+tb_cps=$(echo "$lscpu_output" | awk -F: '/Core\(s\) per socket/ {gsub(/^[ \t]+/, "", $2); print $2}')
 echo "core-per-socket=$tb_cps" >&2 
+tb_cpc=$(echo "$lscpu_output" | awk -F: '/Thread\(s\) per core/ {gsub(/^[ \t]+/, "", $2); print $2}')
+echo "cpu-per-core=$tb_cpc" >&2 
+#################################
+
 
 f_update_tb_info
 
