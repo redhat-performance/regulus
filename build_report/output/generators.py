@@ -768,6 +768,7 @@ class HtmlOutputGenerator:
             <table class="metrics-table">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">#</th>
                         <th>📄 File</th>
                         <th>📊 Status</th>
         """
@@ -780,7 +781,7 @@ class HtmlOutputGenerator:
                 </thead>
                 <tbody>
         """
-        
+        row_num =1
         for metric in metrics:
             status_class = {
                 'success': 'status-success',
@@ -791,6 +792,7 @@ class HtmlOutputGenerator:
             
             table += f"""
                     <tr>
+                        <td style="text-align: center; color: #94a3b8; font-weight: 500;">{row_num}</td>
                         <td class="file-name"><a href="{file_path}" target="_blank">{metric.get('file', 'Unknown')}</a></td>
                         <td><span class="status-badge {status_class}">{metric.get('status', 'unknown').title()}</span></td>
             """
@@ -800,6 +802,7 @@ class HtmlOutputGenerator:
                 table += f"<td>{value}</td>"
             
             table += "</tr>"
+            row_num += 1
         
         table += """
                 </tbody>
