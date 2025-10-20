@@ -670,6 +670,18 @@ class HtmlOutputGenerator:
                         length = self._get_param_value('length', unique_params, file_common_params)
                         if length:
                             metric['wsize'] = length
+#
+                        # Check for custom parameters and append ",special"
+                        known_params = {'protocol', 'max-loss-pct', 'bitrate-range', 'length', 'nthreads', 
+                                        'test-type', 'wsize', 'rsize', 'num_clients','ifname','ipv','time'}
+    
+                        has_custom = any(key not in known_params for key in unique_params.keys())
+                        if not has_custom:
+                            has_custom = any(key not in known_params for key in file_common_params.keys())
+    
+                        if has_custom and 'test_type' in metric:
+                            metric['test_type'] += ', custom'
+#
                     
                     nthreads = self._get_param_value('nthreads', unique_params, file_common_params)
                     if nthreads:
@@ -915,7 +927,22 @@ class HtmlOutputGenerator:
                         length = self._get_param_value('length', unique_params, file_common_params)
                         if length:
                             config_parts.append(f"wsize={length}")
-                    
+                        # add "special" if there are other passthru params
+                        known_params = {'protocol', 'max-loss-pct', 'bitrate-range', 'length', 'nthreads', 
+                                        'test-type', 'wsize', 'rsize', 'num_clients','ifname','ipv','time',''}
+    
+                        has_custom = any(key not in known_params for key in unique_params.keys())
+                        if not has_custom:
+                            has_custom = any(key not in known_params for key in file_common_params.keys())
+    
+                        if has_custom:
+                            # Find and append to the type= entry
+                            for i, part in enumerate(config_parts):
+                                if part.startswith('type='):
+                                    config_parts[i] += ', special'
+                                    break
+
+                    #
                     nthreads = self._get_param_value('nthreads', unique_params, file_common_params)
                     if nthreads:
                         config_parts.append(f"threads={nthreads}")
