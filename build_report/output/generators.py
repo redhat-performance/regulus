@@ -637,12 +637,28 @@ class HtmlOutputGenerator:
         return groups
     
     def _generate_header(self, stats: Dict[str, Any]) -> str:
-        """Generate HTML header section."""
+        """Generate HTML header section with title and summary stats."""
         return f"""
         <header class="header">
             <h1><i class="icon">📊</i> Regulus/Crucible Performance Report Summary</h1>
             <p class="subtitle">Generated on {stats['timestamp']}</p>
             <p class="subtitle">Kernel: {stats['kernel']} | RCOS: {stats['rcos']}</p>
+
+            <!-- Regex Filter Box -->
+            <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label for="filterInput" style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">
+                    Filter by Regex Pattern:
+                </label>
+                <input type="text" id="filterInput" placeholder="e.g., tcp|udp or .*200Mbps.* or ^test.*"
+                       style="width: calc(100% - 150px); padding: 10px; font-size: 0.95rem; border: 2px solid #cbd5e1;
+                              border-radius: 6px; font-family: 'Courier New', monospace;">
+                <button onclick="clearFilter()"
+                        style="margin-left: 10px; padding: 10px 20px; background: #64748b; color: white;
+                               border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                    Clear
+                </button>
+                <div id="matchCount" style="margin-top: 8px; color: #64748b; font-weight: 500;"></div>
+            </div>
         </header>
         """
     
@@ -1493,6 +1509,26 @@ class HtmlOutputGenerator:
             .benchmark-stats { flex-direction: column; gap: 10px; }
             .charts-container { grid-template-columns: 1fr; }
         }
+
+       /* Filter input styling */
+        #filterInput:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #filterInput.error {
+            border-color: #ef4444;
+        }
+
+        button:hover {
+            background: #475569 !important;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
     </style>
         """
     
@@ -1501,16 +1537,103 @@ class HtmlOutputGenerator:
         return """
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         """
-    
-    def _get_javascript(self) -> str:
-        """Get JavaScript for charts."""
-        return """
-    <script>
-        // Charts initialization
-        console.log('Charts would be initialized here');
-    </script>
-        """
 
+    def _get_javascript(self) -> str:
+        """Get JavaScript for filtering and charts."""
+        return """
+<script>
+    // Regex Filter Implementation
+    const filterInput = document.getElementById('filterInput');
+    const matchCount = document.getElementById('matchCount');
+
+    if (filterInput) {
+        // Debounced input handler (300ms delay)
+        let debounceTimer;
+        filterInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                filterTables(this.value);
+            }, 300);
+        });
+
+        // Enter key applies filter immediately
+        filterInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                clearTimeout(debounceTimer);
+                filterTables(this.value);
+            } else if (e.key === 'Escape') {
+                clearFilter();
+            }
+        });
+    }
+
+    function filterTables(pattern) {
+        const tables = document.querySelectorAll('.metrics-table, .results-table');
+        let totalRows = 0;
+        let matchedRows = 0;
+
+        // Clear error state
+        filterInput.classList.remove('error');
+
+        if (!pattern) {
+            // Show all rows if filter is empty
+            tables.forEach(table => {
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    row.style.display = '';
+                    totalRows++;
+                });
+            });
+            matchCount.textContent = '';
+            return;
+        }
+
+        // Try to create regex, fall back to plain text search if invalid
+        let regex;
+        let isRegex = true;
+        try {
+            regex = new RegExp(pattern, 'i');
+        } catch (e) {
+            isRegex = false;
+            filterInput.classList.add('error');
+            matchCount.textContent = '⚠️ Invalid regex pattern - using plain text search';
+            matchCount.style.color = '#ef4444';
+        }
+
+        tables.forEach(table => {
+            const rows = table.querySelectorAll('tbody tr');
+
+            rows.forEach(row => {
+                totalRows++;
+                const text = row.textContent || row.innerText;
+                let matches = false;
+
+                if (isRegex) {
+                    matches = regex.test(text);
+                } else {
+                    matches = text.toLowerCase().includes(pattern.toLowerCase());
+                }
+
+                if (matches) {
+                    row.style.display = '';
+                    matchedRows++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        matchCount.textContent = `Showing ${matchedRows} of ${totalRows} rows`;
+        matchCount.style.color = matchedRows === 0 ? '#ef4444' : '#16a34a';
+    }
+
+    function clearFilter() {
+        filterInput.value = '';
+        filterInput.classList.remove('error');
+        filterTables('');
+    }
+</script>
+    """
 
 # Enhanced MultiFormatOutputGenerator to include HTML
 class EnhancedMultiFormatOutputGenerator(MultiFormatOutputGenerator):

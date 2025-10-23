@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Filter Usage Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #1e40af;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        h3 {
+            color: #3730a3;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #dc2626;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        pre code {
+            background: none;
+            color: #e2e8f0;
+            padding: 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #e5e7eb;
+        }
+        
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        .example-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .tip-box {
+            background: #dbeafe;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .warning-box {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .toc {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+        
+        .toc ul {
+            list-style: none;
+            margin-left: 0;
+        }
+        
+        .toc li {
+            margin-bottom: 5px;
+        }
+        
+        .toc a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        hr {
+            border: none;
+            border-top: 2px solid #e5e7eb;
+            margin: 40px 0;
+        }
+        
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .pattern-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .pattern-card strong {
+            color: #1e40af;
+            display: block;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Regex Filter Usage Guide</h1>
+        
+        <div class="toc">
+            <h2>📑 Table of Contents</h2>
+            <ul>
+                <li><a href="#basic">Basic Usage</a></li>
+                <li><a href="#patterns">Pattern Matching</a></li>
+                <li><a href="#use-cases">Common Use Cases</a></li>
+                <li><a href="#special-chars">Special Characters</a></li>
+                <li><a href="#examples">Real-World Examples</a></li>
+                <li><a href="#keyboard">Keyboard Shortcuts</a></li>
+                <li><a href="#tips">Tips & Tricks</a></li>
+            </ul>
+        </div>
+
+        <h2 id="basic">Basic Usage</h2>
+        <p>Just type any text to find rows containing that text (case-insensitive):</p>
+        
+        <div class="pattern-grid">
+            <div class="pattern-card">
+                <strong>tcp</strong>
+                Shows all rows containing "tcp" anywhere
+            </div>
+            <div class="pattern-card">
+                <strong>iperf</strong>
+                Shows rows with "iperf"
+            </div>
+            <div class="pattern-card">
+                <strong>success</strong>
+                Shows successful tests
+            </div>
+            <div class="pattern-card">
+                <strong>failed</strong>
+                Shows failed tests
+            </div>
+            <div class="pattern-card">
+                <strong>200</strong>
+                Shows rows containing "200"
+            </div>
+        </div>
+
+        <h2 id="patterns">Pattern Matching with Regex</h2>
+        
+        <h3>Find Multiple Terms (OR)</h3>
+        <p>Use the pipe <code>|</code> character:</p>
+        <pre><code>tcp|udp              → Rows with "tcp" OR "udp"
+200|500|1000         → Rows with 200, 500, or 1000
+success|passed       → Successful or passed tests
+failed|error|timeout → Any problems</code></pre>
+
+        <h3>Wildcard Matching</h3>
+        <p>The <code>.*</code> matches any characters:</p>
+        <pre><code>tcp.*200            → "tcp" followed by "200" anywhere after
+protocol.*tcp       → "protocol" followed by "tcp" somewhere
+success.*iperf      → Successful iperf tests
+test.*\.log         → "test" followed by ".log" anywhere</code></pre>
+
+        <h3>Start and End Matching</h3>
+        <pre><code>^test               → Rows starting with "test"
+\.log$              → Rows ending with ".log"
+^test.*\.log$       → Starts with "test" and ends with ".log"</code></pre>
+
+        <h2 id="use-cases">Common Use Cases</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>What You Want</th>
+                    <th>Type This</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>All TCP tests</td>
+                    <td><code>tcp</code></td>
+                    <td>Simple text search</td>
+                </tr>
+                <tr>
+                    <td>TCP or UDP</td>
+                    <td><code>tcp|udp</code></td>
+                    <td>Either protocol</td>
+                </tr>
+                <tr>
+                    <td>Successful TCP tests</td>
+                    <td><code>tcp.*success</code></td>
+                    <td>TCP followed by success</td>
+                </tr>
+                <tr>
+                    <td>All failures</td>
+                    <td><code>failed|error|timeout</code></td>
+                    <td>Any problem</td>
+                </tr>
+                <tr>
+                    <td>Any throughput value</td>
+                    <td><code>\d+Mbps</code></td>
+                    <td>Numbers followed by Mbps</td>
+                </tr>
+                <tr>
+                    <td>High performance (500+)</td>
+                    <td><code>[5-9]\d{2}Mbps</code></td>
+                    <td>500-999 Mbps</td>
+                </tr>
+                <tr>
+                    <td>Files starting with test_</td>
+                    <td><code>^test_network</code></td>
+                    <td>Start of line match</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="special-chars">Special Characters Reference</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Meaning</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>|</code></td>
+                    <td>OR</td>
+                    <td><code>tcp|udp</code> → tcp OR udp</td>
+                </tr>
+                <tr>
+                    <td><code>.</code></td>
+                    <td>Any character</td>
+                    <td><code>t.p</code> → tcp, tap, tip</td>
+                </tr>
+                <tr>
+                    <td><code>*</code></td>
+                    <td>0 or more</td>
+                    <td><code>te*st</code> → tst, test, teest</td>
+                </tr>
+                <tr>
+                    <td><code>+</code></td>
+                    <td>1 or more</td>
+                    <td><code>te+st</code> → test, teest</td>
+                </tr>
+                <tr>
+                    <td><code>?</code></td>
+                    <td>0 or 1</td>
+                    <td><code>colou?r</code> → color, colour</td>
+                </tr>
+                <tr>
+                    <td><code>^</code></td>
+                    <td>Start of text</td>
+                    <td><code>^test</code> → starts with "test"</td>
+                </tr>
+                <tr>
+                    <td><code>$</code></td>
+                    <td>End of text</td>
+                    <td><code>log$</code> → ends with "log"</td>
+                </tr>
+                <tr>
+                    <td><code>\d</code></td>
+                    <td>Any digit (0-9)</td>
+                    <td><code>\d+</code> → 123, 42</td>
+                </tr>
+                <tr>
+                    <td><code>\w</code></td>
+                    <td>Word character</td>
+                    <td><code>\w+</code> → test, file_01</td>
+                </tr>
+                <tr>
+                    <td><code>.*</code></td>
+                    <td>Any characters</td>
+                    <td><code>tcp.*200</code> → tcp...200</td>
+                </tr>
+                <tr>
+                    <td><code>[abc]</code></td>
+                    <td>a, b, or c</td>
+                    <td><code>[tT]cp</code> → tcp or Tcp</td>
+                </tr>
+                <tr>
+                    <td><code>[0-9]</code></td>
+                    <td>Any digit</td>
+                    <td><code>[0-9]{3}</code> → 123, 456</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="examples">Real-World Examples</h2>
+
+        <div class="example-box">
+            <h4>Example 1: Find all failed tests</h4>
+            <p><strong>Type:</strong> <code>failed|error|timeout</code></p>
+            <p><strong>Result:</strong> Shows only rows with failures, errors, or timeouts</p>
+        </div>
+
+        <div class="example-box">
+            <h4>Example 2: Find TCP tests with 200Mbps</h4>
+            <p><strong>Type:</strong> <code>tcp.*200</code></p>
+            <p><strong>Result:</strong> Rows with "tcp" followed by "200" anywhere after</p>
+        </div>
+
+        <div class="example-box">
+            <h4>Example 3: Find high-performance tests (500+ Mbps)</h4>
+            <p><strong>Type:</strong> <code>[5-9]\d{2}Mbps</code></p>
+            <p><strong>Result:</strong> Matches 500Mbps, 750Mbps, 999Mbps</p>
+        </div>
+
+        <div class="example-box">
+            <h4>Example 4: Find successful iperf tests</h4>
+            <p><strong>Type:</strong> <code>iperf.*success</code></p>
+            <p><strong>Result:</strong> Rows with "iperf" followed by "success"</p>
+        </div>
+
+        <div class="example-box">
+            <h4>Example 5: Find any throughput measurement</h4>
+            <p><strong>Type:</strong> <code>\d+Mbps</code></p>
+            <p><strong>Result:</strong> Matches 200Mbps, 500Mbps, 1000Mbps, etc.</p>
+        </div>
+
+        <h2 id="keyboard">Keyboard Shortcuts</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>Enter</code></td>
+                    <td>Apply filter immediately (skips 300ms delay)</td>
+                </tr>
+                <tr>
+                    <td><code>Escape</code></td>
+                    <td>Clear filter and show all rows</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Visual Feedback</h2>
+        <ul>
+            <li><strong style="color: #16a34a;">Green text:</strong> Results found (e.g., "Showing 12 of 203 rows")</li>
+            <li><strong style="color: #dc2626;">Red text:</strong> No matches found</li>
+            <li><strong style="color: #2563eb;">Blue border:</strong> Input is focused</li>
+            <li><strong style="color: #dc2626;">Red border:</strong> Invalid regex (will use plain text search)</li>
+        </ul>
+
+        <h2 id="tips">Tips & Tricks</h2>
+
+        <div class="tip-box">
+            <h4>💡 Tip 1: Start Simple, Then Add Complexity</h4>
+            <p>Begin with basic text like <code>tcp</code>, then refine to <code>tcp.*success</code>, then <code>tcp.*success.*200</code></p>
+        </div>
+
+        <div class="tip-box">
+            <h4>💡 Tip 2: Use OR for Quick Comparisons</h4>
+            <p><code>200|500|1000</code> lets you see multiple values at once</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>💡 Tip 3: Case Doesn't Matter</h4>
+            <p><code>TCP</code>, <code>tcp</code>, and <code>Tcp</code> all match the same rows</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>💡 Tip 4: Check the Match Count</h4>
+            <p>If the count is 0, your pattern might be too specific</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>💡 Tip 5: Press Escape to Reset</h4>
+            <p>Quick way to clear filter and see all data again</p>
+        </div>
+
+        <h2>Common Mistakes to Avoid</h2>
+
+        <div class="warning-box">
+            <h4>❌ Don't Use Quotes</h4>
+            <p><strong>Wrong:</strong> <code>"tcp"</code> (searches for literal quotes)</p>
+            <p><strong>Right:</strong> <code>tcp</code></p>
+        </div>
+
+        <div class="warning-box">
+            <h4>❌ Don't Forget .* Between Terms</h4>
+            <p><strong>Wrong:</strong> <code>tcpsuccess</code> (looks for "tcpsuccess" together)</p>
+            <p><strong>Right:</strong> <code>tcp.*success</code> (tcp followed by success)</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>❌ Don't Forget to Escape Special Characters</h4>
+            <p><strong>Wrong:</strong> <code>file.log</code> (matches "fileXlog" too)</p>
+            <p><strong>Right:</strong> <code>file\.log</code> (matches only "file.log")</p>
+        </div>
+
+        <h2>Quick Reference</h2>
+        <h3>Most Useful Patterns</h3>
+        <pre><code>tcp                    → All TCP tests
+tcp|udp                → Both protocols
+tcp.*success           → Successful TCP tests
+\d+Mbps                → Any throughput value
+[5-9]\d{2}Mbps         → 500-999 Mbps
+failed|error|timeout   → All problems
+^test_network          → Files starting with test_network
+success.*(tcp|udp)     → Successful tests with either protocol</code></pre>
+
+        <hr>
+        <p style="text-align: center; color: #64748b; margin-top: 40px;">
+            Happy filtering! 🔍<br>
+            <small>Press F5 to refresh this page | Press Ctrl+F to search within this guide</small>
+        </p>
+    </div>
+</body>
+</html>
