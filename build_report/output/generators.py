@@ -195,16 +195,15 @@ class SchemaAwareOutputGenerator(JsonOutputGenerator):
         
         return summary
 
-
 class CsvOutputGenerator:
-    """CSV output generator for tabular data export."""
+    """CSV output generator for tabular data export - iteration level."""
     
     def __init__(self, delimiter: str = ',', include_metadata: bool = False):
         self.delimiter = delimiter
         self.include_metadata = include_metadata
     
     def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
-        """Generate CSV output file."""
+        """Generate CSV output file with one row per iteration."""
         if not results:
             print("No results to export to CSV")
             return
@@ -213,50 +212,192 @@ class CsvOutputGenerator:
             with open(output_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=self.delimiter)
                 
-                # Write header
+                # Generate headers
                 headers = self._generate_headers(results)
                 writer.writerow(headers)
                 
-                # Write data rows
+                # Write one row per iteration
                 for result in results:
-                    row = self._result_to_row(result, headers)
-                    writer.writerow(row)
+                    rows = self._result_to_rows(result, headers)
+                    for row in rows:
+                        writer.writerow(row)
             
             print(f"CSV output generated: {output_path}")
         except Exception as e:
             print(f"Error generating CSV output: {e}")
     
     def _generate_headers(self, results: List[ProcessedResult]) -> List[str]:
-        """Generate CSV headers from all result fields."""
-        all_fields = set()
-        for result in results:
-            all_fields.update(result.data.keys())
-            if self.include_metadata:
-                all_fields.update(f"meta_{k}" for k in result.processing_metadata.keys())
-        
-        # Sort for consistent ordering
-        return sorted(list(all_fields))
-    
-    def _result_to_row(self, result: ProcessedResult, headers: List[str]) -> List[str]:
-        """Convert a result to a CSV row."""
-        row = []
-        for header in headers:
-            if header.startswith("meta_") and self.include_metadata:
-                meta_key = header[5:]  # Remove "meta_" prefix
-                value = result.processing_metadata.get(meta_key, '')
-            else:
-                value = result.data.get(header, '')
-            
-            # Handle complex values
-            if isinstance(value, (dict, list)):
-                value = json.dumps(value)
-            elif value is None:
-                value = ''
-            
-            row.append(str(value))
-        
-        return row
+        """Generate CSV headers from iteration data."""
+        # Standard columns in desired order
+        standard_headers = [
+            'file',           # First
+            'benchmark',     #  skip 'status',
+            'model',          # Move model/offload/cpu up
+            'config',
+            'offload',
+            'cpu',
+            'test_type',
+            'threads',
+            'wsize',
+            'rsize',
+            'samples',
+            'mean',
+            'unit',
+            'busyCPU',
+            'stddev%',
+            'iteration_id',
+            'protocol'        # Last
+        ]
 
+        # Collect all unique keys from iterations
+        all_keys = set()
+        for result in results:
+            iterations = result.data.get('iterations', [])
+            for iteration in iterations:
+                unique_params = iteration.get('unique_params', {})
+                all_keys.update(unique_params.keys())
+
+                # Get result fields
+                iteration_results = iteration.get('results', [])
+                if iteration_results:
+                    all_keys.update(iteration_results[0].keys())
+
+        # Combine standard headers with any extra fields found
+        final_headers = []
+        for h in standard_headers:
+            if h not in final_headers:
+                final_headers.append(h)
+
+        # Add any extra fields not in standard list
+        for key in sorted(all_keys):
+            if key not in final_headers and key not in ['type', 'sample_values', 'sample_count', 'range']:
+                final_headers.append(key)
+
+        return final_headers
+
+    def _result_to_rows(self, result: ProcessedResult, headers: List[str]) -> List[List[str]]:
+        """Convert a result with multiple iterations into multiple CSV rows."""
+        rows = []
+
+        file_name = Path(result.file_path).name
+        benchmark = result.benchmark
+        status = result.processing_metadata.get('status', 'unknown')
+
+        # Get file-level common params and tags
+        file_common_params = result.data.get('common_params', {})
+        key_tags = result.data.get('key_tags', {})
+
+        # Config string
+        config = f"{key_tags.get('pods-per-worker', '?')},{key_tags.get('scale_out_factor', '?')},{key_tags.get('topo', '?')}"
+
+        # Get iterations
+        iterations = result.data.get('iterations', [])
+
+        if not iterations:
+            # No iterations - create one row with basic info
+            row = [''] * len(headers)
+            if 'file' in headers:
+                row[headers.index('file')] = file_name
+            if 'benchmark' in headers:
+                row[headers.index('benchmark')] = benchmark
+            if 'status' in headers:
+                row[headers.index('status')] = status
+            if 'config' in headers:
+                row[headers.index('config')] = config
+            rows.append(row)
+        else:
+            # One row per iteration
+            for iteration in iterations:
+                row = self._iteration_to_row(
+                    iteration, headers, file_name, benchmark, status, 
+                    config, file_common_params, key_tags
+                )
+                rows.append(row)
+
+        return rows
+
+    def _iteration_to_row(self, iteration: Dict, headers: List[str], file_name: str, 
+                          benchmark: str, status: str, config: str, 
+                          file_common_params: Dict, key_tags: Dict) -> List[str]:
+        """Convert a single iteration to a CSV row."""
+        row = [''] * len(headers)
+
+        iteration_id = iteration.get('iteration_id', '')
+        unique_params = iteration.get('unique_params', {})
+        iteration_results = iteration.get('results', [])
+
+        # Helper to get param value
+        def get_param(key):
+            return unique_params.get(key) or file_common_params.get(key) or ''
+
+        # Fill in standard columns
+        if 'file' in headers:
+            row[headers.index('file')] = file_name
+        if 'benchmark' in headers:
+            row[headers.index('benchmark')] = benchmark
+        if 'status' in headers:
+            row[headers.index('status')] = status
+        if 'config' in headers:
+            row[headers.index('config')] = config
+        if 'iteration_id' in headers:
+            row[headers.index('iteration_id')] = iteration_id[:16]  # Shortened
+
+        # Protocol and test type
+        protocol = get_param('protocol')
+        test_type = get_param('test-type')
+
+        if 'protocol' in headers:
+            row[headers.index('protocol')] = protocol
+
+        if 'test_type' in headers:
+            if test_type and protocol:
+                row[headers.index('test_type')] = f"{protocol}, {test_type}"
+            elif test_type:
+                row[headers.index('test_type')] = test_type
+            elif protocol:
+                row[headers.index('test_type')] = protocol
+
+        # Other params
+        if 'threads' in headers:
+            row[headers.index('threads')] = get_param('nthreads')
+        if 'wsize' in headers:
+            row[headers.index('wsize')] = get_param('wsize')
+        if 'rsize' in headers:
+            row[headers.index('rsize')] = get_param('rsize')
+
+        # Tags
+        if 'model' in headers:
+            row[headers.index('model')] = key_tags.get('model', '')
+        if 'offload' in headers:
+            row[headers.index('offload')] = key_tags.get('offload', '')
+        if 'cpu' in headers:
+            row[headers.index('cpu')] = key_tags.get('cpu', '')
+
+        # Results data
+        if iteration_results and len(iteration_results) > 0:
+            primary_result = iteration_results[0]
+
+            if 'mean' in headers and 'mean' in primary_result:
+                mean = primary_result['mean']
+                row[headers.index('mean')] = f"{mean:.2f}" if isinstance(mean, (int, float)) else str(mean)
+
+            if 'unit' in headers and 'unit' in primary_result:
+                row[headers.index('unit')] = primary_result['unit']
+
+            if 'samples' in headers and 'sample_count' in primary_result:
+                row[headers.index('samples')] = str(primary_result['sample_count'])
+
+            if 'stddev%' in headers and 'stddevpct' in primary_result:
+                stddev = primary_result['stddevpct']
+                if isinstance(stddev, (int, float)) and stddev > 0:
+                    row[headers.index('stddev%')] = f"{stddev:.2f}"
+
+            if 'busyCPU' in headers and 'busyCPU' in primary_result:
+                cpu = primary_result['busyCPU']
+                if isinstance(cpu, (int, float)):
+                    row[headers.index('busyCPU')] = f"{cpu:.2f}"
+
+        return row
 
 class XmlOutputGenerator:
     """XML output generator."""
