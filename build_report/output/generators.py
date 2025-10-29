@@ -201,6 +201,10 @@ class CsvOutputGenerator:
     def __init__(self, delimiter: str = ',', include_metadata: bool = False):
         self.delimiter = delimiter
         self.include_metadata = include_metadata
+
+    def _get_param_value(self, param_name: str, unique_params: dict, common_params: dict):
+        """Get parameter value: check unique_params first, then fall back to common_params."""
+        return unique_params.get(param_name) or common_params.get(param_name)
     
     def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
         """Generate CSV output file with one row per iteration."""
@@ -233,8 +237,8 @@ class CsvOutputGenerator:
             'file',           # First
             'benchmark',     #  skip 'status',
             'model',          # Move model/offload/cpu up
+            'perf',
             'config',
-            'offload',
             'cpu',
             'test_type',
             'threads',
@@ -356,20 +360,25 @@ class CsvOutputGenerator:
                 row[headers.index('test_type')] = test_type
             elif protocol:
                 row[headers.index('test_type')] = protocol
-
         # Other params
         if 'threads' in headers:
-            row[headers.index('threads')] = get_param('nthreads')
+            threads = self._get_param_value('nthreads', unique_params, file_common_params)
+            row[headers.index('threads')] = threads if threads else ''
         if 'wsize' in headers:
-            row[headers.index('wsize')] = get_param('wsize')
+            # Try wsize first, then length (for iperf)
+            wsize = self._get_param_value('wsize', unique_params, file_common_params)
+            if not wsize:
+                wsize = self._get_param_value('length', unique_params, file_common_params)
+                row[headers.index('wsize')] = wsize if wsize else ''
         if 'rsize' in headers:
-            row[headers.index('rsize')] = get_param('rsize')
+            rsize = self._get_param_value('rsize', unique_params, file_common_params)
+            row[headers.index('rsize')] = rsize if rsize else ''
 
         # Tags
         if 'model' in headers:
             row[headers.index('model')] = key_tags.get('model', '')
-        if 'offload' in headers:
-            row[headers.index('offload')] = key_tags.get('offload', '')
+        if 'perf' in headers:
+            row[headers.index('perf')] = key_tags.get('perf', '')
         if 'cpu' in headers:
             row[headers.index('cpu')] = key_tags.get('cpu', '')
 
