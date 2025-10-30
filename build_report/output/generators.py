@@ -360,6 +360,17 @@ class CsvOutputGenerator:
                 row[headers.index('test_type')] = test_type
             elif protocol:
                 row[headers.index('test_type')] = protocol
+        # Check for iperf3 custom/passthru parameters (same as HTML)
+        if benchmark == 'iperf':
+            known_params = {'protocol', 'max-loss-pct', 'bitrate-range', 'length', 'nthreads',
+                        'test-type', 'wsize', 'rsize', 'num_clients', 'ifname', 'ipv', 'time'}
+            has_custom = any(key not in known_params for key in unique_params.keys())
+            if not has_custom:
+                has_custom = any(key not in known_params for key in file_common_params.keys())
+            if has_custom and 'test_type' in headers:
+                current_test_type = row[headers.index('test_type')]
+                if current_test_type:
+                    row[headers.index('test_type')] = f"{current_test_type}, custom"
         # Other params
         if 'threads' in headers:
             threads = self._get_param_value('nthreads', unique_params, file_common_params)
@@ -369,7 +380,7 @@ class CsvOutputGenerator:
             wsize = self._get_param_value('wsize', unique_params, file_common_params)
             if not wsize:
                 wsize = self._get_param_value('length', unique_params, file_common_params)
-                row[headers.index('wsize')] = wsize if wsize else ''
+            row[headers.index('wsize')] = wsize if wsize else ''
         if 'rsize' in headers:
             rsize = self._get_param_value('rsize', unique_params, file_common_params)
             row[headers.index('rsize')] = rsize if rsize else ''
