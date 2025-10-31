@@ -1,5 +1,19 @@
 #!/bin/bash
 # usage:  $REG_ROOT/build_report/build_report --formats html --output report
 #
-export PYTHONPATH=/home/hnhan/JSON-REPORT/report-cpu-regulus:$PYTHONPATH
-python3.9 -m build_report.reg-report "$@"
+
+#export PYTHONPATH=/home/hnhan/JSON-REPORT/report-cpu-regulus:$PYTHONPATH
+#python3.9 -m build_report.reg-report "$@"
+
+export PYTHONPATH=${REG_ROOT}:$PYTHONPATH
+
+# Auto-construct base URL for CSV hyperlinks
+# Format: http://hostname:8000/absolute/path/to/workspace
+HOSTNAME=$(hostname -f)
+PORT=8000
+WORKSPACE_PATH=$(pwd)  # Current directory where report is being generated
+
+BASE_URL="http://${HOSTNAME}:${PORT}${WORKSPACE_PATH}"
+
+# Pass base-url automatically
+python3.9 -m build_report.reg-report --base-url "$BASE_URL" "$@"

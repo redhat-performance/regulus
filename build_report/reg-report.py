@@ -14,10 +14,11 @@ parser = argparse.ArgumentParser(description="Wrapper for main.py to support mul
 parser.add_argument('--root', type=str, default='.', help='Root directory to scan for result-summary.txt')
 parser.add_argument('--output', type=str, default='report', help='Base name for output files')
 parser.add_argument('--formats', nargs='+', default=['json', 'html', 'csv'], help='Output formats')
+parser.add_argument('--base-url', type=str, default='', help='Base URL for CSV hyperlinks')
 args = parser.parse_args()
 
 # Create orchestrator with requested formats
-orchestrator = create_multi_format_orchestrator(args.formats)
+orchestrator = create_multi_format_orchestrator(args.formats, base_url=args.base_url)
 
 # Call generate_report with the root path and output path
 orchestrator.generate_report(
