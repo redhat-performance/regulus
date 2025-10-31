@@ -198,9 +198,10 @@ class SchemaAwareOutputGenerator(JsonOutputGenerator):
 class CsvOutputGenerator:
     """CSV output generator for tabular data export - iteration level."""
     
-    def __init__(self, delimiter: str = ',', include_metadata: bool = False):
+    def __init__(self, delimiter: str = ',', include_metadata: bool = False, base_url: str = ''):
         self.delimiter = delimiter
         self.include_metadata = include_metadata
+        self.base_url = base_url
 
     def _get_param_value(self, param_name: str, unique_params: dict, common_params: dict):
         """Get parameter value: check unique_params first, then fall back to common_params."""
@@ -301,7 +302,11 @@ class CsvOutputGenerator:
             # No iterations - create one row with basic info
             row = [''] * len(headers)
             if 'file' in headers:
-                row[headers.index('file')] = file_name
+                if self.base_url:
+                    full_url = f"{self.base_url}/{result.file_path}"
+                    row[headers.index('file')] = f'=HYPERLINK("{full_url}","{file_name}")'
+                else:
+                    row[headers.index('file')] = file_name
             if 'benchmark' in headers:
                 row[headers.index('benchmark')] = benchmark
             if 'status' in headers:
@@ -314,15 +319,16 @@ class CsvOutputGenerator:
             for iteration in iterations:
                 row = self._iteration_to_row(
                     iteration, headers, file_name, benchmark, status, 
-                    config, file_common_params, key_tags
+                    config, file_common_params, key_tags, result.file_path
                 )
                 rows.append(row)
 
         return rows
 
     def _iteration_to_row(self, iteration: Dict, headers: List[str], file_name: str, 
-                          benchmark: str, status: str, config: str, 
-                          file_common_params: Dict, key_tags: Dict) -> List[str]:
+                      benchmark: str, status: str, config: str, 
+                      file_common_params: Dict, key_tags: Dict,
+                      file_path: str = '') -> List[str]:
         """Convert a single iteration to a CSV row."""
         row = [''] * len(headers)
 
@@ -336,7 +342,11 @@ class CsvOutputGenerator:
 
         # Fill in standard columns
         if 'file' in headers:
-            row[headers.index('file')] = file_name
+            if self.base_url:
+                full_url = f"{self.base_url}/{file_path}"
+                row[headers.index('file')] = f'=HYPERLINK("{full_url}","{file_name}")'
+            else:
+                row[headers.index('file')] = file_name
         if 'benchmark' in headers:
             row[headers.index('benchmark')] = benchmark
         if 'status' in headers:
@@ -1659,9 +1669,11 @@ class HtmlOutputGenerator:
 class EnhancedMultiFormatOutputGenerator(MultiFormatOutputGenerator):
     """Extended multi-format generator with HTML support."""
     
-    def __init__(self, schema_manager=None):
+    def __init__(self, schema_manager=None, base_url=''):
         super().__init__(schema_manager)
+        self.base_url = base_url
         self.generators['html'] = HtmlOutputGenerator()
+        self.generators['csv'] = CsvOutputGenerator(base_url=base_url)
     
     def generate_output(self, results, output_path):
         """Generate output with HTML support."""
