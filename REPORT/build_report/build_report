@@ -5,7 +5,7 @@
 #export PYTHONPATH=/home/hnhan/JSON-REPORT/report-cpu-regulus:$PYTHONPATH
 #python3.9 -m build_report.reg-report "$@"
 
-export PYTHONPATH=${REG_ROOT}:$PYTHONPATH
+export PYTHONPATH=${REG_ROOT}/REPORT:$PYTHONPATH
 
 # Auto-construct base URL for CSV hyperlinks
 # Format: http://hostname:8000/absolute/path/to/workspace

@@ -44,6 +44,7 @@
 #set -x
 #trap read debug
 
+trap 'echo "Error on line $LINENO in ${BASH_SOURCE[0]}"' ERR
 
 ## <debug>
 DEBUG=1
@@ -283,7 +284,7 @@ function f_sum_cpus_some_hosts {
     OLD_IFS=$IFS
     IFS=','
 
-    if [ "${CPUS%%,*}" == "ALL" ] ||  [ "${CPUS%%,*}" == "all" ||   [ "${CPUS%%,*}" == ""  ] ; then
+    if [ "${CPUS%%,*}" == "ALL" ] ||  [ "${CPUS%%,*}" == "all" ]  ||  [ "${CPUS%%,*}" == ""  ] ; then
         DPRINT $LINENO "some_hosts: all CPUS"
         for name in "${HOSTNAMES[@]}"; do
             DPRINT $LINENO "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$name --output-format json"
@@ -394,6 +395,8 @@ function iperf_loss_accum {
     echo "CMD:crucible get metric --source iperf --type rx-lost/sec --period $1"
     loss_line=$(crucible get metric --source iperf --output-format json --type rx-lost/sec --period $1  < /dev/null | grep "value\"")
     val=$(echo $loss_line | awk -F ':' '{print $2}')
+    val=${val:-0} # this pp may have iperf or may not
+    
     # if exp notation, connvert it
     if [[ "$val" == *"e"* ]]; then
         # strip double quote from val
@@ -450,7 +453,7 @@ function f_l2_tput_close {
 
 function f-gen-summ {
     exec 2> /dev/null
-    
+
     rm new-summary-$1.txt
     exec > >(tee -ia new-summary-$1.txt)
 
@@ -582,7 +585,7 @@ function f-gen-summ {
                 cpu_close
                 iperf_loss_close
             fi
-         done 
+         done
 
     } #f-gen-summ-mono
 
@@ -673,7 +676,7 @@ function f-gen-summ {
     
     # save sum and show files to run dir.
     cp show-summary-$1.txt $1/ ;  chmod -w  show-summary-$1.txt 
-    cp new-summary-$1.txt $1  $1/ ; chmod -w new-summary-$1.txt
+    cp new-summary-$1.txt  $1/ ; chmod -w new-summary-$1.txt
     rm $tempfile
 }
 
@@ -685,7 +688,8 @@ bench="mbench"
 while read line; do
     # Determine bench by detecting "reg-c2j-config.py --name uperf/iperf/flexran  ..."
     # This form, "./run-3types.sh  scalelab-withHWOL-sut" is mbench type
-    tok=$(echo "$line" | grep -oP '(?<=--name )\S+')
+    #tok=$(echo "$line" | grep -oP '(?<=--name )\S+')
+    tok=$(echo "$line" | grep -oP '(?<=--name )\S+' || true)
     if [[ "$tok" != "" ]]; then
         if [[ "$tok" == *","* ]]; then
             # Not "reg-c2j-config.py --name [uperf | iperf | flexran ...]" form
@@ -717,4 +721,5 @@ do
     # generate summary
     f-gen-summ $name
 done
+echo "($LINENO) reg-gen-summary done. "
 
