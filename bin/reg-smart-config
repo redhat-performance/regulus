@@ -354,6 +354,8 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                     "OVN main" \
                     "${nic_mtu[$nic]}" \
                     "N/A"
+                    REG_OVN_NIC_MODEL=${nic_models[$nic]:-UNKNOWN}
+                    REG_OVN_NIC_MTU=${nic_mtu[$nic]}
                 else
                   # Check status only when displaying
                   local status=$(get_interface_status "$WORKER_IP" "$nic")
@@ -620,6 +622,9 @@ update_config_var "TREX_SRIOV_INTERFACE_1" "$TREX_SRIOV_INTERFACE_1" "$LAB_CONFI
 update_config_var "TREX_SRIOV_INTERFACE_2" "$TREX_SRIOV_INTERFACE_2" "$LAB_CONFIG"
 update_config_var "TREX_DPDK_NIC_MODEL" "$TREX_DPDK_NIC_MODEL" "$LAB_CONFIG"
 update_config_var "REM_DPDK_CONFIG" "false" "$LAB_CONFIG"
+update_config_var "REG_OVN_NIC" "$OVN_INTERFACE" "$LAB_CONFIG"
+update_config_var "REG_OVN_NIC_MODEL" "$REG_OVN_NIC_MODEL" "$LAB_CONFIG"
+update_config_var "REG_OVN_NIC_MTU" "$REG_OVN_NIC_MTU" "$LAB_CONFIG"
 
 DPRINT $LINENO "Updated $LAB_CONFIG successfully. Backup saved as ${LAB_CONFIG}.bak"
 
