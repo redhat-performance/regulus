@@ -177,7 +177,7 @@ merge_all_annotations() {
 
 get_pp_policy() {
     do_ssh "$k8susr@$ocphost" \
-        "kubectl get performanceprofile reghwol -o jsonpath='{.spec.numa.topologyPolicy}'" 2>/dev/null \
+        "kubectl get performanceprofile $MCP -o jsonpath='{.spec.numa.topologyPolicy}'" 2>/dev/null \
         | tr -d '[:space:]'
 }
 
