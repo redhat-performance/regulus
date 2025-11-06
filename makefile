@@ -67,7 +67,13 @@ jobs:
 	@make run-jobs 2>&1 | tee $(LOG_FILE)
 
 report-summary:
-	@bash build_report/build_report --formats html --output report
+	@bash REPORT/build_report/build_report --formats html csv --output report
+
+report-live:
+	@bash REPORT/build_report/build_report --formats html csv --output live
+
+report-upload:
+	@bash REPORT/upload/full_report.sh
 
 confirm_execute:
 	@echo "Are you sure you want to execute the target? [y/N] " && read ans && [ $${ans:-N} = y ]

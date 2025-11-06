@@ -128,6 +128,7 @@ fi
 # move the result blob in /var/lib/crucible to local folder
 base_run_dir=$(grep -Po -- '--base-run-dir=\K[^[:space:]]*' "$DIR.log")
 mv $base_run_dir $DIR/  2>/dev/null
+cp $DIR.log $DIR/
 rm -f latest
 ln -sf $DIR latest
 pushd $DIR
