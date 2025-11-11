@@ -27,7 +27,7 @@ fi
 k8susr=$REG_KNI_USER    # Might be "root" or "kni" for some installations
 
 userenv=alma8           # trafficgen only work with alma8
-osruntime=chroot        # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
+osruntime=pod        # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
 
 resources_file="`/bin/pwd`/resources.json"
 annotations_file="`/bin/pwd`/annotations.json"
@@ -81,8 +81,11 @@ ARGS=" --tags $tags \
   --max-sample-failures ${max_failures} \
   --endpoint remotehosts,host:$remhost1,user:root,client:1,userenv:${userenv},cpu-partitioning:true \
   --endpoint k8s,host:$k8shost1,user:${k8susr},server:1,userenv:${userenv},resources:server-1:$resources_file,annotations:server-1:$annotations_file,securityContext:server-1:$securityContext_file,hugepage:1,cpu-partitioning:server-1:1,runtimeClassName:performance-${MCP}"
-
-reg-c2j-config.py --name trafficgen --output all-in-one.json $ARGS && \
+if [ "${KUBE:-0}" = "0" ]; then
+    PROG=reg-c2j-config.py
+else
+    PROG=reg-c2j-api.py
+fi
+$PROG --name trafficgen --output all-in-one.json $ARGS && \
 time crucible run --from-file all-in-one.json
-
 
