@@ -41,7 +41,11 @@ if [ -z "${num_samples}" ]; then
 fi
 
 if [ ! -z "${OCP_PROJECT}" ]; then
-    endpoint_opt+="unique-project:${OCP_PROJECT}"
+    if [ "${KUBE:-0}" = "0" ]; then 
+        endpoint_opt+="unique-project:${OCP_PROJECT}"
+    else
+        endpoint_opt+="custom-project:${OCP_PROJECT}"
+    fi
 fi
 if [ "${DRY_RUN}" == true  ]; then
     echo DRY=true
@@ -74,8 +78,7 @@ if [ "$DURATION" != 0 ]; then
 	done
 fi
 
-time crucible run iperf,uperf\
- --mv-params iperf-mv-params.json,uperf-mv-params.json\
+ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:1-2,uperf:3-4,uperf:5-6\
  --tags $tags\
  --num-samples=$NUM_SAMPLES --max-sample-failures=1\
@@ -92,5 +95,13 @@ nodeSelector:server-${worker3_servers}:$pwd/nodeSelector-$worker3.json,\
 userenv:fedora-latest,\
 masters-tool-collect:0,\
 client:1-6,\
-server:1-6${annotation_opt}${resources_opt}
+server:1-6${annotation_opt}${resources_opt}"
+
+if [ "${KUBE:-0}" = "0" ]; then
+    PROG=reg-c2j-config.py
+else
+    PROG=reg-c2j-api.py
+fi
+$PROG --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS && \
+time crucible run --from-file all-in-one.json
 

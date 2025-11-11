@@ -9,7 +9,6 @@ source ${REG_ROOT}/init.sh
 source ${REG_ROOT}/templates/common/remotehost_functions
 source ${REG_ROOT}/templates/common/functions
 
-
 DURATION=${DURATION:-0}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 TPL_QOS=${TPL_QOS:-burstable}
@@ -30,7 +29,7 @@ scale_out_factor=1   # Determines the number of hosts/nodes that will get used
                  #  pods are on the same worker (no external traffic)
 rm_factor=1      # Determines the number of external hosts that will get used for ingress/egress remotehost scaling
 userenv=fedora-latest # can be centos7, centos8, stream, rhubi8, debian, opensuse
-osruntime=chroot # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
+osruntime=pod # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
 
 
 max_failures=1 # After this many failed samples=$NUM_SAMPLE the run will quit
@@ -289,9 +288,13 @@ for num_pods in $scale_up_factor; do
                 done
                 node_selector=`echo $node_selector | sed -e s/^,//`
             done
-        endpoint_opt="--endpoint k8s,user:$k8susr,host:$ocphost"
+        endpoint_opt="--endpoint k8s,user:$k8susr,host:$ocphost,osruntime:$osruntime"
         if  [  ! -z ${OCP_PROJECT} ]; then
-            endpoint_opt+=",unique-project:${OCP_PROJECT}"
+            if [ "${KUBE:-0}" = "0" ]; then
+              endpoint_opt+=",unique-project:${OCP_PROJECT}"
+            else
+              endpoint_opt+=",custom-project:${OCP_PROJECT}"
+            fi
         fi
         endpoint_opt+=",${node_selector}"
         endpoint_opt+=",userenv:$userenv"
@@ -302,7 +305,6 @@ for num_pods in $scale_up_factor; do
             resource_file="`/bin/pwd`/COMBINED_RESOURCES.json"
             endpoint_opt+=",resources:default:$resource_file"
         fi
-        endpoint_opt+=",osruntime:${osruntime}"
         endpoint_opt+="$anno_opt"
         endpoint_opt+="${runtimeClassNameOpt}"
         if [ ! -z "$securityContext_file" ]; then
@@ -327,7 +329,7 @@ for num_pods in $scale_up_factor; do
         if [ -n "$rm_factor" ] && [ "$rm_factor" -gt 1 ]; then
             multi_rm_hosts "client"
         else
-            endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv "
+            endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:chroot"
         fi
     elif [ "$topo" == "egress" ]; then
         endpoint_opt+=",client:1-$num_servers"
@@ -335,15 +337,15 @@ for num_pods in $scale_up_factor; do
             multi_rm_hosts "server"
             # func sourced from remotehost_functions
         else
-            endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,server:1-$num_pods,userenv:$userenv "
+            endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,server:1-$num_pods,userenv:$userenv,osruntime:chroot"
         fi
     elif [ "$topo" == "interhost" ]; then
         # TODO: make work for $scale_out_factor > 1
-        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
-        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
+        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:chroot"
+        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:chroot"
     fi
 
-    tags="sdn:$network_type,mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv,osruntime:$osruntime"
+    tags="sdn:$network_type,mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv"
     tags+=",topo:$topo,pods-per-worker:$num_pods,scale_out_factor:$scale_out_factor"
     if [ "$topo" == "internode" -a "$topo" == "intranode" ]; then
         #tags+=",pod_qos:$pod_qos"
@@ -368,8 +370,13 @@ ARGS=" --tags $tags \
         --max-sample-failures=$max_failures \
         $endpoint_opt "
 
-    reg-c2j-config.py --name iperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
-    reg-enhance-tags.py all-in-one.json model:$REG_ROOT/bin/reg-get-model.py,cpu:$REG_ROOT/bin/reg-get-numcpu.py  &&\
+    if [ "${KUBE:-0}" = "0" ]; then
+        PROG=reg-c2j-config.py
+    else
+        PROG=reg-c2j-api.py
+    fi
+    $PROG --name iperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
+    reg-enhance-tags.py all-in-one.json model:$REG_ROOT/bin/reg-get-model.py,cpu:$REG_ROOT/bin/reg-get-numcpu.py && \
     time crucible run --from-file all-in-one.json
 
 done
