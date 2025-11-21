@@ -1,0 +1,118 @@
+{
+  "schema_info": {
+    "version": "2.0.0",
+    "schema_type": "benchmark_report"
+  },
+  "generation_info": {
+    "total_results": 2,
+    "successful_results": 2,
+    "failed_results": 0,
+    "timestamp": "2025-01-15T10:30:00Z",
+    "benchmarks": ["uperf", "iperf"],
+    "processing_duration_seconds": 2.5
+  },
+  "results": [
+    {
+      "file_path": "/results/ovnk-cx7-emerald/result-summary-001.txt",
+      "benchmark": "uperf",
+      "run_id": "abc123-001",
+      "common_params": {
+        "protocol": "tcp",
+        "nthreads": "8"
+      },
+      "key_tags": {
+        "model": "OVNK",
+        "nic": "CX7",
+        "arch": "emerald_rapid",
+        "kernel": "5.14.0-570.49.1.el9_6.x86_64",
+        "rcos": "4.16",
+        "cpu": "58",
+        "topo": "intranode",
+        "perf": "tuned",
+        "offload": "on"
+      },
+      "iterations": [
+        {
+          "iteration_id": "ITER-001",
+          "unique_params": {
+            "test-type": "stream",
+            "wsize": "64",
+            "rsize": "16384"
+          },
+          "results": [
+            {
+              "type": "Gbps",
+              "mean": 95.4,
+              "min": 94.1,
+              "max": 96.8,
+              "stddev": 0.8,
+              "stddevpct": 0.84,
+              "busyCPU": 45.2,
+              "samples_count": 5
+            }
+          ]
+        },
+        {
+          "iteration_id": "ITER-002",
+          "unique_params": {
+            "test-type": "rr",
+            "wsize": "64",
+            "rsize": "64"
+          },
+          "results": [
+            {
+              "type": "transactions-sec",
+              "mean": 125000,
+              "min": 123000,
+              "max": 127000,
+              "stddev": 1200,
+              "stddevpct": 0.96,
+              "busyCPU": 52.1,
+              "samples_count": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file_path": "/results/ovnk-cx7-emerald/result-summary-002.txt",
+      "benchmark": "iperf",
+      "run_id": "abc123-002",
+      "common_params": {
+        "protocol": "tcp",
+        "nthreads": "8"
+      },
+      "key_tags": {
+        "model": "OVNK",
+        "nic": "CX7",
+        "arch": "emerald_rapid",
+        "kernel": "5.14.0-570.49.1.el9_6.x86_64",
+        "rcos": "4.16",
+        "cpu": "58",
+        "topo": "intranode",
+        "perf": "tuned",
+        "offload": "on"
+      },
+      "iterations": [
+        {
+          "iteration_id": "ITER-003",
+          "unique_params": {
+            "test-type": "stream"
+          },
+          "results": [
+            {
+              "type": "rx-Gbps",
+              "mean": 94.2,
+              "min": 93.5,
+              "max": 95.1,
+              "stddev": 0.6,
+              "stddevpct": 0.64,
+              "busyCPU": 43.8,
+              "samples_count": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
