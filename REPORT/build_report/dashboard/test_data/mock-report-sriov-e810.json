@@ -1,0 +1,118 @@
+{
+  "schema_info": {
+    "version": "2.0.0",
+    "schema_type": "benchmark_report"
+  },
+  "generation_info": {
+    "total_results": 2,
+    "successful_results": 2,
+    "failed_results": 0,
+    "timestamp": "2025-01-17T09:45:00Z",
+    "benchmarks": ["uperf", "iperf"],
+    "processing_duration_seconds": 2.1
+  },
+  "results": [
+    {
+      "file_path": "/results/sriov-e810-ice/result-summary-005.txt",
+      "benchmark": "uperf",
+      "run_id": "ghi789-001",
+      "common_params": {
+        "protocol": "tcp",
+        "nthreads": "8"
+      },
+      "key_tags": {
+        "model": "SRIOV",
+        "nic": "E810",
+        "arch": "ice_lake",
+        "kernel": "5.14.0-570.49.1.el9_6.x86_64",
+        "rcos": "4.16",
+        "cpu": "40",
+        "topo": "intranode",
+        "perf": "balanced",
+        "offload": "off"
+      },
+      "iterations": [
+        {
+          "iteration_id": "ITER-007",
+          "unique_params": {
+            "test-type": "stream",
+            "wsize": "64",
+            "rsize": "16384"
+          },
+          "results": [
+            {
+              "type": "Gbps",
+              "mean": 78.3,
+              "min": 77.1,
+              "max": 79.5,
+              "stddev": 0.9,
+              "stddevpct": 1.15,
+              "busyCPU": 38.5,
+              "samples_count": 5
+            }
+          ]
+        },
+        {
+          "iteration_id": "ITER-008",
+          "unique_params": {
+            "test-type": "rr",
+            "wsize": "64",
+            "rsize": "64"
+          },
+          "results": [
+            {
+              "type": "transactions-sec",
+              "mean": 98000,
+              "min": 96500,
+              "max": 99500,
+              "stddev": 1100,
+              "stddevpct": 1.12,
+              "busyCPU": 42.3,
+              "samples_count": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file_path": "/results/sriov-e810-ice/result-summary-006.txt",
+      "benchmark": "iperf",
+      "run_id": "ghi789-002",
+      "common_params": {
+        "protocol": "udp",
+        "nthreads": "4"
+      },
+      "key_tags": {
+        "model": "SRIOV",
+        "nic": "E810",
+        "arch": "ice_lake",
+        "kernel": "5.14.0-570.49.1.el9_6.x86_64",
+        "rcos": "4.16",
+        "cpu": "40",
+        "topo": "intranode",
+        "perf": "balanced",
+        "offload": "off"
+      },
+      "iterations": [
+        {
+          "iteration_id": "ITER-009",
+          "unique_params": {
+            "test-type": "stream"
+          },
+          "results": [
+            {
+              "type": "rx-Gbps",
+              "mean": 76.8,
+              "min": 75.9,
+              "max": 77.7,
+              "stddev": 0.7,
+              "stddevpct": 0.91,
+              "busyCPU": 36.2,
+              "samples_count": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Dashboard launcher script
+# Wrapper to launch the performance dashboard web application
+#
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Set PYTHONPATH to include parent directory (build_report)
+export PYTHONPATH="${SCRIPT_DIR}/..:${PYTHONPATH}"
+
+# Run the dashboard Python script
+exec python3 "${SCRIPT_DIR}/run_dashboard.py" "$@"
