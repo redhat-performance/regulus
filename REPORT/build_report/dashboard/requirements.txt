@@ -1,0 +1,8 @@
+# Dashboard Dependencies
+
+# Web framework
+Flask>=2.3.0
+
+# Optional: For production deployment
+# gunicorn>=21.0.0
+# uWSGI>=2.0.22
