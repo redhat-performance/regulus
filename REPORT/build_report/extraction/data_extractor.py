@@ -373,16 +373,17 @@ class RegexDataExtractor:
         )
 
     def _extract_key_tags(self, tags_str: str) -> Dict[str, str]:
-        """Extract key tags: pods-per-worker, scale_out_factor, topo."""
+        """Extract key tags: model, nic, arch, perf, offload, kernel, rcos, topo, cpu, etc."""
         key_tags = {}
-    
+
         # Parse tags string
         for tag in tags_str.split():
             if '=' in tag:
                 key, value = tag.split('=', 1)
-                if key in ['model', 'perf', 'offload', 'kernel', 'rcos', 'pods-per-worker', 'scale_out_factor', 'topo', 'cpu']:
+                # Extract all important tags including nic and arch
+                if key in ['model', 'nic', 'arch', 'perf', 'offload', 'kernel', 'rcos', 'pods-per-worker', 'scale_out_factor', 'topo', 'cpu']:
                     key_tags[key] = value
-    
+
         return key_tags
 
 class MultiPassDataExtractor:

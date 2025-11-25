@@ -1,6 +1,7 @@
 #!/bin/bash
 source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/init.sh 
+source ${REG_ROOT}/INVENTORY/tb-get.sh
 source ${REG_ROOT}/templates/common/functions
 
 NUM_SAMPLES=${NUM_SAMPLES:-1}
@@ -58,7 +59,11 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ] |
     endpoint_opt+=",securityContext:default:$securityContext_file"
 fi
 
+nic=$(tb-get-nic-model REG_OVN_NIC_MODEL)
+arch=$(tb-get-cpu-model $OCP_WORKER_0)
+
 if [ "${TPL_SRIOV}" == 1  ]; then
+    nic=$(tb_get_nic_model REG_SRIOV_NIC_MODEL)
 	source ${REG_ROOT}/SRIOV-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     do_ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
@@ -71,6 +76,7 @@ if [ "${TPL_SRIOV}" == 1  ]; then
 fi
 
 if [ "${TPL_MACVLAN}" == 1  ]; then
+    nic=$(tb_get_nic_model REG_MACVLAN_NIC_MODEL)
 	source ${REG_ROOT}/MACVLAN-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     do_ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
@@ -91,6 +97,9 @@ if [ "$DURATION" != 0 ]; then
 		sed -i 's/\({ "arg": "time", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
 	done
 fi
+
+tags+=",nic:$nic"
+tags+=",arch:$arch"
 
 ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\

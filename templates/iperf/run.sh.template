@@ -8,6 +8,7 @@ source ${REG_ROOT}/templates/common/worker_labels.config
 source ${REG_ROOT}/init.sh
 source ${REG_ROOT}/templates/common/remotehost_functions
 source ${REG_ROOT}/templates/common/functions
+source ${REG_ROOT}/INVENTORY/tb-get.sh
 
 DURATION=${DURATION:-0}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
@@ -33,7 +34,7 @@ osruntime=pod # can be pod or kata for OCP (not yet verified for SRIOV), chroot 
 
 
 max_failures=1 # After this many failed samples=$NUM_SAMPLE the run will quit
-user_tags="datapath:$REG_DP,topo:$TPL_TOPO" # Comma-separated list of something=value, these help you identify this run as different
+user_tags="topo:$TPL_TOPO" # Comma-separated list of something=value, these help you identify this run as different
             #  from other runs, for example:  "cloud-reservation:48,HT:off,CVE:off"
             # Note that many tags are auto-generated below
 mv_params_file=mv-params.json # All benchmark-iterations are built from this file
@@ -68,8 +69,11 @@ if [ "$TPL_PAO" == 1 ] ; then
     do_ssh $k8susr@$ocphost "kubectl get performanceprofile ${MCP} -o json" > performanceprofile.json 
     numa_mode="$(get_pp_policy)"
 fi
+nic=$(tb-get-nic-model REG_OVN_NIC_MODEL)
+arch=$(tb-get-cpu-model $OCP_WORKER_0)
 
 if [ "$TPL_SRIOV" == 1 ] ; then
+    nic=$(tb_get_nic_model REG_SRIOV_NIC_MODEL)
     source ${REG_ROOT}/SRIOV-config/config.env
     # New project. Recreate neworkAttachmentDefinition
     do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
@@ -81,6 +85,7 @@ if [ "$TPL_SRIOV" == 1 ] ; then
 fi
 
 if [ "$TPL_MACVLAN" == 1 ] ; then
+    nic=$(tb_get_nic_model REG_MACVLAN_NIC_MODEL)
   	source ${REG_ROOT}/MACVLAN-config/config.env
     # New project. Recreate neworkAttachmentDefinition
     do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_MACVLAN_NAD}"
@@ -137,6 +142,8 @@ collect_more_tags() {
     if [ "$TPL_HWOL" == 1 ]; then
         other_tags+=",offload:HWOL"
     fi
+    other_tags+=",nic:$nic"
+    other_tags+=",arch:$arch"
 }
 
 # check for dependencies
@@ -345,7 +352,7 @@ for num_pods in $scale_up_factor; do
         endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:chroot"
     fi
 
-    tags="sdn:$network_type,mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv"
+    tags="mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv"
     tags+=",topo:$topo,pods-per-worker:$num_pods,scale_out_factor:$scale_out_factor"
     if [ "$topo" == "internode" -a "$topo" == "intranode" ]; then
         #tags+=",pod_qos:$pod_qos"

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-OpenShift Node Hardware Collector
+OCP  Node Hardware Collector
 SSH into worker nodes to collect CPU and NIC information
 
-Usage: python3 create_testbed_section.py --kubeconfig $KUBECONFIG  --ssh-key ~/.ssh/id_rsa  --lshw /usr/sbin/lshw  --lab-config lab.config --json --output DATA/testbed.json
+Usage: python3 create-tb-json.py --kubeconfig $KUBECONFIG  --ssh-key ~/.ssh/id_rsa  --lshw /usr/sbin/lshw  --lab-config lab.config --json --output DATA/testbed.json
 
 """
 
 import subprocess
 import sys
+import os
 import argparse
 import re
 from pathlib import Path
@@ -599,6 +600,7 @@ class NodeHardwareCollector:
                 output_data["node_count"] = total_hosts
                 output_data["nodes"] = self.collected_data
             
+            os.makedirs(os.path.dirname(self.output_file), exist_ok=True)
             with open(self.output_file, "w") as f:
                 json_module.dump(output_data, f, indent=2)
         

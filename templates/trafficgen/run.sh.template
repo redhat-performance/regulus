@@ -10,6 +10,7 @@ source ${REG_ROOT}/init.sh
 source ${REG_ROOT}/templates/common/remotehost_functions
 source ${REG_ROOT}/templates/common/functions
 source ${REG_ROOT}/SETUP_GROUP/DPDK/INSTALL/trafficgen.sh 
+source ${REG_ROOT}/INVENTORY/tb-get.sh
 
 # Variables if one or more remotehost
 # endpoints are used (topo=ingress)
@@ -73,6 +74,12 @@ sed -i -e "s/\"arg\": \"trex-active-devices\",[[:space:]]*\"vals\": \[ \"[^\"]*\
     mv-params.json
 
 #  --no-tools \
+
+nic=$(tb-get-nic-model REG_DPDK_NIC_MODEL)
+arch=$(tb-get-cpu-model $OCP_WORKER_0)
+
+tags+=",nic:$nic"
+tags+=",arch:$arch"
 
 ARGS=" --tags $tags \
   --tool-params tool-params.json \
