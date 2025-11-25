@@ -1,0 +1,3 @@
+source ./tb-get.sh
+tb-get-cpu-model  nvd-srv-24.nvidia.eng.rdu2.dc.redhat.com
+tb-get-nic-model  REG_OVN_NIC_MODEL
