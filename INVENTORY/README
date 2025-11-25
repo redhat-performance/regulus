@@ -1,0 +1,17 @@
+This directory scripts to genenate lab and testbed json.
+The scripts are invokee during "make lab-init",
+
+Use case 1: tags
+    crucible run.sh queries the info to tag the run with cpu arch, nic model etc.
+Use case 2: report
+    "make report-upload" combines testbed, env and run report to form a complate report ofr upload to CPT
+
+The call diagram:
+
+create-labconfig-json.sh ->  create_labconfig-json.py -> ./generated/gen-lab-config.json
+create-tb-json.sh        ->  create_tb-json.py       - > ./generated/gen-tb-config.json
+
+                  json_extractor.py*
+extract_json.sh /
+                \  lab_extractor.py*
+

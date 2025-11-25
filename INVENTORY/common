@@ -1,0 +1,3 @@
+GEN_DIR=./generated
+LABJSON=gen-lab-config.json
+TBJSON=gen-tb-config.json
