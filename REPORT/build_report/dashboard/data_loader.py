@@ -90,7 +90,9 @@ class ReportLoader:
                 return None
 
             with open(path, 'r', encoding='utf-8') as f:
-                report_data = json.load(f)
+                # Allow NaN, Infinity, and -Infinity values in JSON
+                # Convert them to None (null) for compatibility
+                report_data = json.load(f, parse_constant=lambda x: None if x in ('NaN', '-NaN') else float(x))
 
             # Validate basic structure
             if not isinstance(report_data, dict):

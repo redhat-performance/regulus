@@ -29,7 +29,7 @@
         "cpu": "58",
         "topo": "internode",
         "perf": "performance",
-        "offload": "on"
+        "offload": "none"
       },
       "iterations": [
         {

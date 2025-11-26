@@ -312,9 +312,9 @@ async function loadOverviewData() {
             unitFilter = 'Gbps';
             unitLabel = 'Throughput (Gbps)';
         } else {
-            // No specific test type selected - default to Gbps for throughput tests
-            unitFilter = 'Gbps';
-            unitLabel = 'Throughput (Gbps)';
+            // No specific test type selected - show all units
+            unitFilter = null;
+            unitLabel = 'Performance Metric';
         }
 
         // Fetch raw results for client-side aggregation to track file paths

@@ -156,6 +156,14 @@ inventory:
 	    popd >/dev/null; \
 	} || { echo "❌ INVENTORY failed" >&2; exit 1; }
 
+clean-inventory:
+	@@echo "[INVENTORY] clearing..." >&2
+	@{ \
+	    pushd INVENTORY >/dev/null && \
+	    make --no-print-directory clean || exit 1; \
+	    popd >/dev/null; \
+	} || { echo "❌ INVENTORY failed" >&2; exit 1; }
+
 
 # Init LAB info if lab.config changes. Do not output anything to spoil the json file
 init-lab: $(LAB_TARGET) SRIOV_INIT inventory

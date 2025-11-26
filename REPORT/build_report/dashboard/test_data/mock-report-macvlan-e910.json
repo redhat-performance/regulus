@@ -29,7 +29,7 @@
         "cpu": "58",
         "topo": "intranode",
         "perf": "powersave",
-        "offload": "on"
+        "offload": "none"
       },
       "iterations": [
         {
