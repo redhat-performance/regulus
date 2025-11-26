@@ -11,5 +11,6 @@ $(GENERATED):
 	@./init.sh
 
 clean:
-	@rm -fr generated
+	@echo "[INVENTORY] Running clean.sh to clear outputs..." >&2
+	@./clean.sh
 

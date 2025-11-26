@@ -29,7 +29,7 @@
         "cpu": "112",
         "topo": "internode",
         "perf": "performance",
-        "offload": "on"
+        "offload": "none"
       },
       "iterations": [
         {
@@ -91,7 +91,7 @@
         "cpu": "112",
         "topo": "internode",
         "perf": "performance",
-        "offload": "on"
+        "offload": "none"
       },
       "iterations": [
         {
