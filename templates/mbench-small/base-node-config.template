@@ -6,7 +6,7 @@ if [" $(hostname)" == "${REG_OCPHOST}" ]; then
 fi
 
 k8susr=$REG_KNI_USER
-tags=lab:scale,datapath:$REG_DP
+tags=datapath:mbench
 
 #NAME       STATUS   ROLES                  AGE   VERSION
 #master-0   Ready    control-plane,master   21h   v1.27.6+98158f9
