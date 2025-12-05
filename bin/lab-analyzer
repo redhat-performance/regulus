@@ -243,7 +243,7 @@ function f_update_tb_info {
 	json=$tb_info
 	updated_json=$(echo "$json" | jq ".CLUSTER_TYPE = \"$tb_cluster_type\" | .NUM_WORKERS = \"$tb_num_workers\" \
 								|     .ALLOCATABLE_CPUS = \"$tb_alloc_cpus\" |  .USEABLE_CPUS = \"$tb_useable_cpus\" \
-                                |     .CORE_PERSOCKET = \"$tb_cps\" | .CPUS_PERCORE = \"$tb_cpc\"")
+                                |     .CORE_PERSOCKET = \"$tb_cps\" | .CPUS_PERCORE = \"$tb_cpc\" | .NUM_NUMAS = \"$tb_numa_nodes\" ")
 	# Write the JSON content to a file
 	echo "$updated_json" 
 }
@@ -449,6 +449,9 @@ tb_cps=$(echo "$lscpu_output" | awk -F: '/Core\(s\) per socket/ {gsub(/^[ \t]+/,
 echo "core-per-socket=$tb_cps" >&2 
 tb_cpc=$(echo "$lscpu_output" | awk -F: '/Thread\(s\) per core/ {gsub(/^[ \t]+/, "", $2); print $2}')
 echo "cpu-per-core=$tb_cpc" >&2 
+tb_numa_nodes=$(lscpu | awk -F: '/NUMA node\(s\)/ {gsub(/^[ \t]+/, "", $2); print $2}')
+echo "num_numa=$tb_numa_nodes" >&2
+
 #################################
 
 
