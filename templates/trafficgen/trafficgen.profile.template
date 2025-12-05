@@ -1,0 +1,37 @@
+{
+  "streams": [
+    {
+      "flows": 1024,
+      "frame_size": 64,
+      "flow_mods": "function:create_flow_mod_object(use_src_mac_flows=False, use_dst_mac_flows=False, use_src_ip_flows=False, use_dst_ip_flows=True, use_src_port_flows=False, use_dst_port_flows=False, use_protocol_flows=False)",
+      "rate": 22321428,
+      "frame_type": "generic",
+      "protocol": "UDP",
+      "stream_types": [
+        "teaching_warmup",
+        "teaching_measurement",
+        "measurement"
+      ],
+      "latency": false,
+      "traffic_direction": "bidirectional",
+      "stream_id": "stream1"
+    },
+    {
+      "flows": 1024,
+      "frame_size": 64,
+      "flow_mods": "function:create_flow_mod_object(use_src_mac_flows=False, use_dst_mac_flows=False, use_src_ip_flows=False, use_dst_ip_flows=True, use_src_port_flows=False, use_dst_port_flows=False, use_protocol_flows=False)",
+      "rate": 1000,
+      "frame_type": "generic",
+      "protocol": "UDP",
+      "stream_types": [
+        "teaching_warmup",
+        "teaching_measurement",
+        "measurement"
+      ],
+      "latency": true,
+      "latency_only": true,
+      "traffic_direction": "unidirectional",
+      "stream_id": "stream2"
+    }
+  ]
+}
