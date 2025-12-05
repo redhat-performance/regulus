@@ -219,7 +219,7 @@ for num_pods in $scale_up_factor; do
 
         first_worker=`echo ${workers[0]}`
         if [ -z "$first_worker" ]; then
-            echo "$(LINENO) First worker not defined, exiting"
+            echo "($LINENO) First worker not defined, exiting"
             exit 1
         fi
         if [ "$topo" == "internode" ]; then
