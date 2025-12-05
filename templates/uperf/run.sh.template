@@ -242,12 +242,12 @@ for num_pods in $scale_up_factor; do
         else
             echo "Computing resource file: $resource_file"
             per_pod_cpu=$(compute_cpus_per_pod \
-                            "$num_cpus"\
-                            "$CORE_PERSOCKET"\
+                            "$num_cpus" \
+                            "$NUM_NUMAS" \
                             "$CPUS_PERCORE" \
                             "$topo" \
                             "$scale_up_factor" \
-                            "burstable" \
+                            "$pod_qos" \
                             "$numa_mode" \
                             "$TPL_NUMCPUS" )
             if [[ $? -ne 0 ]]; then
