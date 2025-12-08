@@ -4,7 +4,7 @@
       "flows": 1024,
       "frame_size": 64,
       "flow_mods": "function:create_flow_mod_object(use_src_mac_flows=False, use_dst_mac_flows=False, use_src_ip_flows=False, use_dst_ip_flows=True, use_src_port_flows=False, use_dst_port_flows=False, use_protocol_flows=False)",
-      "rate": 22321428,
+      "rate": 29761904,
       "frame_type": "generic",
       "protocol": "UDP",
       "stream_types": [

@@ -7,7 +7,7 @@ REG_COMMON=${REG_ROOT}/templates/common
 source $REG_ROOT/lab.config
 
 export TPL_MLXSUP=${TPL_MLXSUP:-off}
-export TPL_SW_MODE=${TPL_SW_MODE:-on}
+export TPL_SW_MODE=${TPL_SW_MODE:-off}
 if [ "$TREX_DPDK_NIC_MODEL"  == "CX6"  ]; then
     TPL_MLXSUP=on
     TPL_SW_MODE=off
