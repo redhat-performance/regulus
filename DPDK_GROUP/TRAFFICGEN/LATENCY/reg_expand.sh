@@ -18,10 +18,10 @@ MANIFEST_DIR=./
 export TPL_FWD_MODE=mac
 export TPL_NUMCPUS=4
 envsubst '$MCP' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
-envsubst '$TPL_MLXSUP,$TPL_SW_MODE,$TPL_FWD_MODE' <  ${REG_TEMPLATES}/mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
+envsubst '$TPL_MLXSUP,$TPL_SW_MODE,$TPL_FWD_MODE' <  ${REG_TEMPLATES}/latency/trex-txrx-profile/mv-params.json.template >  ${MANIFEST_DIR}/mv-params.json
 envsubst '$TPL_NUMCPUS' <  ${REG_TEMPLATES}/resources.json.template >  ${MANIFEST_DIR}/resources.json
 envsubst '' <  ${REG_TEMPLATES}/annotations.json.template  > ${MANIFEST_DIR}/annotations.json
-envsubst '' <  ${REG_TEMPLATES}/trafficgen.profile.template  > ${MANIFEST_DIR}/trafficgen.profile
+envsubst '' <  ${REG_TEMPLATES}/latency/trex-txrx-profile/trafficgen.profile.template  > ${MANIFEST_DIR}/trafficgen.profile
 
 cp ${REG_COMMON}/tool-params.json.template  ${MANIFEST_DIR}/tool-params.json
 cp ${REG_COMMON}/securityContext.json.template  ${MANIFEST_DIR}/securityContext.json
