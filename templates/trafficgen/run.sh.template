@@ -75,8 +75,12 @@ sed -i -e "s/\"arg\": \"trex-active-devices\",[[:space:]]*\"vals\": \[ \"[^\"]*\
 
 #  --no-tools \
 
-nic=$(tb-get-nic-model REG_DPDK_NIC_MODEL)
-arch=$(tb-get-cpu-model $OCP_WORKER_0)
+nic=$(tb-get-nic-model REG_DPDK_NIC_MODEL ) || { echo "ERROR: Failed to get DPDK NIC model" >&2; exit 1; }
+[[ -z "$nic" ]] && { echo "ERROR: DPDK NIC model is empty" >&2; exit 1; }
+
+arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU model" >&2; exit 1; }
+[[ -z "$arch" ]] && { echo "ERROR: CPU model is empty" >&2; exit 1; }
+
 
 tags+=",nic:$nic"
 tags+=",arch:$arch"
