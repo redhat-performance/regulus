@@ -75,7 +75,7 @@ nic=$(tb-get-nic-model REG_OVN_NIC_MODEL)
 arch=$(tb-get-cpu-model $OCP_WORKER_0)
 
 if [ "$TPL_SRIOV" == 1 ] ; then
-    nic=$(tb_get_nic_model REG_SRIOV_NIC_MODEL)
+    nic=$(tb-get-nic-model REG_SRIOV_NIC_MODEL)
     source ${REG_ROOT}/SRIOV-config/config.env
     # New project. Recreate neworkAttachmentDefinition. 
     do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
@@ -95,7 +95,7 @@ fi
 
 
 if [ "$TPL_MACVLAN" == 1 ] ; then
-    nic=$(tb_get_nic_model REG_MACVLAN_NIC_MODEL)
+    nic=$(tb-get-nic-model REG_MACVLAN_NIC_MODEL)
   	source ${REG_ROOT}/MACVLAN-config/config.env
     # New project. Recreate neworkAttachmentDefinition. 
     do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_MACVLAN_NAD}"
