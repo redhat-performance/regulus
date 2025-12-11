@@ -136,45 +136,30 @@ class NodeHardwareCollector:
                 nodes.append(node_name)
         
         return nodes
-    
+
     def resolve_hostname(self, hostname, ssh_user="core"):
         """
-        FIX #1: Resolve hostname to IP if DNS fails using OpenShift
-        Returns: hostname or IP address
+        Resolve hostname to IP using OpenShift first (avoids DNS hangs)
+        Falls back to hostname if OpenShift lookup fails
         """
-        # Quick SSH test
-        test_cmd = ["ssh", "-o", "ConnectTimeout=5", "-o", "LogLevel=ERROR"]
-        if self.ssh_key:
-            test_cmd.extend(["-i", self.ssh_key])
-        test_cmd.extend([f"{ssh_user}@{hostname}", "echo test"])
-        
-        stdout, stderr, returncode = self.run_command(test_cmd)
-        
+        # Try OpenShift first to avoid DNS hangs
+        stdout, _, returncode = self.run_command(
+                    self.oc_cmd + ["get", "node", "-o", "wide", "--no-headers"]
+                        )
         if returncode == 0:
-            return hostname  # DNS works fine
-        
-        # DNS failed - try OpenShift
-        if "Could not resolve" in stderr or "Name or service not known" in stderr:
-            print(f"    Hostname '{hostname}' not resolvable, checking OpenShift...")
-            
-            # Get node IPs
-            stdout, _, returncode = self.run_command(
-                self.oc_cmd + ["get", "node", "-o", "wide", "--no-headers"]
-            )
-            
-            if returncode == 0:
-                for line in stdout.split("\n"):
-                    parts = line.split()
-                    if len(parts) >= 6:
-                        node_name = parts[0]
-                        internal_ip = parts[5]
-                        # Match hostname
-                        if hostname == node_name or hostname.split('.')[0] == node_name.split('.')[0]:
-                            print(f"    Found IP {internal_ip} for {hostname}")
-                            return internal_ip
-        
-        return hostname  # Fallback to original
-    
+            for line in stdout.split("\n"):
+                parts = line.split()
+                if len(parts) >= 6:
+                    node_name = parts[0]
+                    internal_ip = parts[5]
+                    # Match hostname (exact or short name)
+                    if hostname == node_name or hostname.split('.')[0] == node_name.split('.')[0]:
+                        print(f"    Resolved {hostname} -> {internal_ip} via OpenShift")
+                        return internal_ip
+        # Fallback: try hostname as-is (might work for external servers)
+        print(f"    Using hostname as-is: {hostname}")
+        return hostname
+
     def ssh_to_node(self, node_name, command, use_sudo=True, ssh_user="core"):
         """
         FIX #2: Properly handle sudo with complex shell commands

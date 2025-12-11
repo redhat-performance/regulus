@@ -59,11 +59,16 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ] |
     endpoint_opt+=",securityContext:default:$securityContext_file"
 fi
 
-nic=$(tb-get-nic-model REG_OVN_NIC_MODEL)
-arch=$(tb-get-cpu-model $OCP_WORKER_0)
+nic=$(tb-get-nic-model REG_OVN_NIC_MODEL ) || { echo "ERROR: Failed to get NIC model" >&2; exit 1; }
+[[ -z "$nic" ]] && { echo "ERROR: NIC model is empty" >&2; exit 1; }
+
+arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU model" >&2; exit 1; }
+[[ -z "$arch" ]] && { echo "ERROR: CPU model is empty" >&2; exit 1; }
+
 
 if [ "${TPL_SRIOV}" == 1  ]; then
-    nic=$(tb-get-nic-model REG_SRIOV_NIC_MODEL)
+    nic=$(tb-get-nic-model REG_SRIOV_NIC_MODEL ) || { echo "ERROR: Failed to get SRIOV NIC model" >&2; exit 1; }
+    [[ -z "$nic" ]] && { echo "ERROR: SRIOV NIC model is empty" >&2; exit 1; }
 	source ${REG_ROOT}/SRIOV-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     do_ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
@@ -76,7 +81,9 @@ if [ "${TPL_SRIOV}" == 1  ]; then
 fi
 
 if [ "${TPL_MACVLAN}" == 1  ]; then
-    nic=$(tb-get-nic-model REG_MACVLAN_NIC_MODEL)
+    nic=$(tb-get-nic-model REG_MACVLAN_NIC_MODEL ) || { echo "ERROR: Failed to get MACVLAN NIC model" >&2; exit 1; }
+    [[ -z "$nic" ]] && { echo "ERROR: MACVLAN NIC model is empty" >&2; exit 1; }
+    
 	source ${REG_ROOT}/MACVLAN-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     do_ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
