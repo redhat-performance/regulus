@@ -69,7 +69,7 @@ nic=$(tb-get-nic-model REG_OVN_NIC_MODEL)
 arch=$(tb-get-cpu-model $OCP_WORKER_0)
 
 if [ "${TPL_SRIOV}" == 1  ]; then
-    nic=$(tb_get_nic_model REG_SRIOV_NIC_MODEL)
+    nic=$(tb-get-nic-model REG_SRIOV_NIC_MODEL)
 	source ${REG_ROOT}/SRIOV-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     # New project. Recretate NAD
@@ -79,7 +79,7 @@ if [ "${TPL_SRIOV}" == 1  ]; then
 fi
 
 if [ "${TPL_MACVLAN}" == 1  ]; then
-    nic=$(tb_get_nic_model REG_MACVLAN_NIC_MODEL)
+    nic=$(tb-get-nic-model REG_MACVLAN_NIC_MODEL)
 	source ${REG_ROOT}/MACVLAN-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     # New project. Recretate NAD
