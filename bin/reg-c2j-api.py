@@ -83,49 +83,12 @@ def load_json_from_file(filepath):
         print(f"Error loading {filepath}: {e}", file=sys.stderr)
         return None
 
-def transform_resources(k8s_resources):
+def transform_resources(resources):
     """
-    Transform k8s-style resources to kube-style resources
-    
-    k8s format:
-    {
-        "requests": {"cpu": "53", "memory": "1Gi"},
-        "limits": {"cpu": "53"}
-    }
-    
-    kube format:
-    {
-        "cpu": {"requests": 53, "limits": 53},
-        "memory": {"requests": "1Gi"}
-    }
+    Pass through resources as-is.
+    The input resource stanza is used directly without any transformation.
     """
-    if not k8s_resources:
-        return k8s_resources
-    
-    kube_resources = {}
-    
-    # Check if this is already in kube format (has cpu/memory/hugepages keys at top level)
-    if any(key in k8s_resources for key in ['cpu', 'memory', 'hugepages']):
-        # Already in kube format, return as-is
-        return k8s_resources
-    
-    # Transform from k8s format to kube format
-    for level in ['requests', 'limits']:
-        if level in k8s_resources:
-            for resource_name, resource_value in k8s_resources[level].items():
-                if resource_name not in kube_resources:
-                    kube_resources[resource_name] = {}
-                
-                # Convert string numbers to actual numbers for cpu
-                if resource_name == 'cpu':
-                    try:
-                        kube_resources[resource_name][level] = float(resource_value)
-                    except (ValueError, TypeError):
-                        kube_resources[resource_name][level] = resource_value
-                else:
-                    kube_resources[resource_name][level] = resource_value
-    
-    return kube_resources
+    return resources
 
 def transform_securityContext(k8s_securityContext):
     """
@@ -383,11 +346,11 @@ def parse_endpoint(endpoint_str):
         print("Error: --endpoint is empty.")
         return {}
     endpoint_type = tokens[0].strip()
-    
-    # Handle remotehosts 
+
+    # Handle remotehosts
     if endpoint_type == "remotehosts":
         return parse_remotehosts(endpoint_str)
-    
+
     # Parse k8s (and other types) as key:value pairs
     endpoint_data = {"type": endpoint_type}
     for pair in tokens[1:]:
@@ -395,6 +358,13 @@ def parse_endpoint(endpoint_str):
             continue
         key, value = pair.split(":", 1)
         key, value = key.strip(), value.strip()
+
+        # Handle sysinfo boolean shorthand
+        if key == "sysinfo":
+            if value.lower() in ["true", "false"]:
+                endpoint_data[key] = {"collect-must-gather": value.lower() == "true"}
+                continue
+
         if value.isdigit():
             value = int(value)
         if key in endpoint_data:
@@ -404,12 +374,12 @@ def parse_endpoint(endpoint_str):
                 endpoint_data[key] = [endpoint_data[key], value]
         else:
             endpoint_data[key] = value
-    
+
     # Transform k8s to kube format
     if endpoint_type == "k8s":
         HN_debug(f"Transforming k8s endpoint to kube format for host: {endpoint_data.get('host')}")
         endpoint_data = transform_k8s_to_kube(endpoint_data)
-    
+
     return endpoint_data
 
 def parse_remotehosts(endpoint_str):

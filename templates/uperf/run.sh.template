@@ -317,7 +317,7 @@ for num_pods in $scale_up_factor; do
             if [ "${KUBE:-0}" = "0" ]; then 
                 endpoint_opt+=",unique-project:${OCP_PROJECT}"
             else
-                endpoint_opt+=",custom-project:${OCP_PROJECT}"
+                endpoint_opt+=",custom-project:${OCP_PROJECT},sysinfo:false"
             fi 
         fi
         endpoint_opt+=",${node_selector}"

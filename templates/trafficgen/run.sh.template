@@ -84,6 +84,11 @@ arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU mode
 
 tags+=",nic:$nic"
 tags+=",arch:$arch"
+if [ "${KUBE:-0}" = "0" ]; then
+    SYSINFO=""
+else
+    SYSINFO=",sysinfo:false"
+fi
 
 ARGS=" --tags $tags \
   --tool-params tool-params.json \
@@ -91,7 +96,7 @@ ARGS=" --tags $tags \
   --num-samples ${NUM_SAMPLES} \
   --max-sample-failures ${max_failures} \
   --endpoint remotehosts,host:$remhost1,user:root,client:1,userenv:${userenv},cpu-partitioning:true \
-  --endpoint k8s,host:$k8shost1,user:${k8susr},server:1,userenv:${userenv},resources:server-1:$resources_file,annotations:server-1:$annotations_file,securityContext:server-1:$securityContext_file,hugepage:1,cpu-partitioning:server-1:1,runtimeClassName:performance-${MCP}"
+  --endpoint k8s,host:$k8shost1,user:${k8susr},server:1,userenv:${userenv},resources:server-1:$resources_file,annotations:server-1:$annotations_file,securityContext:server-1:$securityContext_file,hugepage:1,cpu-partitioning:server-1:1,runtimeClassName:performance-${MCP}${SYSINFO}"
 if [ "${KUBE:-0}" = "0" ]; then
     PROG=reg-c2j-config.py
 else
