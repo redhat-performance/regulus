@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Benchmark Dashboard</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            background-color: #fff;
+            border-bottom: 2px solid #667eea;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-value.date-range {
+            font-size: 1.5rem;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .table-responsive {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .badge-benchmark {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .comparison-result {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .comparison-better {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+
+        .comparison-worse {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+
+        /* Narrow rank column */
+        #resultsTable th:first-child,
+        #resultsTable td:first-child {
+            width: 50px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">Performance Benchmark Dashboard</span>
+            <button class="btn btn-light btn-sm" onclick="reloadReports()">
+                <i>↻</i> Reload Reports
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Summary Statistics -->
+        <div class="row mb-4" id="summaryCards">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-value" id="totalReports">-</div>
+                    <div class="stat-label">Total Reports</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-value" id="totalResults">-</div>
+                    <div class="stat-label">Total Results</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-value" id="totalBenchmarks">-</div>
+                    <div class="stat-label">Benchmark Types</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-value date-range" id="dateRange">-</div>
+                    <div class="stat-label">Available Data Range</div>
+                    <div class="mt-2">
+                        <select class="form-select form-select-sm" id="filterDateRange" onchange="applyFilters()">
+                            <option value="">All Time</option>
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card filter-section" style="padding: 12px;">
+            <h6 class="mb-2">Filters</h6>
+            <!-- Row 1 -->
+            <div class="row g-2">
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Benchmark</label>
+                    <select class="form-select form-select-sm" id="filterBenchmark" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Datapath</label>
+                    <select class="form-select form-select-sm" id="filterModel" multiple size="3" onchange="applyFilters()">
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">NIC</label>
+                    <select class="form-select form-select-sm" id="filterNic" multiple size="3" onchange="applyFilters()">
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Arch</label>
+                    <select class="form-select form-select-sm" id="filterArch" multiple size="3" onchange="applyFilters()">
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Protocol</label>
+                    <select class="form-select form-select-sm" id="filterProtocol" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">TestType</label>
+                    <select class="form-select form-select-sm" id="filterTestType" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">CPU</label>
+                    <select class="form-select form-select-sm" id="filterCpu" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Kernel</label>
+                    <select class="form-select form-select-sm" id="filterKernel" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">RCOS</label>
+                    <select class="form-select form-select-sm" id="filterRcos" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Topo</label>
+                    <select class="form-select form-select-sm" id="filterTopo" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Perf</label>
+                    <select class="form-select form-select-sm" id="filterPerf" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Offload</label>
+                    <select class="form-select form-select-sm" id="filterOffload" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Row 2 -->
+            <div class="row g-2 mt-1">
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Threads</label>
+                    <select class="form-select form-select-sm" id="filterThreads" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">ScaleUp</label>
+                    <select class="form-select form-select-sm" id="filterScaleUp" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">ScaleOut</label>
+                    <select class="form-select form-select-sm" id="filterScaleOut" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Wsize</label>
+                    <select class="form-select form-select-sm" id="filterWsize" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
+                    <button class="btn btn-secondary btn-sm w-100" style="margin-top: 20px;" onclick="clearFilters()">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs for different views -->
+        <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="scale-tab" data-bs-toggle="tab" data-bs-target="#scale" type="button">Scale</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="trends-tab" data-bs-toggle="tab" data-bs-target="#trends" type="button">Trends</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="comparison-tab" data-bs-toggle="tab" data-bs-target="#comparison" type="button">Comparison</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button">Results Table</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="dashboardTabContent">
+            <!-- Overview Tab -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Performance by Datapath Model</div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chartByModel"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Performance by Kernel</div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chartByKernel"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">Top 10 Performers (Gbps Throughput)</div>
+                            <div class="card-body">
+                                <table class="table table-striped" id="topPerformersTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Benchmark</th>
+                                            <th>Datapath</th>
+                                            <th>NIC</th>
+                                            <th>Kernel</th>
+                                            <th>Topology</th>
+                                            <th>Mean</th>
+                                            <th>Unit</th>
+                                            <th>BusyCPU</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scale Tab -->
+            <div class="tab-pane fade" id="scale" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        Scaling Analysis
+                        <div class="float-end">
+                            <label class="form-label d-inline-block me-2 mb-0">Scale By:</label>
+                            <select class="form-select form-select-sm d-inline-block w-auto" id="scaleBy" onchange="loadScaleChart()">
+                                <option value="threads">Threads</option>
+                                <option value="wsize">Wsize</option>
+                                <option value="pods_per_worker">Scale Up (Pods per Worker)</option>
+                                <option value="scale_out_factor">Scale Out Factor</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="chart-container" style="height: 500px;">
+                                    <canvas id="scaleChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="chart-container" style="height: 500px;">
+                                    <canvas id="scaleBusyCpuChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trends Tab -->
+            <div class="tab-pane fade" id="trends" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        Performance Trends Over Time
+                        <div class="float-end">
+                            <select class="form-select form-select-sm d-inline-block w-auto" id="trendGroupBy" onchange="loadTrends()">
+                                <option value="">No Grouping</option>
+                                <option value="model">Group by Model</option>
+                                <option value="kernel">Group by Kernel</option>
+                                <option value="topo">Group by Topology</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 500px;">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Tab -->
+            <div class="tab-pane fade" id="comparison" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">Configuration Comparison</div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <label class="form-label">Compare Field</label>
+                                <select class="form-select" id="compareField" onchange="updateComparisonOptions()">
+                                    <option value="model">Datapath Model</option>
+                                    <option value="nic">NIC Vendor</option>
+                                    <option value="arch">Architecture</option>
+                                    <option value="protocol">Protocol</option>
+                                    <option value="test_type">Test Type</option>
+                                    <option value="cpu">CPU</option>
+                                    <option value="kernel">Kernel</option>
+                                    <option value="rcos">RCOS</option>
+                                    <option value="topo">Topology</option>
+                                    <option value="perf">Performance</option>
+                                    <option value="offload">Offload</option>
+                                    <option value="threads">Threads</option>
+                                    <option value="pods_per_worker">Scale Up</option>
+                                    <option value="wsize">Wsize</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Value A</label>
+                                <select class="form-select" id="compareValueA"></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Value B</label>
+                                <select class="form-select" id="compareValueB"></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-primary w-100" onclick="runComparison()">Compare</button>
+                            </div>
+                        </div>
+                        <div id="comparisonResults"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Table Tab -->
+            <div class="tab-pane fade" id="results" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">All Results</div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="resultsTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Benchmark</th>
+                                        <th>NIC</th>
+                                        <th>Arch</th>
+                                        <th>Kernel</th>
+                                        <th>Model</th>
+                                        <th>Config</th>
+                                        <th>Cpu</th>
+                                        <th>Test Type</th>
+                                        <th>Threads</th>
+                                        <th>Wsize</th>
+                                        <th>Mean</th>
+                                        <th>Unit</th>
+                                        <th>Busycpu</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading" id="loadingOverlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Loading data...</p>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery and DataTables -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script src="/static/dashboard.js?v=17"></script>
+</body>
+</html>

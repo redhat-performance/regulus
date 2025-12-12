@@ -4,5 +4,5 @@
 # run:      debug run directly here. Normal run should be invoked from ~/REGULUS/jobs.config
 #
 
-include ../../bin/make-common
+include ../../../bin/make-common
 

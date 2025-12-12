@@ -1,0 +1,78 @@
+{
+  "schema_info": {
+    "version": "2.0.0",
+    "schema_type": "benchmark_report"
+  },
+  "generation_info": {
+    "total_results": 1,
+    "successful_results": 1,
+    "failed_results": 0,
+    "timestamp": "2025-01-14T08:15:00Z",
+    "benchmarks": ["uperf"],
+    "processing_duration_seconds": 2.0
+  },
+  "results": [
+    {
+      "file_path": "/results/ovnk-cx6-emerald/result-summary-009.txt",
+      "benchmark": "uperf",
+      "run_id": "pqr678-001",
+      "common_params": {
+        "protocol": "tcp",
+        "nthreads": "8"
+      },
+      "key_tags": {
+        "model": "OVNK",
+        "nic": "CX6",
+        "arch": "emerald_rapid",
+        "kernel": "5.14.0-570.49.1.el9_6.x86_64",
+        "rcos": "4.16",
+        "cpu": "58",
+        "topo": "intranode",
+        "perf": "tuned",
+        "offload": "none"
+      },
+      "iterations": [
+        {
+          "iteration_id": "ITER-014",
+          "unique_params": {
+            "test-type": "stream",
+            "wsize": "64",
+            "rsize": "16384"
+          },
+          "results": [
+            {
+              "type": "Gbps",
+              "mean": 82.6,
+              "min": 81.5,
+              "max": 83.7,
+              "stddev": 0.8,
+              "stddevpct": 0.97,
+              "busyCPU": 48.9,
+              "samples_count": 5
+            }
+          ]
+        },
+        {
+          "iteration_id": "ITER-015",
+          "unique_params": {
+            "test-type": "rr",
+            "wsize": "64",
+            "rsize": "64"
+          },
+          "results": [
+            {
+              "type": "transactions-sec",
+              "mean": 115000,
+              "min": 113500,
+              "max": 116500,
+              "stddev": 1100,
+              "stddevpct": 0.96,
+              "busyCPU": 55.2,
+              "samples_count": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

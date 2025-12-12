@@ -1,0 +1,78 @@
+{
+  "schema_info": {
+    "version": "2.0.0",
+    "schema_type": "benchmark_report"
+  },
+  "generation_info": {
+    "total_results": 1,
+    "successful_results": 1,
+    "failed_results": 0,
+    "timestamp": "2025-01-19T11:30:00Z",
+    "benchmarks": ["uperf"],
+    "processing_duration_seconds": 2.2
+  },
+  "results": [
+    {
+      "file_path": "/results/ovnk-cx7-emerald/result-summary-008.txt",
+      "benchmark": "uperf",
+      "run_id": "mno345-001",
+      "common_params": {
+        "protocol": "tcp",
+        "nthreads": "8"
+      },
+      "key_tags": {
+        "model": "OVNK",
+        "nic": "CX7",
+        "arch": "emerald_rapid",
+        "kernel": "5.14.0-580.12.1.el9_7.x86_64",
+        "rcos": "4.17",
+        "cpu": "58",
+        "topo": "intranode",
+        "perf": "tuned",
+        "offload": "none"
+      },
+      "iterations": [
+        {
+          "iteration_id": "ITER-012",
+          "unique_params": {
+            "test-type": "stream",
+            "wsize": "64",
+            "rsize": "16384"
+          },
+          "results": [
+            {
+              "type": "Gbps",
+              "mean": 97.8,
+              "min": 96.9,
+              "max": 98.7,
+              "stddev": 0.7,
+              "stddevpct": 0.72,
+              "busyCPU": 44.1,
+              "samples_count": 5
+            }
+          ]
+        },
+        {
+          "iteration_id": "ITER-013",
+          "unique_params": {
+            "test-type": "rr",
+            "wsize": "64",
+            "rsize": "64"
+          },
+          "results": [
+            {
+              "type": "transactions-sec",
+              "mean": 128000,
+              "min": 126500,
+              "max": 129500,
+              "stddev": 1100,
+              "stddevpct": 0.86,
+              "busyCPU": 51.3,
+              "samples_count": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

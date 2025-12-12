@@ -73,7 +73,7 @@ report-live:
 	@bash REPORT/build_report/build_report --formats html csv --output live
 
 report-upload:
-	@bash REPORT/upload/full_report.sh
+	@bash REPORT/upload/assemble_report.sh
 
 confirm_execute:
 	@echo "Are you sure you want to execute the target? [y/N] " && read ans && [ $${ans:-N} = y ]
@@ -108,7 +108,7 @@ clean-all: confirm_execute
 	done
 
 # Lab targets
-.PHONY: clean-lab init-lab SRIOV_INIT $(LAB_TARGET)
+.PHONY: clean-lab init-lab SRIOV_INIT $(LAB_TARGET) inventory
 
 
 LAB_TARGET := ${GEN_LAB_JSON}
@@ -148,9 +148,25 @@ SRIOV_INIT:
 	  popd >/dev/null; \
 	} || { echo "❌ SRIOV_INIT failed" >&2; exit 1; }
 
+inventory:
+	@@echo "[INVENTORY] initializing..." >&2
+	@{ \
+	    pushd INVENTORY >/dev/null && \
+	    make --no-print-directory run || exit 1; \
+	    popd >/dev/null; \
+	} || { echo "❌ INVENTORY failed" >&2; exit 1; }
+
+clean-inventory:
+	@@echo "[INVENTORY] clearing..." >&2
+	@{ \
+	    pushd INVENTORY >/dev/null && \
+	    make --no-print-directory clean || exit 1; \
+	    popd >/dev/null; \
+	} || { echo "❌ INVENTORY failed" >&2; exit 1; }
+
 
 # Init LAB info if lab.config changes. Do not output anything to spoil the json file
-init-lab: $(LAB_TARGET) SRIOV_INIT
+init-lab: $(LAB_TARGET) SRIOV_INIT inventory
 	@true
 
 .SECONDARY: $(LAB_SOURCE)

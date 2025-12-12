@@ -243,46 +243,26 @@ function f_update_tb_info {
 	json=$tb_info
 	updated_json=$(echo "$json" | jq ".CLUSTER_TYPE = \"$tb_cluster_type\" | .NUM_WORKERS = \"$tb_num_workers\" \
 								|     .ALLOCATABLE_CPUS = \"$tb_alloc_cpus\" |  .USEABLE_CPUS = \"$tb_useable_cpus\" \
-                                |     .CORE_PERSOCKET = \"$tb_cps\" | .CPUS_PERCORE = \"$tb_cpc\"")
+                                |     .CORE_PERSOCKET = \"$tb_cps\" | .CPUS_PERCORE = \"$tb_cpc\" | .NUM_NUMAS = \"$tb_numa_nodes\" ")
 	# Write the JSON content to a file
 	echo "$updated_json" 
 }
 
 function f_get_cluster_type {
-    # get all nodes with their roles
-    nodes_info="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get nodes -o custom-columns=NAME:.metadata.name,ROLES:.metadata.labels.kubernetes\\.io/role --no-headers")"
-
-    # count number of nodes
-    num_node=$(echo "$nodes_info" | wc -l)
-
-    if [[ "$num_node" -eq 1 ]]; then
-        echo "SNO"
-        return
-    fi
-
-    if [[ "$num_node" -eq 3 ]]; then
-        # check roles for each node
-        compact=true
-        while read -r name roles; do
-            # COMPACT cluster requires both control-plane and worker roles
-            if [[ "$roles" != *control-plane* ]] || [[ "$roles" != *worker* ]]; then
-                compact=false
-                break
-            fi
-        done <<< "$nodes_info"
-
-        if $compact; then
-            echo "COMPACT"
-        else
-            echo "STANDARD"
-        fi
-        return
-    fi
-
-    # fallback for all other cases
-    echo "STANDARD"
+	# number of node is 1 or 3 or more
+	num_node="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get nodes --no-headers" | wc -l)"
+	case $num_node in
+		1)
+			echo "SNO"
+			;;
+		3)
+			echo "COMPACT"
+			;;
+		*)
+			echo "STANDARD"
+			;;
+	esac
 }
-
 
 function f_validate_worker_nodes {
 	workers="$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && kubectl get nodes --no-headers --selector=node-role.kubernetes.io/worker=")"
@@ -469,6 +449,9 @@ tb_cps=$(echo "$lscpu_output" | awk -F: '/Core\(s\) per socket/ {gsub(/^[ \t]+/,
 echo "core-per-socket=$tb_cps" >&2 
 tb_cpc=$(echo "$lscpu_output" | awk -F: '/Thread\(s\) per core/ {gsub(/^[ \t]+/, "", $2); print $2}')
 echo "cpu-per-core=$tb_cpc" >&2 
+tb_numa_nodes=$(lscpu | awk -F: '/NUMA node\(s\)/ {gsub(/^[ \t]+/, "", $2); print $2}')
+echo "num_numa=$tb_numa_nodes" >&2
+
 #################################
 
 

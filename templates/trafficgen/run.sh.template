@@ -10,6 +10,7 @@ source ${REG_ROOT}/init.sh
 source ${REG_ROOT}/templates/common/remotehost_functions
 source ${REG_ROOT}/templates/common/functions
 source ${REG_ROOT}/SETUP_GROUP/DPDK/INSTALL/trafficgen.sh 
+source ${REG_ROOT}/INVENTORY/tb-get.sh
 
 # Variables if one or more remotehost
 # endpoints are used (topo=ingress)
@@ -27,7 +28,7 @@ fi
 k8susr=$REG_KNI_USER    # Might be "root" or "kni" for some installations
 
 userenv=alma8           # trafficgen only work with alma8
-osruntime=chroot        # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
+osruntime=pod        # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
 
 resources_file="`/bin/pwd`/resources.json"
 annotations_file="`/bin/pwd`/annotations.json"
@@ -74,15 +75,33 @@ sed -i -e "s/\"arg\": \"trex-active-devices\",[[:space:]]*\"vals\": \[ \"[^\"]*\
 
 #  --no-tools \
 
+nic=$(tb-get-nic-model REG_DPDK_NIC_MODEL ) || { echo "ERROR: Failed to get DPDK NIC model" >&2; exit 1; }
+[[ -z "$nic" ]] && { echo "ERROR: DPDK NIC model is empty" >&2; exit 1; }
+
+arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU model" >&2; exit 1; }
+[[ -z "$arch" ]] && { echo "ERROR: CPU model is empty" >&2; exit 1; }
+
+
+tags+=",nic:$nic"
+tags+=",arch:$arch"
+if [ "${KUBE:-0}" = "0" ]; then
+    SYSINFO=""
+else
+    SYSINFO=",sysinfo:false"
+fi
+
 ARGS=" --tags $tags \
   --tool-params tool-params.json \
   --mv-params $mv_params_file \
   --num-samples ${NUM_SAMPLES} \
   --max-sample-failures ${max_failures} \
   --endpoint remotehosts,host:$remhost1,user:root,client:1,userenv:${userenv},cpu-partitioning:true \
-  --endpoint k8s,host:$k8shost1,user:${k8susr},server:1,userenv:${userenv},resources:server-1:$resources_file,annotations:server-1:$annotations_file,securityContext:server-1:$securityContext_file,hugepage:1,cpu-partitioning:server-1:1,runtimeClassName:performance-${MCP}"
-
-reg-c2j-config.py --name trafficgen --output all-in-one.json $ARGS && \
+  --endpoint k8s,host:$k8shost1,user:${k8susr},server:1,userenv:${userenv},resources:server-1:$resources_file,annotations:server-1:$annotations_file,securityContext:server-1:$securityContext_file,hugepage:1,cpu-partitioning:server-1:1,runtimeClassName:performance-${MCP}${SYSINFO}"
+if [ "${KUBE:-0}" = "0" ]; then
+    PROG=reg-c2j-config.py
+else
+    PROG=reg-c2j-api.py
+fi
+$PROG --name trafficgen --output all-in-one.json $ARGS && \
 time crucible run --from-file all-in-one.json
-
 

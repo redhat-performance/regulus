@@ -9,6 +9,7 @@ source ${REG_ROOT}/templates/common/worker_labels.config
 source ${REG_ROOT}/init.sh
 source ${REG_ROOT}/templates/common/remotehost_functions
 source ${REG_ROOT}/templates/common/functions
+source ${REG_ROOT}/INVENTORY/tb-get.sh
 
 DURATION=${DURATION:-0}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
@@ -30,11 +31,11 @@ scale_out_factor=1   # Determines the number of hosts/nodes that will get used
                  #  pods are on the same worker (no external traffic)
 rm_factor=1      # Determines the number of external hosts that will get used for ingress/egress remotehost scaling
 userenv=fedora-latest # can be centos7, centos8, stream, rhubi8, debian, opensuse
-osruntime=chroot # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
+osruntime=pod # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
 
 
 max_failures=1 # After this many failed samples=$NUM_SAMPLE the run will quit
-user_tags="datapath:$REG_DP,topo:$TPL_TOPO" # Comma-separated list of something=value, these help you identify this run as different
+user_tags="topo:$TPL_TOPO" # Comma-separated list of something=value, these help you identify this run as different
             #  from other runs, for example:  "cloud-reservation:48,HT:off,CVE:off"
             # Note that many tags are auto-generated below
 mv_params_file=mv-params.json # All benchmark-iterations are built from this file
@@ -70,7 +71,15 @@ if [ "$TPL_PAO" == 1 ] ; then
     numa_mode="$(get_pp_policy)"
 fi
 
+nic=$(tb-get-nic-model REG_OVN_NIC_MODEL ) || { echo "ERROR: Failed to get NIC model" >&2; exit 1; }
+[[ -z "$nic" ]] && { echo "ERROR: NIC model is empty" >&2; exit 1; }
+
+arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU model" >&2; exit 1; }
+[[ -z "$arch" ]] && { echo "ERROR: CPU model is empty" >&2; exit 1; }
+
 if [ "$TPL_SRIOV" == 1 ] ; then
+    nic=$(tb-get-nic-model REG_SRIOV_NIC_MODEL ) || { echo "ERROR: Failed to get SRIOV NIC model" >&2; exit 1; }
+    [[ -z "$nic" ]] && { echo "ERROR: SRIOV NIC model is empty" >&2; exit 1; }
     source ${REG_ROOT}/SRIOV-config/config.env
     # New project. Recreate neworkAttachmentDefinition. 
     do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
@@ -90,6 +99,8 @@ fi
 
 
 if [ "$TPL_MACVLAN" == 1 ] ; then
+    nic=$(tb-get-nic-model REG_MACVLAN_NIC_MODEL ) || { echo "ERROR: Failed to get MACVLAN NIC model" >&2; exit 1; }
+    [[ -z "$nic" ]] && { echo "ERROR: MACVLAN NIC model is empty" >&2; exit 1; }
   	source ${REG_ROOT}/MACVLAN-config/config.env
     # New project. Recreate neworkAttachmentDefinition. 
     do_ssh $k8susr@$ocphost "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_MACVLAN_NAD}"
@@ -148,6 +159,8 @@ collect_more_tags() {
     if [ "$TPL_HWOL" == 1 ]; then
         other_tags+=",offload:HWOL"
     fi
+    other_tags+=",nic:$nic"
+    other_tags+=",arch:$arch"
 }
 
 # check for dependencies
@@ -211,7 +224,7 @@ for num_pods in $scale_up_factor; do
 
         first_worker=`echo ${workers[0]}`
         if [ -z "$first_worker" ]; then
-            echo "$(LINENO) First worker not defined, exiting"
+            echo "($LINENO) First worker not defined, exiting"
             exit 1
         fi
         if [ "$topo" == "internode" ]; then
@@ -234,12 +247,12 @@ for num_pods in $scale_up_factor; do
         else
             echo "Computing resource file: $resource_file"
             per_pod_cpu=$(compute_cpus_per_pod \
-                            "$num_cpus"\
-                            "$CORE_PERSOCKET"\
+                            "$num_cpus" \
+                            "$NUM_NUMAS" \
                             "$CPUS_PERCORE" \
                             "$topo" \
                             "$scale_up_factor" \
-                            "burstable" \
+                            "$pod_qos" \
                             "$numa_mode" \
                             "$TPL_NUMCPUS" )
             if [[ $? -ne 0 ]]; then
@@ -299,9 +312,13 @@ for num_pods in $scale_up_factor; do
                 done
                 node_selector=`echo $node_selector | sed -e s/^,//`
             done
-        endpoint_opt="--endpoint k8s,user:$k8susr,host:$ocphost"
+        endpoint_opt="--endpoint k8s,user:$k8susr,host:$ocphost,osruntime:$osruntime"
         if  [  ! -z ${OCP_PROJECT} ]; then
-            endpoint_opt+=",unique-project:${OCP_PROJECT}"
+            if [ "${KUBE:-0}" = "0" ]; then 
+                endpoint_opt+=",unique-project:${OCP_PROJECT}"
+            else
+                endpoint_opt+=",custom-project:${OCP_PROJECT},sysinfo:false"
+            fi 
         fi
         endpoint_opt+=",${node_selector}"
         endpoint_opt+=",userenv:$userenv"
@@ -312,7 +329,6 @@ for num_pods in $scale_up_factor; do
             resource_file="`/bin/pwd`/COMBINED_RESOURCES.json"
             endpoint_opt+=",resources:default:$resource_file"
         fi
-        endpoint_opt+=",osruntime:${osruntime}"
         endpoint_opt+="$anno_opt"
         endpoint_opt+="${runtimeClassNameOpt}"
         if [ ! -z "$securityContext_file" ]; then
@@ -345,15 +361,15 @@ for num_pods in $scale_up_factor; do
             multi_rm_hosts "server"
             # func sourced from remotehost_functions
         else
-            endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,server:1-$num_servers,userenv:$userenv "
+            endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,server:1-$num_servers,userenv:$userenv,osruntime:chroot"
         fi
     elif [ "$topo" == "interhost" ]; then
         # TODO: make work for $scale_out_factor > 1
-        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
-        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:$osruntime"
+        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:chroot"
+        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:chroot"
     fi
 
-    tags="sdn:$network_type,mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv,osruntime:$osruntime"
+    tags="mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv"
     tags+=",topo:$topo,pods-per-worker:$num_pods,scale_out_factor:$scale_out_factor"
     if [ "$topo" == "internode" -a "$topo" == "intranode" ]; then
         #tags+=",pod_qos:$pod_qos"
@@ -377,8 +393,13 @@ ARGS=" --tags $tags \
         --num-samples=$NUM_SAMPLES  \
         --max-sample-failures=$max_failures \
         $endpoint_opt "
+    if [ "${KUBE:-0}" = "0" ]; then
+         PROG=reg-c2j-config.py
+    else
+         PROG=reg-c2j-api.py
+    fi
 
-    reg-c2j-config.py --name uperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
+    $PROG --name uperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
     reg-enhance-tags.py all-in-one.json model:$REG_ROOT/bin/reg-get-model.py,cpu:$REG_ROOT/bin/reg-get-numcpu.py  &&\
     time crucible run --from-file all-in-one.json
 

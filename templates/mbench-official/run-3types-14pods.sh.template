@@ -2,6 +2,7 @@
 source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/init.sh 
 source ${REG_ROOT}/templates/common/functions
+source ${REG_ROOT}/INVENTORY/tb-get.sh
 
 NUM_SAMPLES=${NUM_SAMPLES:-1}
 DURATION=${DURATION:-0}
@@ -42,7 +43,11 @@ if [ -z "${num_samples}" ]; then
 fi
 
 if [ ! -z "${OCP_PROJECT}" ]; then
-    endpoint_opt+="unique-project:${OCP_PROJECT}"
+    if [ "${KUBE:-0}" = "0" ]; then 
+        endpoint_opt+="unique-project:${OCP_PROJECT}"
+    else
+        endpoint_opt+="custom-project:${OCP_PROJECT},sysinfo:false"
+    fi
 fi
 if [ "${DRY_RUN}" == true  ]; then
     echo DRY=true
@@ -60,7 +65,15 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ] |
     endpoint_opt+=",securityContext:default:$securityContext_file"
 fi
 
+nic=$(tb-get-nic-model REG_OVN_NIC_MODEL ) || { echo "ERROR: Failed to get NIC model" >&2; exit 1; }
+[[ -z "$nic" ]] && { echo "ERROR: NIC model is empty" >&2; exit 1; }
+
+arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU model" >&2; exit 1; }
+[[ -z "$arch" ]] && { echo "ERROR: CPU model is empty" >&2; exit 1; }
+
 if [ "${TPL_SRIOV}" == 1  ]; then
+    nic=$(tb-get-nic-model REG_SRIOV_NIC_MODEL ) || { echo "ERROR: Failed to get SRIOV NIC model" >&2; exit 1; }
+    [[ -z "$nic" ]] && { echo "ERROR: SRIOV NIC model is empty" >&2; exit 1; }
 	source ${REG_ROOT}/SRIOV-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     # New project. Recretate NAD
@@ -70,6 +83,9 @@ if [ "${TPL_SRIOV}" == 1  ]; then
 fi
 
 if [ "${TPL_MACVLAN}" == 1  ]; then
+    nic=$(tb-get-nic-model REG_MACVLAN_NIC_MODEL ) || { echo "ERROR: Failed to get MACVLAN NIC model" >&2; exit 1; }
+    [[ -z "$nic" ]] && { echo "ERROR: MACVLAN NIC model is empty" >&2; exit 1; }
+
 	source ${REG_ROOT}/MACVLAN-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     # New project. Recretate NAD
@@ -106,8 +122,11 @@ masters-tool-collect:0,\
 client:1+8+15+21-24+26+27+29+31,\
 server:1+8+15+21-24+26+27+29+31${annotation_opt}${resources_opt}"
 
-# OBSOLETE CLI: time crucible run iperf,uperf $ARGS
-
-reg-c2j-config.py --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS &&
+if [ "${KUBE:-0}" = "0" ]; then
+    PROG=reg-c2j-config.py
+else
+    PROG=reg-c2j-api.py
+fi
+$PROG --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS && \
 time crucible run --from-file all-in-one.json
 

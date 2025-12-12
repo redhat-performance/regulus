@@ -2,6 +2,7 @@
 source ${REG_ROOT}/lab.config
 source ${REG_ROOT}/init.sh 
 source ${REG_ROOT}/templates/common/functions
+source ${REG_ROOT}/INVENTORY/tb-get.sh
 
 NUM_SAMPLES=${NUM_SAMPLES:-1}
 DURATION=${DURATION:-0}
@@ -41,7 +42,11 @@ if [ -z "${num_samples}" ]; then
 fi
 
 if [ ! -z "${OCP_PROJECT}" ]; then
-    endpoint_opt+="unique-project:${OCP_PROJECT}"
+    if [ "${KUBE:-0}" = "0" ]; then 
+        endpoint_opt+="unique-project:${OCP_PROJECT}"
+    else
+        endpoint_opt+="custom-project:${OCP_PROJECT},sysinfo:false"
+    fi
 fi
 if [ "${DRY_RUN}" == true  ]; then
     echo DRY=true
@@ -53,7 +58,15 @@ if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; 
     endpoint_opt+=",securityContext:default:$securityContext_file"
 fi
 
+nic=$(tb-get-nic-model REG_OVN_NIC_MODEL ) || { echo "ERROR: Failed to get NIC model" >&2; exit 1; }
+[[ -z "$nic" ]] && { echo "ERROR: NIC model is empty" >&2; exit 1; }
+
+arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU model" >&2; exit 1; }
+[[ -z "$arch" ]] && { echo "ERROR: CPU model is empty" >&2; exit 1; }
+
 if [ "${TPL_SRIOV}" == 1  ]; then
+    nic=$(tb-get-nic-model REG_SRIOV_NIC_MODEL ) || { echo "ERROR: Failed to get SRIOV NIC model" >&2; exit 1; }
+    [[ -z "$nic" ]] && { echo "ERROR: SRIOV NIC model is empty" >&2; exit 1; }
     source ${REG_ROOT}/SRIOV-config/config.env
     DEST=$REG_KNI_USER@$REG_OCPHOST
     do_ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
@@ -73,9 +86,10 @@ if [ "$DURATION" != 0 ]; then
 		sed -i 's/\({ "arg": "time", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
 	done
 fi
+tags+=",nic:$nic"
+tags+=",arch:$arch"
 
-time crucible run iperf,uperf\
- --mv-params iperf-mv-params.json,uperf-mv-params.json\
+ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:1-2,uperf:3-4,uperf:5-6\
  --tags $tags\
  --num-samples=$NUM_SAMPLES --max-sample-failures=1\
@@ -92,5 +106,13 @@ nodeSelector:server-${worker3_servers}:$pwd/nodeSelector-$worker3.json,\
 userenv:fedora-latest,\
 masters-tool-collect:0,\
 client:1-6,\
-server:1-6${annotation_opt}${resources_opt}
+server:1-6${annotation_opt}${resources_opt}"
+
+if [ "${KUBE:-0}" = "0" ]; then
+    PROG=reg-c2j-config.py
+else
+    PROG=reg-c2j-api.py
+fi
+$PROG --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS && \
+time crucible run --from-file all-in-one.json
 

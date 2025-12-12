@@ -1,0 +1,58 @@
+{
+  "schema_info": {
+    "version": "2.0.0",
+    "schema_type": "benchmark_report"
+  },
+  "generation_info": {
+    "total_results": 1,
+    "successful_results": 1,
+    "failed_results": 0,
+    "timestamp": "2025-01-20T09:30:00Z",
+    "benchmarks": ["uperf"],
+    "processing_duration_seconds": 2.7
+  },
+  "results": [
+    {
+      "file_path": "/results/dpu-cx6-sapphire/result-summary-020.txt",
+      "benchmark": "uperf",
+      "run_id": "def456-020",
+      "common_params": {
+        "protocol": "tcp",
+        "nthreads": "16"
+      },
+      "key_tags": {
+        "model": "DPU",
+        "nic": "CX6",
+        "arch": "sapphire_rapids",
+        "kernel": "5.14.0-580.12.1.el9_7.x86_64",
+        "rcos": "4.17",
+        "cpu": "112",
+        "topo": "internode",
+        "perf": "performance",
+        "offload": "none"
+      },
+      "iterations": [
+        {
+          "iteration_id": "ITER-020",
+          "unique_params": {
+            "test-type": "stream",
+            "wsize": "128",
+            "rsize": "32768"
+          },
+          "results": [
+            {
+              "type": "Gbps",
+              "mean": 90.2,
+              "min": 89.0,
+              "max": 91.5,
+              "stddev": 0.88,
+              "stddevpct": 0.98,
+              "busyCPU": 61.8,
+              "samples_count": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

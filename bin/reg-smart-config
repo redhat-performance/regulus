@@ -423,6 +423,7 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                     INFO $LINENO "Use SRIOV NIC $REG_SRIOV_NIC for MACVLAN NIC"
                     REG_MACVLAN_NIC="$sriov_nic"
                     DPRINT $LINENO "Setting REG_MACVLAN_NIC=$REG_MACVLAN_NIC (same as SRIOV)"
+                    REG_MACVLAN_NIC_MODEL="$sriov_model"
                 fi
                 # Set macvlan MTU if not already set
                 # 1. if user-defined check, warn and auto correct.
@@ -604,16 +605,19 @@ cat ./lab.config; } > ./lab.config.new && mv ./lab.config.new ./lab.config
 update_config_var "KUBECONFIG" "$KUBECONFIG" "$LAB_CONFIG"
 update_config_var "REG_KNI_USER" "$REG_KNI_USER" "$LAB_CONFIG"
 update_config_var "REG_OCPHOST" "$REG_OCPHOST" "$LAB_CONFIG"
-update_config_var "REG_DP" "$REG_DP" "$LAB_CONFIG"
 update_config_var "BM_HOSTS" "$BM_HOSTS" "$LAB_CONFIG"
 update_config_var "OCP_WORKER_0" "$OCP_WORKER_0" "$LAB_CONFIG"
 update_config_var "OCP_WORKER_1" "$OCP_WORKER_1" "$LAB_CONFIG"
 update_config_var "OCP_WORKER_2" "$OCP_WORKER_2" "$LAB_CONFIG"
+update_config_var "REG_OVN_NIC" "$OVN_INTERFACE" "$LAB_CONFIG"
+update_config_var "REG_OVN_NIC_MODEL" "$REG_OVN_NIC_MODEL" "$LAB_CONFIG"
+update_config_var "REG_OVN_NIC_MTU" "$REG_OVN_NIC_MTU" "$LAB_CONFIG"
 update_config_var "REG_SRIOV_NIC" "$REG_SRIOV_NIC" "$LAB_CONFIG"
 update_config_var "REG_SRIOV_MTU" "$REG_SRIOV_MTU" "$LAB_CONFIG"
 update_config_var "REG_SRIOV_NIC_MODEL" "$REG_SRIOV_NIC_MODEL" "$LAB_CONFIG"
 update_config_var "REG_MACVLAN_NIC" "$REG_MACVLAN_NIC" "$LAB_CONFIG"
 update_config_var "REG_MACVLAN_MTU" "$REG_MACVLAN_MTU" "$LAB_CONFIG"
+update_config_var "REG_MACVLAN_NIC_MODEL" "$REG_MACVLAN_NIC_MODEL" "$LAB_CONFIG"
 update_config_var "REG_DPDK_NIC_1" "$REG_DPDK_NIC_1" "$LAB_CONFIG"
 update_config_var "REG_DPDK_NIC_2" "$REG_DPDK_NIC_2" "$LAB_CONFIG"
 update_config_var "REG_DPDK_NIC_MODEL" "$REG_DPDK_NIC_MODEL" "$LAB_CONFIG"

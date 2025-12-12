@@ -1,0 +1,58 @@
+{
+  "schema_info": {
+    "version": "2.0.0",
+    "schema_type": "benchmark_report"
+  },
+  "generation_info": {
+    "total_results": 1,
+    "successful_results": 1,
+    "failed_results": 0,
+    "timestamp": "2025-01-21T11:00:00Z",
+    "benchmarks": ["uperf"],
+    "processing_duration_seconds": 2.2
+  },
+  "results": [
+    {
+      "file_path": "/results/macvlan-e910-emerald/result-summary-021.txt",
+      "benchmark": "uperf",
+      "run_id": "jkl012-021",
+      "common_params": {
+        "protocol": "tcp",
+        "nthreads": "10"
+      },
+      "key_tags": {
+        "model": "MACVLAN",
+        "nic": "E910",
+        "arch": "emerald_rapid",
+        "kernel": "5.14.0-580.12.1.el9_7.x86_64",
+        "rcos": "4.17",
+        "cpu": "58",
+        "topo": "intranode",
+        "perf": "tuned",
+        "offload": "none"
+      },
+      "iterations": [
+        {
+          "iteration_id": "ITER-021",
+          "unique_params": {
+            "test-type": "stream",
+            "wsize": "128",
+            "rsize": "32768"
+          },
+          "results": [
+            {
+              "type": "Gbps",
+              "mean": 72.5,
+              "min": 71.8,
+              "max": 73.3,
+              "stddev": 0.62,
+              "stddevpct": 0.86,
+              "busyCPU": 55.4,
+              "samples_count": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
