@@ -55,12 +55,13 @@ RESERVED_CPUS=10
 
 # Define the JSON content
 tb_info='{
-    "CLUSTER_TYPE":			"value1",
-    "NUM_WORKERS": 			"value3",
-    "ALLOCATABLE_CPUS": 	"value3",
-    "USEABLE_CPUS": 		"value3",
-    "CORE_PERSOCKET": 		"value3",
-    "CPUS_PERCORE": 		"value3"
+    "CLUSTER_TYPE":     "value1",
+    "NUM_WORKERS":      "value3",
+    "ALLOCATABLE_CPUS": "value3",
+    "USEABLE_CPUS":     "value3",
+    "CORE_PERSOCKET":   "value3",
+    "CPUS_PERCORE":     "value3",
+    "NUM_NUMAS":        "value3"
 }'
 
 function exit_error() {
@@ -449,7 +450,7 @@ tb_cps=$(echo "$lscpu_output" | awk -F: '/Core\(s\) per socket/ {gsub(/^[ \t]+/,
 echo "core-per-socket=$tb_cps" >&2 
 tb_cpc=$(echo "$lscpu_output" | awk -F: '/Thread\(s\) per core/ {gsub(/^[ \t]+/, "", $2); print $2}')
 echo "cpu-per-core=$tb_cpc" >&2 
-tb_numa_nodes=$(lscpu | awk -F: '/NUMA node\(s\)/ {gsub(/^[ \t]+/, "", $2); print $2}')
+tb_numa_nodes=$(echo "$lscpu_output" | awk -F: '/NUMA node\(s\)/ {gsub(/^[ \t]+/, "", $2); print $2}')
 echo "num_numa=$tb_numa_nodes" >&2
 
 #################################
