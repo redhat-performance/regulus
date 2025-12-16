@@ -333,7 +333,7 @@ async function loadOverviewData() {
         for (const result of filtered) {
             const modelKey = result.model || 'unknown';
             const mean = result.mean;
-            const filePath = result.file_path;
+            const filePath = result.regulus_data;
 
             if (mean !== null && mean !== undefined) {
                 if (!modelGroups[modelKey]) {
@@ -374,7 +374,7 @@ async function loadOverviewData() {
         for (const result of filtered) {
             const kernelKey = result.kernel || 'unknown';
             const mean = result.mean;
-            const filePath = result.file_path;
+            const filePath = result.regulus_data;
 
             if (mean !== null && mean !== undefined) {
                 if (!kernelGroups[kernelKey]) {
@@ -411,10 +411,11 @@ async function loadOverviewData() {
         }
 
         // Render charts with file paths
-        const modelTitle = buildChartTitleWithFilters(`Performance by Model (${unitFilter})`);
+        const unitSuffix = unitFilter ? ` (${unitFilter})` : ' (All Profiles)';
+        const modelTitle = buildChartTitleWithFilters(`Performance by Model${unitSuffix}`);
         renderBarChart('chartByModel', modelStats, modelTitle, 'Model', unitLabel, modelFilePaths);
 
-        const kernelTitle = buildChartTitleWithFilters(`Performance by Kernel (${unitFilter})`);
+        const kernelTitle = buildChartTitleWithFilters(`Performance by Kernel${unitSuffix}`);
         renderBarChart('chartByKernel', kernelStats, kernelTitle, 'Kernel', unitLabel, kernelFilePaths);
 
         // Load top performers with the same unit filter
@@ -558,7 +559,7 @@ function renderTopPerformersTable(performers) {
 
     performers.forEach((result, index) => {
         const row = tbody.insertRow();
-        const filePath = result.file_path || '';
+        const filePath = result.regulus_data || '';
 
         row.innerHTML = `
             <td>${index + 1}</td>
@@ -688,7 +689,7 @@ async function loadScale1D(scaleBy, scaleLabel, scaleAxisLabel, unitFilter, unit
         const dimValue = result[scaleBy];
         const mean = result.mean;
         const busyCpu = result.busy_cpu;
-        const filePath = result.file_path;
+        const filePath = result.regulus_data;
 
         if (dimValue !== null && dimValue !== undefined && mean !== null && mean !== undefined) {
             const key = String(dimValue);
@@ -781,7 +782,7 @@ async function loadScale2D(primaryDim, primaryLabel, primaryAxisLabel, secondary
         const secondaryVal = result[secondaryDim];
         const mean = result.mean;
         const busyCpu = result.busy_cpu;
-        const filePath = result.file_path;
+        const filePath = result.regulus_data;
 
         if (primaryVal !== null && primaryVal !== undefined &&
             secondaryVal !== null && secondaryVal !== undefined &&
@@ -1329,7 +1330,7 @@ function renderResultsTable(results) {
 
     results.forEach((result, index) => {
         const row = tbody.insertRow();
-        const filePath = result.file_path || '';
+        const filePath = result.regulus_data || '';
 
         // Config column: pods-per-worker,scale_out_factor,topo
         const ppw = result.pods_per_worker || '?';

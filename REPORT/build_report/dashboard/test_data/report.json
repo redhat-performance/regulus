@@ -58,7 +58,7 @@
   },
   "results": [
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-srv45-clean-fri-2025-10-18-02:24:21/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-srv45-clean-fri-2025-10-18-02:24:21/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "f788bae5-5541-4445-80f6-810b494b6de8",
       "common_params": {
@@ -73,7 +73,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13558,
       "file_modified": 1761097102.423091,
@@ -127,7 +129,7 @@
               "busyCPU": 3.265
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 1.54 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 1.54 Gbps"
         },
         {
           "iteration_id": "2A7FC660-ABFF-11F0-A49C-DB2A296C78F8",
@@ -177,7 +179,7 @@
               "busyCPU": 3.2554
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 9.66 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 9.66 Gbps"
         },
         {
           "iteration_id": "2A7FD808-ABFF-11F0-AFDC-9C04D78E01DB",
@@ -227,7 +229,7 @@
               "busyCPU": 3.6485
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 54.48 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 54.48 Gbps"
         },
         {
           "iteration_id": "2A7FE9C4-ABFF-11F0-972F-D75F282A567D",
@@ -277,7 +279,7 @@
               "busyCPU": 3.4969
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 49.95 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 49.95 Gbps"
         },
         {
           "iteration_id": "2A7FFB26-ABFF-11F0-8E3D-8C391DCCAB77",
@@ -327,7 +329,7 @@
               "busyCPU": 61.2097
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 46.21 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 46.21 Gbps"
         },
         {
           "iteration_id": "2A800D28-ABFF-11F0-B550-D951A0E09016",
@@ -377,7 +379,7 @@
               "busyCPU": 58.884
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 234.23 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 234.23 Gbps"
         },
         {
           "iteration_id": "2A801E8A-ABFF-11F0-B80E-CD16B65A4140",
@@ -427,7 +429,7 @@
               "busyCPU": 21.9809
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 311.15 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 311.15 Gbps"
         },
         {
           "iteration_id": "2A803064-ABFF-11F0-92A9-826DC88BBC4E",
@@ -477,7 +479,7 @@
               "busyCPU": 21.2603
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 314.17 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 314.17 Gbps"
         },
         {
           "iteration_id": "2A8041B2-ABFF-11F0-BE2A-DF269C4DB26F",
@@ -528,7 +530,7 @@
               "busyCPU": 1.7361
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 25130.08 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 25130.08 transactions/sec"
         },
         {
           "iteration_id": "2A8055D0-ABFF-11F0-9E60-AB4AB9D1B7C0",
@@ -579,7 +581,7 @@
               "busyCPU": 16.7428
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 719791.43 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 719791.43 transactions/sec"
         },
         {
           "iteration_id": "2A8069DA-ABFF-11F0-B69F-DD4C304FC2E2",
@@ -630,7 +632,7 @@
               "busyCPU": 1.4896
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 584.12 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 584.12 connections/sec"
         },
         {
           "iteration_id": "2A807E34-ABFF-11F0-A436-AB87612DD400",
@@ -681,7 +683,7 @@
               "busyCPU": 4.8249
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 17867.97 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 17867.97 connections/sec"
         }
       ],
       "summary": {
@@ -713,7 +715,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/2-POD/run-srv45-clean-fri-2025-10-17-23:51:25/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/2-POD/run-srv45-clean-fri-2025-10-17-23:51:25/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "4f47c7ab-9c9a-42d2-ba68-c82d9d38dc11",
       "common_params": {
@@ -728,7 +730,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13558,
       "file_modified": 1761097091.6310182,
@@ -782,7 +786,7 @@
               "busyCPU": 3.2774
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 1.56 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 1.56 Gbps"
         },
         {
           "iteration_id": "1C6470CC-ABEA-11F0-BC0F-D799A7F4F2D7",
@@ -832,7 +836,7 @@
               "busyCPU": 3.2548
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 9.14 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 9.14 Gbps"
         },
         {
           "iteration_id": "1C648148-ABEA-11F0-8653-867C90BA36FF",
@@ -882,7 +886,7 @@
               "busyCPU": 3.6729
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 48.66 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 48.66 Gbps"
         },
         {
           "iteration_id": "1C649110-ABEA-11F0-ADBF-D03DA1B956F9",
@@ -932,7 +936,7 @@
               "busyCPU": 3.6508
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 55.81 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 55.81 Gbps"
         },
         {
           "iteration_id": "1C64A128-ABEA-11F0-B0E6-E87C19FC3220",
@@ -982,7 +986,7 @@
               "busyCPU": 61.8648
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 46.66 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 46.66 Gbps"
         },
         {
           "iteration_id": "1C64B104-ABEA-11F0-9AF9-A07F0F435A21",
@@ -1032,7 +1036,7 @@
               "busyCPU": 62.566
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 251.31 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 251.31 Gbps"
         },
         {
           "iteration_id": "1C64C0AE-ABEA-11F0-9F47-E39276857816",
@@ -1082,7 +1086,7 @@
               "busyCPU": 25.9983
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 314.08 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 314.08 Gbps"
         },
         {
           "iteration_id": "1C64D0C6-ABEA-11F0-98BB-CB5376111E84",
@@ -1132,7 +1136,7 @@
               "busyCPU": 23.9775
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 312.74 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 312.74 Gbps"
         },
         {
           "iteration_id": "1C64E084-ABEA-11F0-A85A-AC2343529F9B",
@@ -1183,7 +1187,7 @@
               "busyCPU": 1.7706
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 24124.69 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 24124.69 transactions/sec"
         },
         {
           "iteration_id": "1C64F2CC-ABEA-11F0-B154-87F40CC993B8",
@@ -1234,7 +1238,7 @@
               "busyCPU": 17.4678
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 676050.28 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 676050.28 transactions/sec"
         },
         {
           "iteration_id": "1C6504C4-ABEA-11F0-AB90-D3FBC15ED5BE",
@@ -1285,7 +1289,7 @@
               "busyCPU": 1.4881
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 569.77 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 569.77 connections/sec"
         },
         {
           "iteration_id": "1C65172A-ABEA-11F0-83CC-D94743F41FC6",
@@ -1336,7 +1340,7 @@
               "busyCPU": 6.7466
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 9980.30 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 9980.30 connections/sec"
         }
       ],
       "summary": {
@@ -1368,7 +1372,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/N-POD/run-srv45-clean-fri-2025-10-18-04:55:13/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/N-POD/run-srv45-clean-fri-2025-10-18-04:55:13/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "e3d71568-5123-4af4-a7e8-69bcf32cb8b5",
       "common_params": {
@@ -1383,7 +1387,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13640,
       "file_modified": 1761097115.164177,
@@ -1437,7 +1443,7 @@
               "busyCPU": 26.3139
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 19.04 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 19.04 Gbps"
         },
         {
           "iteration_id": "C93C3CAE-AC16-11F0-BFC5-EB98A011251B",
@@ -1487,7 +1493,7 @@
               "busyCPU": 25.355
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 111.58 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 111.58 Gbps"
         },
         {
           "iteration_id": "C93C4CB2-AC16-11F0-8F6E-D76A9DEB0515",
@@ -1537,7 +1543,7 @@
               "busyCPU": 23.0951
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 320.04 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 320.04 Gbps"
         },
         {
           "iteration_id": "C93C5D4C-AC16-11F0-A541-9558D3EFD234",
@@ -1587,7 +1593,7 @@
               "busyCPU": 16.4707
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 272.23 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 272.23 Gbps"
         },
         {
           "iteration_id": "C93C6D14-AC16-11F0-8F29-C992FEA3DA72",
@@ -1637,7 +1643,7 @@
               "busyCPU": 118.9962
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 88.97 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 88.97 Gbps"
         },
         {
           "iteration_id": "C93C7D0E-AC16-11F0-A652-83885DF550CE",
@@ -1687,7 +1693,7 @@
               "busyCPU": 67.9994
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 192.51 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 192.51 Gbps"
         },
         {
           "iteration_id": "C93C8D94-AC16-11F0-ACF4-8ECAB93FA034",
@@ -1737,7 +1743,7 @@
               "busyCPU": 39.1781
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 158.80 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 158.80 Gbps"
         },
         {
           "iteration_id": "C93C9D70-AC16-11F0-B3DD-8892DCAA0EF5",
@@ -1787,7 +1793,7 @@
               "busyCPU": 40.4514
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 164.40 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 164.40 Gbps"
         },
         {
           "iteration_id": "C93CAD9C-AC16-11F0-9A33-81F1A418B3FD",
@@ -1838,7 +1844,7 @@
               "busyCPU": 7.6469
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 325981.96 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 325981.96 transactions/sec"
         },
         {
           "iteration_id": "C93CBFD0-AC16-11F0-A724-C9961768DF05",
@@ -1889,7 +1895,7 @@
               "busyCPU": 56.5049
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1864863.27 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1864863.27 transactions/sec"
         },
         {
           "iteration_id": "C93CD2CC-AC16-11F0-9958-F8D0474D495A",
@@ -1940,7 +1946,7 @@
               "busyCPU": 5.4751
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 5548.75 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 5548.75 connections/sec"
         },
         {
           "iteration_id": "C93CE500-AC16-11F0-ACF7-BA593C5A1FD0",
@@ -1991,7 +1997,7 @@
               "busyCPU": 31.0685
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 19214.07 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 19214.07 connections/sec"
         }
       ],
       "summary": {
@@ -2023,7 +2029,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTER-NODE/UDP/2-POD-GU/run-srv45-clean-fri-2025-10-18-08:50:11/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTER-NODE/UDP/2-POD-GU/run-srv45-clean-fri-2025-10-18-08:50:11/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "50ce975a-81f2-496a-beb4-7d80470c9c9f",
       "common_params": {
@@ -2038,7 +2044,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 4334,
       "file_modified": 1761097135.437314,
@@ -2093,7 +2101,7 @@
               "busyCPU": 1.5195
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 12892.63 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 12892.63 transactions/sec"
         },
         {
           "iteration_id": "0092687A-AC28-11F0-A168-99AAFA84D953",
@@ -2144,7 +2152,7 @@
               "busyCPU": 1.3226
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 266.01 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 266.01 connections/sec"
         },
         {
           "iteration_id": "00927C70-AC28-11F0-9D65-95BF6A3EB9E1",
@@ -2195,7 +2203,7 @@
               "busyCPU": 1.3265
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 0.22 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 0.22 connections/sec"
         }
       ],
       "summary": {
@@ -2226,7 +2234,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTER-NODE/UDP/2-POD/run-srv45-clean-29wed-2025-10-29-23:48:25/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTER-NODE/UDP/2-POD/run-srv45-clean-29wed-2025-10-29-23:48:25/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "05d8e40d-cac2-44a4-9252-09ad0c6ba635",
       "common_params": {
@@ -2241,7 +2249,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 4381,
       "file_modified": 1761856140.68675,
@@ -2296,7 +2306,7 @@
               "busyCPU": 2.1102
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 20278.46 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 20278.46 transactions/sec"
         },
         {
           "iteration_id": "88B0F2D6-B54B-11F0-B806-8159657DB636",
@@ -2347,7 +2357,7 @@
               "busyCPU": 9.2521
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 107050.87 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 107050.87 transactions/sec"
         },
         {
           "iteration_id": "88B10546-B54B-11F0-8CFF-D38597C70D12",
@@ -2398,7 +2408,7 @@
               "busyCPU": 1.3932
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 25.88 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 25.88 connections/sec"
         }
       ],
       "summary": {
@@ -2429,7 +2439,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTER-NODE/UDP/N-POD-GU/run-srv45-clean-fri-2025-10-18-10:46:27/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTER-NODE/UDP/N-POD-GU/run-srv45-clean-fri-2025-10-18-10:46:27/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "ffa720bb-5fb2-44d8-ace1-2fbdede24fff",
       "common_params": {
@@ -2444,7 +2454,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 4345,
       "file_modified": 1761097155.9164524,
@@ -2499,7 +2511,7 @@
               "busyCPU": 1.6333
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 18760.67 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 18760.67 transactions/sec"
         },
         {
           "iteration_id": "AE5EFCFA-AC39-11F0-9743-E23B57BB8493",
@@ -2550,7 +2562,7 @@
               "busyCPU": 1.5249
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 2872.38 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 2872.38 connections/sec"
         },
         {
           "iteration_id": "AE5F0F10-AC39-11F0-8DCC-C194C3964251",
@@ -2601,7 +2613,7 @@
               "busyCPU": 1.354
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 3.35 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 3.35 connections/sec"
         }
       ],
       "summary": {
@@ -2632,7 +2644,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTER-NODE/UDP/N-POD/run-srv45-clean-fri-2025-10-18-09:43:04/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTER-NODE/UDP/N-POD/run-srv45-clean-fri-2025-10-18-09:43:04/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "5f0a5463-6c2c-426d-81a4-52f7f618ee0c",
       "common_params": {
@@ -2647,7 +2659,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5437,
       "file_modified": 1761097145.6263828,
@@ -2702,7 +2716,7 @@
               "busyCPU": 2.9528
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 95385.41 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 95385.41 transactions/sec"
         },
         {
           "iteration_id": "C6B3BD26-AC30-11F0-A1E1-9C52887084BD",
@@ -2753,7 +2767,7 @@
               "busyCPU": 28.679
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1314735.28 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1314735.28 transactions/sec"
         },
         {
           "iteration_id": "C6B3D0F4-AC30-11F0-BBE4-93BA3035196C",
@@ -2804,7 +2818,7 @@
               "busyCPU": 1.4265
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 2081.21 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 2081.21 connections/sec"
         },
         {
           "iteration_id": "C6B3E580-AC30-11F0-8874-97045AC7EBE5",
@@ -2855,7 +2869,7 @@
               "busyCPU": 1.3171
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 2.79 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 2.79 connections/sec"
         }
       ],
       "summary": {
@@ -2886,7 +2900,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/TCP/2-POD-GU/run-srv45-clean-fri-2025-10-18-14:09:29/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/TCP/2-POD-GU/run-srv45-clean-fri-2025-10-18-14:09:29/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "1f2b4727-58a7-4284-b3bb-95671a768030",
       "common_params": {
@@ -2901,7 +2915,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13602,
       "file_modified": 1761097168.5195374,
@@ -2955,7 +2971,7 @@
               "busyCPU": 2.6213
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 1.56 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 1.56 Gbps"
         },
         {
           "iteration_id": "46D7A20E-AC60-11F0-BB8D-D888C44314E4",
@@ -3005,7 +3021,7 @@
               "busyCPU": 2.6294
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 9.29 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 9.29 Gbps"
         },
         {
           "iteration_id": "46D7B370-AC60-11F0-8FAD-94A1B3781C9E",
@@ -3055,7 +3071,7 @@
               "busyCPU": 3.0205
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 55.01 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 55.01 Gbps"
         },
         {
           "iteration_id": "46D7C5D6-AC60-11F0-9C4A-E743819A68DE",
@@ -3105,7 +3121,7 @@
               "busyCPU": 2.9608
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 49.25 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 49.25 Gbps"
         },
         {
           "iteration_id": "46D7D83C-AC60-11F0-9584-DB05C4628F42",
@@ -3155,7 +3171,7 @@
               "busyCPU": 56.1453
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 42.09 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 42.09 Gbps"
         },
         {
           "iteration_id": "46D7E99E-AC60-11F0-8AD4-AF0602D11CA1",
@@ -3205,7 +3221,7 @@
               "busyCPU": 57.0956
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 193.67 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 193.67 Gbps"
         },
         {
           "iteration_id": "46D7FB5A-AC60-11F0-993A-A6D28210D3B0",
@@ -3255,7 +3271,7 @@
               "busyCPU": 28.9486
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 307.78 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 307.78 Gbps"
         },
         {
           "iteration_id": "46D80D20-AC60-11F0-BCFB-82589F61AD78",
@@ -3305,7 +3321,7 @@
               "busyCPU": 24.5918
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 303.49 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 303.49 Gbps"
         },
         {
           "iteration_id": "46D81F36-AC60-11F0-A9C5-AEE5F468A4D9",
@@ -3356,7 +3372,7 @@
               "busyCPU": 1.1775
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 30708.97 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 30708.97 transactions/sec"
         },
         {
           "iteration_id": "46D83318-AC60-11F0-8F95-B05992AAFDAC",
@@ -3407,7 +3423,7 @@
               "busyCPU": 17.3654
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 787008.65 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 787008.65 transactions/sec"
         },
         {
           "iteration_id": "46D84736-AC60-11F0-B509-CE3D837F518B",
@@ -3458,7 +3474,7 @@
               "busyCPU": 0.842
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 596.64 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 596.64 connections/sec"
         },
         {
           "iteration_id": "46D85AD2-AC60-11F0-A5B5-F9FFFBE6051D",
@@ -3509,7 +3525,7 @@
               "busyCPU": 5.2258
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 13882.92 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 13882.92 connections/sec"
         }
       ],
       "summary": {
@@ -3541,7 +3557,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/TCP/2-POD/run-srv45-clean-fri-2025-10-18-11:49:46/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/TCP/2-POD/run-srv45-clean-fri-2025-10-18-11:49:46/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "22ae0158-1f61-419b-bada-d056f06a9889",
       "common_params": {
@@ -3556,7 +3572,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13573,
       "file_modified": 1761097163.1665013,
@@ -3610,7 +3628,7 @@
               "busyCPU": 2.6408
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 1.51 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 1.51 Gbps"
         },
         {
           "iteration_id": "B9FA6F1E-AC4C-11F0-94D7-9D842372A42E",
@@ -3660,7 +3678,7 @@
               "busyCPU": 2.7034
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 9.21 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 9.21 Gbps"
         },
         {
           "iteration_id": "B9FA7ED2-AC4C-11F0-B4B7-AE3E1239F648",
@@ -3710,7 +3728,7 @@
               "busyCPU": 3.0824
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 60.69 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 60.69 Gbps"
         },
         {
           "iteration_id": "B9FA8F44-AC4C-11F0-8D08-C0FBA227BD50",
@@ -3760,7 +3778,7 @@
               "busyCPU": 2.9621
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 51.80 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 51.80 Gbps"
         },
         {
           "iteration_id": "B9FA9F2A-AC4C-11F0-83F0-CDCDEEE24196",
@@ -3810,7 +3828,7 @@
               "busyCPU": 61.655
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 44.19 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 44.19 Gbps"
         },
         {
           "iteration_id": "B9FAAF38-AC4C-11F0-9134-C2378DD76CCF",
@@ -3860,7 +3878,7 @@
               "busyCPU": 54.2352
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 192.00 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 192.00 Gbps"
         },
         {
           "iteration_id": "B9FABF0A-AC4C-11F0-99F1-F7524A665B77",
@@ -3910,7 +3928,7 @@
               "busyCPU": 26.1026
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 276.87 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 276.87 Gbps"
         },
         {
           "iteration_id": "B9FACF18-AC4C-11F0-8E1A-ACE0FBFF8546",
@@ -3960,7 +3978,7 @@
               "busyCPU": 21.7633
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 250.42 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 250.42 Gbps"
         },
         {
           "iteration_id": "B9FADEF4-AC4C-11F0-B29E-AF7E0B9BA717",
@@ -4011,7 +4029,7 @@
               "busyCPU": 1.2161
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 29245.96 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 29245.96 transactions/sec"
         },
         {
           "iteration_id": "B9FAF0C4-AC4C-11F0-88F3-DCFBBEE562D3",
@@ -4062,7 +4080,7 @@
               "busyCPU": 17.7699
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 758731.36 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 758731.36 transactions/sec"
         },
         {
           "iteration_id": "B9FB0320-AC4C-11F0-A5E0-F6A3B35ED6C4",
@@ -4113,7 +4131,7 @@
               "busyCPU": 0.8606
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 590.18 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 590.18 connections/sec"
         },
         {
           "iteration_id": "B9FB14F0-AC4C-11F0-957C-F1E3A206FA77",
@@ -4164,7 +4182,7 @@
               "busyCPU": 5.5028
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 14291.55 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 14291.55 connections/sec"
         }
       ],
       "summary": {
@@ -4196,7 +4214,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/TCP/N-POD-GU/run-srv45-clean-fri-2025-10-18-18:57:44/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/TCP/N-POD-GU/run-srv45-clean-fri-2025-10-18-18:57:44/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "cd17aac1-3c1d-4038-baf9-9a06c0a49491",
       "common_params": {
@@ -4211,7 +4229,9 @@
         "pods-per-worker": "7",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13610,
       "file_modified": 1761097181.348624,
@@ -4265,7 +4285,7 @@
               "busyCPU": 14.5637
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 10.55 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 10.55 Gbps"
         },
         {
           "iteration_id": "B04259D6-AC89-11F0-83F9-C8376BA87A89",
@@ -4315,7 +4335,7 @@
               "busyCPU": 14.7516
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 62.43 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 62.43 Gbps"
         },
         {
           "iteration_id": "B042699E-AC89-11F0-864C-DF50C54DD77F",
@@ -4365,7 +4385,7 @@
               "busyCPU": 15.1907
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 224.50 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 224.50 Gbps"
         },
         {
           "iteration_id": "B0427966-AC89-11F0-AE9A-F4159F1E3EE5",
@@ -4415,7 +4435,7 @@
               "busyCPU": 14.885
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 219.69 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 219.69 Gbps"
         },
         {
           "iteration_id": "B0428992-AC89-11F0-B95B-DA11A076DCE1",
@@ -4465,7 +4485,7 @@
               "busyCPU": 54.6901
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 40.41 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 40.41 Gbps"
         },
         {
           "iteration_id": "B0429964-AC89-11F0-9D32-F92993976BDA",
@@ -4515,7 +4535,7 @@
               "busyCPU": 58.5426
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 143.13 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 143.13 Gbps"
         },
         {
           "iteration_id": "B042A9A4-AC89-11F0-998C-D5A6BAB7E431",
@@ -4565,7 +4585,7 @@
               "busyCPU": 30.0551
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 215.27 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 215.27 Gbps"
         },
         {
           "iteration_id": "B042B96C-AC89-11F0-9C0E-D988C44A6F79",
@@ -4615,7 +4635,7 @@
               "busyCPU": 31.5485
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 218.54 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 218.54 Gbps"
         },
         {
           "iteration_id": "B042C984-AC89-11F0-92B3-929FCCDB99C1",
@@ -4666,7 +4686,7 @@
               "busyCPU": 4.6348
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 198447.33 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 198447.33 transactions/sec"
         },
         {
           "iteration_id": "B042DBA4-AC89-11F0-8DA7-8D362956487B",
@@ -4717,7 +4737,7 @@
               "busyCPU": 31.7494
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1230638.01 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1230638.01 transactions/sec"
         },
         {
           "iteration_id": "B042ED9C-AC89-11F0-A8F4-E68D549A9CFF",
@@ -4768,7 +4788,7 @@
               "busyCPU": 2.9019
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 3204.56 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 3204.56 connections/sec"
         },
         {
           "iteration_id": "B042FFF8-AC89-11F0-AE15-E78D5B61D2FB",
@@ -4819,7 +4839,7 @@
               "busyCPU": 15.1603
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 13586.30 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 13586.30 connections/sec"
         }
       ],
       "summary": {
@@ -4851,7 +4871,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/TCP/N-POD/run-srv45-clean-fri-2025-10-18-16:29:30/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/TCP/N-POD/run-srv45-clean-fri-2025-10-18-16:29:30/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "8248633a-4b06-4295-9eca-d264465422f2",
       "common_params": {
@@ -4866,7 +4886,9 @@
         "pods-per-worker": "7",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13647,
       "file_modified": 1761097174.8605802,
@@ -4920,7 +4942,7 @@
               "busyCPU": 14.5344
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 10.61 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 10.61 Gbps"
         },
         {
           "iteration_id": "ECA0125C-AC74-11F0-A74D-BB72ECF92ACA",
@@ -4970,7 +4992,7 @@
               "busyCPU": 14.7433
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 62.70 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 62.70 Gbps"
         },
         {
           "iteration_id": "ECA02238-AC74-11F0-AC6C-83AFDD0E0226",
@@ -5020,7 +5042,7 @@
               "busyCPU": 15.7117
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 228.87 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 228.87 Gbps"
         },
         {
           "iteration_id": "ECA0326E-AC74-11F0-A289-9898082D2881",
@@ -5070,7 +5092,7 @@
               "busyCPU": 15.7612
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 245.95 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 245.95 Gbps"
         },
         {
           "iteration_id": "ECA04254-AC74-11F0-A8DF-CC481D1228D5",
@@ -5120,7 +5142,7 @@
               "busyCPU": 63.3646
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 47.76 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 47.76 Gbps"
         },
         {
           "iteration_id": "ECA051FE-AC74-11F0-BDCC-E23D7232C548",
@@ -5170,7 +5192,7 @@
               "busyCPU": 63.4569
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 242.69 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 242.69 Gbps"
         },
         {
           "iteration_id": "ECA06248-AC74-11F0-8517-EFABA67B39A6",
@@ -5220,7 +5242,7 @@
               "busyCPU": 30.5172
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 209.21 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 209.21 Gbps"
         },
         {
           "iteration_id": "ECA07210-AC74-11F0-AF44-91F8B0847DD6",
@@ -5270,7 +5292,7 @@
               "busyCPU": 29.8779
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 203.95 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 203.95 Gbps"
         },
         {
           "iteration_id": "ECA08246-AC74-11F0-AEF0-E70CC3609738",
@@ -5321,7 +5343,7 @@
               "busyCPU": 4.5942
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 198438.16 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 198438.16 transactions/sec"
         },
         {
           "iteration_id": "ECA0945C-AC74-11F0-B0EE-A31ADB3F4E73",
@@ -5372,7 +5394,7 @@
               "busyCPU": 30.0491
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1109945.98 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1109945.98 transactions/sec"
         },
         {
           "iteration_id": "ECA0A708-AC74-11F0-89F3-D7F764B16C06",
@@ -5423,7 +5445,7 @@
               "busyCPU": 2.995
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 3438.07 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 3438.07 connections/sec"
         },
         {
           "iteration_id": "ECA0B932-AC74-11F0-8D62-9420784C2027",
@@ -5474,7 +5496,7 @@
               "busyCPU": 20.2083
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 18659.16 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 18659.16 connections/sec"
         }
       ],
       "summary": {
@@ -5506,7 +5528,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/UDP/2-POD-GU/run-srv45-clean-fri-2025-10-18-22:15:27/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/UDP/2-POD-GU/run-srv45-clean-fri-2025-10-18-22:15:27/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "48459660-27ca-4cac-85b0-adae42e396cd",
       "common_params": {
@@ -5521,7 +5543,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5379,
       "file_modified": 1761097190.8336878,
@@ -5576,7 +5600,7 @@
               "busyCPU": 1.1869
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 30168.93 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 30168.93 transactions/sec"
         },
         {
           "iteration_id": "FE2412B2-AC97-11F0-A466-8AF622FA0C58",
@@ -5627,7 +5651,7 @@
               "busyCPU": 4.3193
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 258433.96 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 258433.96 transactions/sec"
         },
         {
           "iteration_id": "FE2426DA-AC97-11F0-A1BE-8E6B75534919",
@@ -5678,7 +5702,7 @@
               "busyCPU": 0.7644
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 773.22 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 773.22 connections/sec"
         },
         {
           "iteration_id": "FE243B20-AC97-11F0-810A-F281526DD1FD",
@@ -5729,7 +5753,7 @@
               "busyCPU": 0.6795
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 0.22 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 0.22 connections/sec"
         }
       ],
       "summary": {
@@ -5760,7 +5784,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/UDP/2-POD/run-srv45-clean-29wed-2025-10-30-11:39:47/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/UDP/2-POD/run-srv45-clean-29wed-2025-10-30-11:39:47/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "211cd19a-fbc5-4d0a-8911-1c0d75617a05",
       "common_params": {
@@ -5775,7 +5799,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5397,
       "file_modified": 1761858034.5398934,
@@ -5830,7 +5856,7 @@
               "busyCPU": 1.1214
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 32479.68 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 32479.68 transactions/sec"
         },
         {
           "iteration_id": "5BFE1A68-B5AD-11F0-8CDF-E3D2EB8236A9",
@@ -5881,7 +5907,7 @@
               "busyCPU": 6.2357
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 306361.04 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 306361.04 transactions/sec"
         },
         {
           "iteration_id": "5BFE2F12-B5AD-11F0-8A83-D0F5AE1E7AA6",
@@ -5932,7 +5958,7 @@
               "busyCPU": 0.6478
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 702.93 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 702.93 connections/sec"
         },
         {
           "iteration_id": "5BFE4344-B5AD-11F0-B415-ADF2452574FF",
@@ -5983,7 +6009,7 @@
               "busyCPU": 0.6021
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 0.32 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 0.32 connections/sec"
         }
       ],
       "summary": {
@@ -6014,7 +6040,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/UDP/N-POD-GU/run-srv45-clean-fri-2025-10-18-23:56:47/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/UDP/N-POD-GU/run-srv45-clean-fri-2025-10-18-23:56:47/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "bcb4cb5c-d149-430a-a948-0df2e9b2330e",
       "common_params": {
@@ -6029,7 +6055,9 @@
         "pods-per-worker": "6",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5402,
       "file_modified": 1761097200.686754,
@@ -6084,7 +6112,7 @@
               "busyCPU": 3.7488
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 180995.47 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 180995.47 transactions/sec"
         },
         {
           "iteration_id": "86411B28-ACA6-11F0-8B94-888B9D401313",
@@ -6135,7 +6163,7 @@
               "busyCPU": 27.8075
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1181685.48 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1181685.48 transactions/sec"
         },
         {
           "iteration_id": "86412E1A-ACA6-11F0-9EBB-E960CA9B8263",
@@ -6186,7 +6214,7 @@
               "busyCPU": 1.0242
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 4263.34 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 4263.34 connections/sec"
         },
         {
           "iteration_id": "86414030-ACA6-11F0-9AF2-F9AD17DB6B0A",
@@ -6237,7 +6265,7 @@
               "busyCPU": 0.6744
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 1.33 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 1.33 connections/sec"
         }
       ],
       "summary": {
@@ -6268,7 +6296,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/UDP/N-POD/run-srv45-clean-fri-2025-10-18-23:04:33/result-summary.txt",
+      "regulus_data": "1_GROUP/NO-PAO/4DPU/INTRA-NODE/UDP/N-POD/run-srv45-clean-fri-2025-10-18-23:04:33/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "5ca7bb08-da7f-4b6d-a968-d3f5aa1bc87a",
       "common_params": {
@@ -6283,7 +6311,9 @@
         "pods-per-worker": "6",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5406,
       "file_modified": 1761097195.7007203,
@@ -6338,7 +6368,7 @@
               "busyCPU": 3.7081
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 180628.22 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 180628.22 transactions/sec"
         },
         {
           "iteration_id": "4802D646-AC9F-11F0-8E9E-A0A5BB9D9F07",
@@ -6389,7 +6419,7 @@
               "busyCPU": 28.2932
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1294722.90 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1294722.90 transactions/sec"
         },
         {
           "iteration_id": "4802EAF0-AC9F-11F0-BE8E-8F09F9296D8A",
@@ -6440,7 +6470,7 @@
               "busyCPU": 1.034
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 4200.61 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 4200.61 connections/sec"
         },
         {
           "iteration_id": "4802FEDC-AC9F-11F0-B29C-F8C7A4713821",
@@ -6491,7 +6521,7 @@
               "busyCPU": 0.6893
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 1.33 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 1.33 connections/sec"
         }
       ],
       "summary": {
@@ -6522,7 +6552,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-srv45-clean-29wed-2025-10-29-14:54:56/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-srv45-clean-29wed-2025-10-29-14:54:56/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "9f82cceb-ba2d-4479-aa23-1bea56a5c8a9",
       "common_params": {
@@ -6538,7 +6568,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13626,
       "file_modified": 1761850603.816598,
@@ -6592,7 +6624,7 @@
               "busyCPU": 3.3975
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 1.50 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 1.50 Gbps"
         },
         {
           "iteration_id": "05AC857C-B50E-11F0-A937-E6D5D9B5601C",
@@ -6642,7 +6674,7 @@
               "busyCPU": 2.3959
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 5.06 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 5.06 Gbps"
         },
         {
           "iteration_id": "05AC95DA-B50E-11F0-907A-EFB3D09B6360",
@@ -6692,7 +6724,7 @@
               "busyCPU": 3.7402
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 64.34 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 64.34 Gbps"
         },
         {
           "iteration_id": "05ACA598-B50E-11F0-B2DC-E946C204CFB7",
@@ -6742,7 +6774,7 @@
               "busyCPU": 3.7383
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 67.82 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 67.82 Gbps"
         },
         {
           "iteration_id": "05ACB5BA-B50E-11F0-A32E-9993EF80BC52",
@@ -6792,7 +6824,7 @@
               "busyCPU": 55.775
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 42.24 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 42.24 Gbps"
         },
         {
           "iteration_id": "05ACC5F0-B50E-11F0-B7B4-A5EE95AAF1CC",
@@ -6842,7 +6874,7 @@
               "busyCPU": 52.0881
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 235.06 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 235.06 Gbps"
         },
         {
           "iteration_id": "05ACD5C2-B50E-11F0-93E0-E49484E0C206",
@@ -6892,7 +6924,7 @@
               "busyCPU": 26.7554
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 260.90 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 260.90 Gbps"
         },
         {
           "iteration_id": "05ACE616-B50E-11F0-9A78-F83948476850",
@@ -6942,7 +6974,7 @@
               "busyCPU": 25.6242
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 256.12 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 256.12 Gbps"
         },
         {
           "iteration_id": "05ACF606-B50E-11F0-BC6F-C0A7007255AD",
@@ -6993,7 +7025,7 @@
               "busyCPU": 3.3898
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 58394.42 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 58394.42 transactions/sec"
         },
         {
           "iteration_id": "05AD0876-B50E-11F0-8FBA-9635F919C0B7",
@@ -7044,7 +7076,7 @@
               "busyCPU": 57.5438
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1512751.60 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1512751.60 transactions/sec"
         },
         {
           "iteration_id": "05AD1A82-B50E-11F0-B153-828EF7891533",
@@ -7095,7 +7127,7 @@
               "busyCPU": 1.4098
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 361.27 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 361.27 connections/sec"
         },
         {
           "iteration_id": "05AD2D24-B50E-11F0-A2C8-B95644BBB49F",
@@ -7146,7 +7178,7 @@
               "busyCPU": 6.5644
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 12545.42 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 12545.42 connections/sec"
         }
       ],
       "summary": {
@@ -7178,7 +7210,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD/run-srv45-clean-tue-2025-10-21-21:05:28/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD/run-srv45-clean-tue-2025-10-21-21:05:28/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "f9565a1a-3bbc-4bab-8361-42443f11f9ef",
       "common_params": {
@@ -7194,7 +7226,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13619,
       "file_modified": 1761858900.5760388,
@@ -7248,7 +7282,7 @@
               "busyCPU": 2.7929
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 1.31 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 1.31 Gbps"
         },
         {
           "iteration_id": "16A6DE9E-AEF7-11F0-8B16-82B5B96CA226",
@@ -7298,7 +7332,7 @@
               "busyCPU": 2.9298
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 8.40 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 8.40 Gbps"
         },
         {
           "iteration_id": "16A6F096-AEF7-11F0-AC15-EB251D4A7CF7",
@@ -7348,7 +7382,7 @@
               "busyCPU": 3.3561
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 44.92 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 44.92 Gbps"
         },
         {
           "iteration_id": "16A701F8-AEF7-11F0-8E26-B8E071FC8C34",
@@ -7398,7 +7432,7 @@
               "busyCPU": 2.9524
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 51.10 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 51.10 Gbps"
         },
         {
           "iteration_id": "16A7136E-AEF7-11F0-B4F6-975C9BAA8E2C",
@@ -7448,7 +7482,7 @@
               "busyCPU": 62.1866
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 40.70 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 40.70 Gbps"
         },
         {
           "iteration_id": "16A72566-AEF7-11F0-8EEC-DABBA32A308E",
@@ -7498,7 +7532,7 @@
               "busyCPU": 63.0113
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 236.03 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 236.03 Gbps"
         },
         {
           "iteration_id": "16A736DC-AEF7-11F0-B81D-DC90E5D66471",
@@ -7548,7 +7582,7 @@
               "busyCPU": 33.6802
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 303.15 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 303.15 Gbps"
         },
         {
           "iteration_id": "16A748CA-AEF7-11F0-8B36-DD6F9B9B0DF3",
@@ -7598,7 +7632,7 @@
               "busyCPU": 30.947
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 296.60 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 296.60 Gbps"
         },
         {
           "iteration_id": "16A75A2C-AEF7-11F0-B0C2-B09B26A0C966",
@@ -7649,7 +7683,7 @@
               "busyCPU": 2.8618
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 53754.80 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 53754.80 transactions/sec"
         },
         {
           "iteration_id": "16A76E40-AEF7-11F0-B9A6-876E0E9F287D",
@@ -7700,7 +7734,7 @@
               "busyCPU": 64.2643
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1500020.14 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1500020.14 transactions/sec"
         },
         {
           "iteration_id": "16A7822C-AEF7-11F0-9A91-E4066FAD63BB",
@@ -7751,7 +7785,7 @@
               "busyCPU": 1.1639
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 542.40 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 542.40 connections/sec"
         },
         {
           "iteration_id": "16A796A4-AEF7-11F0-8673-F6A02CED5691",
@@ -7802,7 +7836,7 @@
               "busyCPU": 8.5396
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 13767.85 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 13767.85 connections/sec"
         }
       ],
       "summary": {
@@ -7834,7 +7868,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD-GU/run-srv45-clean-wed-2025-10-22-19:41:21/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD-GU/run-srv45-clean-wed-2025-10-22-19:41:21/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "9fca2509-78e6-482b-8e5c-7cdb018a41d1",
       "common_params": {
@@ -7850,7 +7884,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 12642,
       "file_modified": 1761859305.8241978,
@@ -7904,7 +7940,7 @@
               "busyCPU": 25.892
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 16.48 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 16.48 Gbps"
         },
         {
           "iteration_id": "5830D71C-AFB9-11F0-8EB9-E01574D681A9",
@@ -7954,7 +7990,7 @@
               "busyCPU": 25.3648
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 101.51 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 101.51 Gbps"
         },
         {
           "iteration_id": "5830E6F8-AFB9-11F0-8771-92DFC6898AA7",
@@ -8004,7 +8040,7 @@
               "busyCPU": 19.982
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 217.41 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 217.41 Gbps"
         },
         {
           "iteration_id": "5830F77E-AFB9-11F0-BC87-8CDA3B7909E8",
@@ -8054,7 +8090,7 @@
               "busyCPU": 19.3122
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 222.17 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 222.17 Gbps"
         },
         {
           "iteration_id": "583107DC-AFB9-11F0-BB04-FEDB3192FA64",
@@ -8104,7 +8140,7 @@
               "busyCPU": 51.3825
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 32.80 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 32.80 Gbps"
         },
         {
           "iteration_id": "583117A4-AFB9-11F0-A808-947248D7E0BF",
@@ -8154,7 +8190,7 @@
               "busyCPU": 50.5816
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 189.53 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 189.53 Gbps"
         },
         {
           "iteration_id": "58313D24-AFB9-11F0-BBA7-87C013CA17DD",
@@ -8204,7 +8240,7 @@
               "busyCPU": 44.7886
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 329.80 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 329.80 Gbps"
         },
         {
           "iteration_id": "58314D50-AFB9-11F0-B4C8-FDD3845E1DAC",
@@ -8255,7 +8291,7 @@
               "busyCPU": 26.7035
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 693516.92 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 693516.92 transactions/sec"
         },
         {
           "iteration_id": "58315F34-AFB9-11F0-8C0F-F281DC327B83",
@@ -8306,7 +8342,7 @@
               "busyCPU": 51.9927
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1297878.75 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1297878.75 transactions/sec"
         },
         {
           "iteration_id": "58317172-AFB9-11F0-A4FC-C5AF71595A2E",
@@ -8357,7 +8393,7 @@
               "busyCPU": 5.3598
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 5175.53 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 5175.53 connections/sec"
         },
         {
           "iteration_id": "58318342-AFB9-11F0-BC07-D608CBE28DFB",
@@ -8408,7 +8444,7 @@
               "busyCPU": 19.7533
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 11361.18 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 11361.18 connections/sec"
         }
       ],
       "summary": {
@@ -8440,7 +8476,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD/run-srv45-clean-tue-2025-10-21-23:41:40/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD/run-srv45-clean-tue-2025-10-21-23:41:40/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "33413924-cf77-4459-a546-72117790c1e7",
       "common_params": {
@@ -8456,7 +8492,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 10543,
       "file_modified": 1761859642.5131187,
@@ -8510,7 +8548,7 @@
               "busyCPU": 25.4304
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 16.65 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 16.65 Gbps"
         },
         {
           "iteration_id": "6DD42C94-AF10-11F0-A809-D0F40A947B56",
@@ -8560,7 +8598,7 @@
               "busyCPU": 26.132
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 101.39 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 101.39 Gbps"
         },
         {
           "iteration_id": "6DD43C70-AF10-11F0-8A83-D6BE99F29F7C",
@@ -8610,7 +8648,7 @@
               "busyCPU": 19.7484
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 236.59 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 236.59 Gbps"
         },
         {
           "iteration_id": "6DD44CCE-AF10-11F0-BD52-8AD9F1777984",
@@ -8660,7 +8698,7 @@
               "busyCPU": 18.5611
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 211.81 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 211.81 Gbps"
         },
         {
           "iteration_id": "6DD46CFE-AF10-11F0-9439-E2740BD7C5E4",
@@ -8710,7 +8748,7 @@
               "busyCPU": 86.9307
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 301.67 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 301.67 Gbps"
         },
         {
           "iteration_id": "6DD48CAC-AF10-11F0-8F79-C62DB1751FC4",
@@ -8760,7 +8798,7 @@
               "busyCPU": 63.9895
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 270.25 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 270.25 Gbps"
         },
         {
           "iteration_id": "6DD49C56-AF10-11F0-8D78-9CDA8768B8EE",
@@ -8811,7 +8849,7 @@
               "busyCPU": 26.3585
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 613075.49 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 613075.49 transactions/sec"
         },
         {
           "iteration_id": "6DD4C0E6-AF10-11F0-8864-E897AB56FD56",
@@ -8862,7 +8900,7 @@
               "busyCPU": 5.5834
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 5141.30 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 5141.30 connections/sec"
         },
         {
           "iteration_id": "6DD4D306-AF10-11F0-BDCA-80F2C02EDCCE",
@@ -8913,7 +8951,7 @@
               "busyCPU": 31.667
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 14341.95 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 14341.95 connections/sec"
         }
       ],
       "summary": {
@@ -8945,7 +8983,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTER-NODE/UDP/2-POD-GU/run-srv45-clean-wed-2025-10-22-22:45:54/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTER-NODE/UDP/2-POD-GU/run-srv45-clean-wed-2025-10-22-22:45:54/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "1f37822d-e0ed-4b12-a8d5-f62b0be3e62d",
       "common_params": {
@@ -8964,7 +9002,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 3167,
       "file_modified": 1761859948.4706185,
@@ -9016,7 +9056,7 @@
               "busyCPU": 0.8563
             }
           ],
-          "test_description": "1 thread, → 487.33 connections/sec"
+          "test_description": "1 thread, \u2192 487.33 connections/sec"
         },
         {
           "iteration_id": "FDA8C0D6-AFC0-11F0-B9B2-893D06325A24",
@@ -9064,7 +9104,7 @@
               "busyCPU": 0.778
             }
           ],
-          "test_description": "32 threads, → 0.24 connections/sec"
+          "test_description": "32 threads, \u2192 0.24 connections/sec"
         }
       ],
       "summary": {
@@ -9094,7 +9134,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTER-NODE/UDP/2-POD/run-srv45-clean-tue-2025-10-22-02:38:29/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTER-NODE/UDP/2-POD/run-srv45-clean-tue-2025-10-22-02:38:29/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "8dbd90e9-8b8b-42c3-b58e-6af8ec546669",
       "common_params": {
@@ -9110,7 +9150,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5369,
       "file_modified": 1761860099.7543604,
@@ -9165,7 +9207,7 @@
               "busyCPU": 0.9917
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 4489.62 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 4489.62 transactions/sec"
         },
         {
           "iteration_id": "7D588ABC-AF19-11F0-9567-A31419C91C79",
@@ -9216,7 +9258,7 @@
               "busyCPU": 10.1728
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 160121.61 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 160121.61 transactions/sec"
         },
         {
           "iteration_id": "7D589EA8-AF19-11F0-98A1-C9A06A09A228",
@@ -9267,7 +9309,7 @@
               "busyCPU": 0.8834
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 309.37 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 309.37 connections/sec"
         },
         {
           "iteration_id": "7D58B2E4-AF19-11F0-8158-BB36ED0B343B",
@@ -9318,7 +9360,7 @@
               "busyCPU": 0.8235
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 0.23 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 0.23 connections/sec"
         }
       ],
       "summary": {
@@ -9349,7 +9391,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTER-NODE/UDP/N-POD-GU/run-srv45-clean-wed-2025-10-22-23:35:21/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTER-NODE/UDP/N-POD-GU/run-srv45-clean-wed-2025-10-22-23:35:21/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "a82f8f8d-08f9-43d0-b0b8-a86d2ed5a193",
       "common_params": {
@@ -9365,7 +9407,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5432,
       "file_modified": 1761860253.9751384,
@@ -9420,7 +9464,7 @@
               "busyCPU": 10.4883
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 264853.95 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 264853.95 transactions/sec"
         },
         {
           "iteration_id": "DDAAEABC-AFC9-11F0-B405-EFD3C3E10D99",
@@ -9471,7 +9515,7 @@
               "busyCPU": 7.3549
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 705452.56 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 705452.56 transactions/sec"
         },
         {
           "iteration_id": "DDAAFDA4-AFC9-11F0-9E39-9F198823F721",
@@ -9522,7 +9566,7 @@
               "busyCPU": 1.2584
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 2532.54 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 2532.54 connections/sec"
         },
         {
           "iteration_id": "DDAB0FA6-AFC9-11F0-8C59-B236A9AC3CBD",
@@ -9573,7 +9617,7 @@
               "busyCPU": 0.8051
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 3.05 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 3.05 connections/sec"
         }
       ],
       "summary": {
@@ -9604,7 +9648,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTER-NODE/UDP/N-POD/run-srv45-clean-tue-2025-10-22-03:44:03/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTER-NODE/UDP/N-POD/run-srv45-clean-tue-2025-10-22-03:44:03/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "0d899012-4c9d-464b-9c91-355bd6776072",
       "common_params": {
@@ -9620,7 +9664,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 4340,
       "file_modified": 1761860371.746759,
@@ -9675,7 +9721,7 @@
               "busyCPU": 14.5807
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 334988.34 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 334988.34 transactions/sec"
         },
         {
           "iteration_id": "8D86A3E2-AF23-11F0-856B-C84E4116D771",
@@ -9726,7 +9772,7 @@
               "busyCPU": 1.2621
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 3248.08 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 3248.08 connections/sec"
         },
         {
           "iteration_id": "8D86B7CE-AF23-11F0-97C8-D879F52A0F5D",
@@ -9777,7 +9823,7 @@
               "busyCPU": 0.7965
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 1.73 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 1.73 connections/sec"
         }
       ],
       "summary": {
@@ -9808,7 +9854,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTRA-NODE/TCP/2-POD-GU/run-srv45-clean-wed-2025-10-23-00:39:50/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTRA-NODE/TCP/2-POD-GU/run-srv45-clean-wed-2025-10-23-00:39:50/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "e799b2d2-03ea-407c-bed8-a45b9b713a03",
       "common_params": {
@@ -9824,7 +9870,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13626,
       "file_modified": 1761860650.4402535,
@@ -9878,7 +9926,7 @@
               "busyCPU": 2.3378
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 1.26 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 1.26 Gbps"
         },
         {
           "iteration_id": "1CE342A2-AFDD-11F0-B632-C2D24A106615",
@@ -9928,7 +9976,7 @@
               "busyCPU": 2.3967
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 8.19 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 8.19 Gbps"
         },
         {
           "iteration_id": "1CE35418-AFDD-11F0-831E-F706A9C0BABB",
@@ -9978,7 +10026,7 @@
               "busyCPU": 2.7372
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 60.99 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 60.99 Gbps"
         },
         {
           "iteration_id": "1CE365FC-AFDD-11F0-885E-CEF6D743D678",
@@ -10028,7 +10076,7 @@
               "busyCPU": 2.8068
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 68.16 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 68.16 Gbps"
         },
         {
           "iteration_id": "1CE37754-AFDD-11F0-ADB4-DBB6ABDB0E7A",
@@ -10078,7 +10126,7 @@
               "busyCPU": 26.9075
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 16.80 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 16.80 Gbps"
         },
         {
           "iteration_id": "1CE38942-AFDD-11F0-A784-DD8923845169",
@@ -10128,7 +10176,7 @@
               "busyCPU": 26.3507
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 98.48 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 98.48 Gbps"
         },
         {
           "iteration_id": "1CE39A9A-AFDD-11F0-8E6E-976824E9DF13",
@@ -10178,7 +10226,7 @@
               "busyCPU": 24.7394
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 201.64 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 201.64 Gbps"
         },
         {
           "iteration_id": "1CE3ACB0-AFDD-11F0-83C7-BBE2842CCF9C",
@@ -10228,7 +10276,7 @@
               "busyCPU": 23.7122
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 214.48 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 214.48 Gbps"
         },
         {
           "iteration_id": "1CE3BE08-AFDD-11F0-8017-FE65EB429CC2",
@@ -10279,7 +10327,7 @@
               "busyCPU": 2.3929
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 81204.54 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 81204.54 transactions/sec"
         },
         {
           "iteration_id": "1CE3D258-AFDD-11F0-B9E2-CD98094F2411",
@@ -10330,7 +10378,7 @@
               "busyCPU": 27.7925
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1022643.15 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1022643.15 transactions/sec"
         },
         {
           "iteration_id": "1CE3E63A-AFDD-11F0-A7F5-E521482D76CD",
@@ -10381,7 +10429,7 @@
               "busyCPU": 0.697
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 568.86 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 568.86 connections/sec"
         },
         {
           "iteration_id": "1CE3FA94-AFDD-11F0-A26A-E48A1C9F70EE",
@@ -10432,7 +10480,7 @@
               "busyCPU": 4.6838
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 10264.90 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 10264.90 connections/sec"
         }
       ],
       "summary": {
@@ -10464,7 +10512,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTRA-NODE/TCP/2-POD/run-srv45-clean-tue-2025-10-22-04:52:24/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTRA-NODE/TCP/2-POD/run-srv45-clean-tue-2025-10-22-04:52:24/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "dc728a78-a75e-4d58-9358-5ae633f350ee",
       "common_params": {
@@ -10480,7 +10528,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13615,
       "file_modified": 1761860926.0697374,
@@ -10534,7 +10584,7 @@
               "busyCPU": 2.3664
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 1.30 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 1.30 Gbps"
         },
         {
           "iteration_id": "90D58996-AF37-11F0-85BB-DA7F49183CFC",
@@ -10584,7 +10634,7 @@
               "busyCPU": 2.4039
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 8.69 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 8.69 Gbps"
         },
         {
           "iteration_id": "90D59986-AF37-11F0-8E2C-EE5D149114B1",
@@ -10634,7 +10684,7 @@
               "busyCPU": 2.7102
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 59.07 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 59.07 Gbps"
         },
         {
           "iteration_id": "90D5A9BC-AF37-11F0-AA37-B28ED4A8F3CC",
@@ -10684,7 +10734,7 @@
               "busyCPU": 2.6902
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 49.90 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 49.90 Gbps"
         },
         {
           "iteration_id": "90D5B9CA-AF37-11F0-A3E9-FFC9F351E6BF",
@@ -10734,7 +10784,7 @@
               "busyCPU": 47.4576
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 30.24 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 30.24 Gbps"
         },
         {
           "iteration_id": "90D5C9B0-AF37-11F0-B7A9-BD72A5B957C2",
@@ -10784,7 +10834,7 @@
               "busyCPU": 50.3594
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 168.32 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 168.32 Gbps"
         },
         {
           "iteration_id": "90D5DA04-AF37-11F0-A18C-B29909158155",
@@ -10834,7 +10884,7 @@
               "busyCPU": 44.6568
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 230.18 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 230.18 Gbps"
         },
         {
           "iteration_id": "90D5E9F4-AF37-11F0-B04B-F4E3717B1685",
@@ -10884,7 +10934,7 @@
               "busyCPU": 32.6335
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 250.09 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 250.09 Gbps"
         },
         {
           "iteration_id": "90D5FA34-AF37-11F0-BE71-9B24FD2DE304",
@@ -10935,7 +10985,7 @@
               "busyCPU": 2.4485
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 73308.13 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 73308.13 transactions/sec"
         },
         {
           "iteration_id": "90D60C86-AF37-11F0-9523-8936645574D4",
@@ -10986,7 +11036,7 @@
               "busyCPU": 47.0392
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1307851.40 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1307851.40 transactions/sec"
         },
         {
           "iteration_id": "90D620C2-AF37-11F0-A143-811FA0DF30DD",
@@ -11037,7 +11087,7 @@
               "busyCPU": 0.723
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 573.27 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 573.27 connections/sec"
         },
         {
           "iteration_id": "90D632E2-AF37-11F0-B551-A7CE0C7DA69C",
@@ -11088,7 +11138,7 @@
               "busyCPU": 7.1999
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 11168.68 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 11168.68 connections/sec"
         }
       ],
       "summary": {
@@ -11120,7 +11170,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTRA-NODE/TCP/N-POD-GU/run-srv45-clean-wed-2025-10-23-03:00:39/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTRA-NODE/TCP/N-POD-GU/run-srv45-clean-wed-2025-10-23-03:00:39/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "6890b7ad-f171-45b5-a732-a9c34ca0beaa",
       "common_params": {
@@ -11136,7 +11186,9 @@
         "pods-per-worker": "6",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 12609,
       "file_modified": 1761861181.7560785,
@@ -11190,7 +11242,7 @@
               "busyCPU": 11.9681
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 7.27 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 7.27 Gbps"
         },
         {
           "iteration_id": "FF481028-AFF1-11F0-B2D6-868D1B5281F1",
@@ -11240,7 +11292,7 @@
               "busyCPU": 11.7093
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 45.65 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 45.65 Gbps"
         },
         {
           "iteration_id": "FF482086-AFF1-11F0-8777-F85FE8D034E4",
@@ -11290,7 +11342,7 @@
               "busyCPU": 12.0644
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 204.20 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 204.20 Gbps"
         },
         {
           "iteration_id": "FF483062-AFF1-11F0-8461-FF81D698A1EB",
@@ -11340,7 +11392,7 @@
               "busyCPU": 12.3073
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 208.20 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 208.20 Gbps"
         },
         {
           "iteration_id": "FF48408E-AFF1-11F0-A6CA-CD3F1382CB89",
@@ -11390,7 +11442,7 @@
               "busyCPU": 22.7897
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 14.05 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 14.05 Gbps"
         },
         {
           "iteration_id": "FF48504C-AFF1-11F0-9819-D49EB38624B3",
@@ -11440,7 +11492,7 @@
               "busyCPU": 22.3618
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 81.54 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 81.54 Gbps"
         },
         {
           "iteration_id": "FF485FEC-AFF1-11F0-90E0-A7D9405E9472",
@@ -11490,7 +11542,7 @@
               "busyCPU": 20.5354
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 174.26 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 174.26 Gbps"
         },
         {
           "iteration_id": "FF487036-AFF1-11F0-9CFA-863C094F9C16",
@@ -11540,7 +11592,7 @@
               "busyCPU": 20.3004
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 177.05 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 177.05 Gbps"
         },
         {
           "iteration_id": "FF487FCC-AFF1-11F0-9CF5-E1D997B60FD2",
@@ -11591,7 +11643,7 @@
               "busyCPU": 12.5113
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 420215.63 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 420215.63 transactions/sec"
         },
         {
           "iteration_id": "FF48921E-AFF1-11F0-9951-E8A974FC52EE",
@@ -11642,7 +11694,7 @@
               "busyCPU": 24.4031
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 786999.80 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 786999.80 transactions/sec"
         },
         {
           "iteration_id": "FF48A42A-AFF1-11F0-94DC-A627F22B0042",
@@ -11693,7 +11745,7 @@
               "busyCPU": 2.4319
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 2883.89 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 2883.89 connections/sec"
         }
       ],
       "summary": {
@@ -11725,7 +11777,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTRA-NODE/TCP/N-POD/run-srv45-clean-tue-2025-10-22-07:22:18/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTRA-NODE/TCP/N-POD/run-srv45-clean-tue-2025-10-22-07:22:18/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "ebc69365-4115-4c4f-a787-3e5b7216dd08",
       "common_params": {
@@ -11741,7 +11793,9 @@
         "pods-per-worker": "6",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 13616,
       "file_modified": 1761861461.999514,
@@ -11795,7 +11849,7 @@
               "busyCPU": 12.2109
             }
           ],
-          "test_description": "1 thread, stream test, write=64B, → 7.33 Gbps"
+          "test_description": "1 thread, stream test, write=64B, \u2192 7.33 Gbps"
         },
         {
           "iteration_id": "507DADFE-AF4D-11F0-922B-9332F5FFFEBD",
@@ -11845,7 +11899,7 @@
               "busyCPU": 12.4946
             }
           ],
-          "test_description": "1 thread, stream test, write=512B, → 44.61 Gbps"
+          "test_description": "1 thread, stream test, write=512B, \u2192 44.61 Gbps"
         },
         {
           "iteration_id": "507DBE16-AF4D-11F0-B0D2-D043EAB1990D",
@@ -11895,7 +11949,7 @@
               "busyCPU": 13.4896
             }
           ],
-          "test_description": "1 thread, stream test, write=32768B, → 201.08 Gbps"
+          "test_description": "1 thread, stream test, write=32768B, \u2192 201.08 Gbps"
         },
         {
           "iteration_id": "507DCE6A-AF4D-11F0-9550-F32929B6BDE2",
@@ -11945,7 +11999,7 @@
               "busyCPU": 12.8836
             }
           ],
-          "test_description": "1 thread, stream test, write=134144B, → 174.04 Gbps"
+          "test_description": "1 thread, stream test, write=134144B, \u2192 174.04 Gbps"
         },
         {
           "iteration_id": "507DDE5A-AF4D-11F0-BC81-CCC4A6294949",
@@ -11995,7 +12049,7 @@
               "busyCPU": 47.682
             }
           ],
-          "test_description": "32 threads, stream test, write=64B, → 28.80 Gbps"
+          "test_description": "32 threads, stream test, write=64B, \u2192 28.80 Gbps"
         },
         {
           "iteration_id": "507DEE22-AF4D-11F0-B298-847C092C62CB",
@@ -12045,7 +12099,7 @@
               "busyCPU": 50.8569
             }
           ],
-          "test_description": "32 threads, stream test, write=512B, → 156.70 Gbps"
+          "test_description": "32 threads, stream test, write=512B, \u2192 156.70 Gbps"
         },
         {
           "iteration_id": "507DFE6C-AF4D-11F0-A4F3-CDF1084D911A",
@@ -12095,7 +12149,7 @@
               "busyCPU": 54.7187
             }
           ],
-          "test_description": "32 threads, stream test, write=32768B, → 254.74 Gbps"
+          "test_description": "32 threads, stream test, write=32768B, \u2192 254.74 Gbps"
         },
         {
           "iteration_id": "507E0E2A-AF4D-11F0-9FC7-8B4F2F885CE5",
@@ -12145,7 +12199,7 @@
               "busyCPU": 53.6895
             }
           ],
-          "test_description": "32 threads, stream test, write=134144B, → 254.27 Gbps"
+          "test_description": "32 threads, stream test, write=134144B, \u2192 254.27 Gbps"
         },
         {
           "iteration_id": "507E1E56-AF4D-11F0-B758-CF3721014A13",
@@ -12196,7 +12250,7 @@
               "busyCPU": 12.6641
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 386209.05 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 386209.05 transactions/sec"
         },
         {
           "iteration_id": "507E306C-AF4D-11F0-BA0F-97D26878140B",
@@ -12247,7 +12301,7 @@
               "busyCPU": 48.483
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1119539.49 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1119539.49 transactions/sec"
         },
         {
           "iteration_id": "507E42C8-AF4D-11F0-84B2-980DC18FB76B",
@@ -12298,7 +12352,7 @@
               "busyCPU": 2.5182
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 3017.12 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 3017.12 connections/sec"
         },
         {
           "iteration_id": "507E54FC-AF4D-11F0-BEAB-97AB7CB612CB",
@@ -12349,7 +12403,7 @@
               "busyCPU": 15.8681
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 13925.56 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 13925.56 connections/sec"
         }
       ],
       "summary": {
@@ -12381,7 +12435,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTRA-NODE/UDP/2-POD-GU/run-srv45-clean-wed-2025-10-23-06:20:18/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTRA-NODE/UDP/2-POD-GU/run-srv45-clean-wed-2025-10-23-06:20:18/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "fc1a279c-191b-42ee-b856-0d1e1ac9d2fa",
       "common_params": {
@@ -12397,7 +12451,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5402,
       "file_modified": 1761861558.719006,
@@ -12452,7 +12508,7 @@
               "busyCPU": 2.4181
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 80218.70 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 80218.70 transactions/sec"
         },
         {
           "iteration_id": "860D98CC-B000-11F0-A488-BDE32AB6A7E3",
@@ -12503,7 +12559,7 @@
               "busyCPU": 14.0048
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 328222.12 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 328222.12 transactions/sec"
         },
         {
           "iteration_id": "860DACD6-B000-11F0-9BCB-FB318A7EA9CD",
@@ -12554,7 +12610,7 @@
               "busyCPU": 0.5225
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 764.23 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 764.23 connections/sec"
         },
         {
           "iteration_id": "860DC18A-B000-11F0-8404-96C06EE58A55",
@@ -12605,7 +12661,7 @@
               "busyCPU": 0.4026
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 0.32 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 0.32 connections/sec"
         }
       ],
       "summary": {
@@ -12636,7 +12692,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTRA-NODE/UDP/2-POD/run-srv45-clean-wed-2025-10-23-05:30:00/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTRA-NODE/UDP/2-POD/run-srv45-clean-wed-2025-10-23-05:30:00/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "1adc81da-ac93-4ca2-997a-a668f5a9e19f",
       "common_params": {
@@ -12652,7 +12708,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5402,
       "file_modified": 1761861655.4494977,
@@ -12707,7 +12765,7 @@
               "busyCPU": 2.4822
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 70493.04 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 70493.04 transactions/sec"
         },
         {
           "iteration_id": "8655AFBA-AFF9-11F0-ABE3-BA11DD1C9E91",
@@ -12758,7 +12816,7 @@
               "busyCPU": 30.0174
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 389307.36 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 389307.36 transactions/sec"
         },
         {
           "iteration_id": "8655C2AC-AFF9-11F0-BB0F-F4CF28C37D28",
@@ -12809,7 +12867,7 @@
               "busyCPU": 0.5978
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 705.22 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 705.22 connections/sec"
         },
         {
           "iteration_id": "8655D4EA-AFF9-11F0-A496-889D7BB9C7E5",
@@ -12860,7 +12918,7 @@
               "busyCPU": 0.4574
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 0.30 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 0.30 connections/sec"
         }
       ],
       "summary": {
@@ -12891,7 +12949,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTRA-NODE/UDP/N-POD-GU/run-srv45-clean-wed-2025-10-23-08:04:21/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTRA-NODE/UDP/N-POD-GU/run-srv45-clean-wed-2025-10-23-08:04:21/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "793e2f1d-6b4b-4b42-8d80-13510790e853",
       "common_params": {
@@ -12907,7 +12965,9 @@
         "pods-per-worker": "6",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5460,
       "file_modified": 1761861752.35199,
@@ -12962,7 +13022,7 @@
               "busyCPU": 12.5145
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 435955.59 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 435955.59 transactions/sec"
         },
         {
           "iteration_id": "73F591F8-B00F-11F0-9713-D172A9F20672",
@@ -13013,7 +13073,7 @@
               "busyCPU": 19.7304
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 2318758.87 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 2318758.87 transactions/sec"
         },
         {
           "iteration_id": "73F5A4C2-B00F-11F0-94ED-CC3660D32BDF",
@@ -13064,7 +13124,7 @@
               "busyCPU": 1.0548
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 4441.49 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 4441.49 connections/sec"
         },
         {
           "iteration_id": "73F5B6F6-B00F-11F0-B8EC-8263229F1DCE",
@@ -13115,7 +13175,7 @@
               "busyCPU": 0.4111
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 1.17 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 1.17 connections/sec"
         }
       ],
       "summary": {
@@ -13146,7 +13206,7 @@
       }
     },
     {
-      "file_path": "1_GROUP/PAO/4DPU/INTRA-NODE/UDP/N-POD/run-srv45-clean-wed-2025-10-23-07:10:22/result-summary.txt",
+      "regulus_data": "1_GROUP/PAO/4DPU/INTRA-NODE/UDP/N-POD/run-srv45-clean-wed-2025-10-23-07:10:22/result-summary.txt",
       "benchmark": "uperf",
       "run_id": "93d78b8f-524d-4fd7-9df8-7fba19f66f3d",
       "common_params": {
@@ -13162,7 +13222,9 @@
         "pods-per-worker": "6",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "intranode"
+        "topo": "intranode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5442,
       "file_modified": 1761861849.29848,
@@ -13217,7 +13279,7 @@
               "busyCPU": 12.0195
             }
           ],
-          "test_description": "1 thread, rr test, write=1024B, read=1024B, → 379139.24 transactions/sec"
+          "test_description": "1 thread, rr test, write=1024B, read=1024B, \u2192 379139.24 transactions/sec"
         },
         {
           "iteration_id": "0C6C23DC-B008-11F0-9755-DCB8AB369062",
@@ -13268,7 +13330,7 @@
               "busyCPU": 62.5488
             }
           ],
-          "test_description": "32 threads, rr test, write=1024B, read=1024B, → 1659714.66 transactions/sec"
+          "test_description": "32 threads, rr test, write=1024B, read=1024B, \u2192 1659714.66 transactions/sec"
         },
         {
           "iteration_id": "0C6C3872-B008-11F0-B058-E880AF5C75A4",
@@ -13319,7 +13381,7 @@
               "busyCPU": 1.0548
             }
           ],
-          "test_description": "1 thread, crr test, write=512B, read=512B, → 4191.33 connections/sec"
+          "test_description": "1 thread, crr test, write=512B, read=512B, \u2192 4191.33 connections/sec"
         },
         {
           "iteration_id": "0C6C4C54-B008-11F0-9AE8-9F487B1448B7",
@@ -13370,7 +13432,7 @@
               "busyCPU": 0.435
             }
           ],
-          "test_description": "32 threads, crr test, write=512B, read=512B, → 1.55 connections/sec"
+          "test_description": "32 threads, crr test, write=512B, read=512B, \u2192 1.55 connections/sec"
         }
       ],
       "summary": {
@@ -13401,7 +13463,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-srv45-clean-fri-2025-10-19-01:43:25/result-summary.txt",
+      "regulus_data": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-srv45-clean-fri-2025-10-19-01:43:25/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "cdf541cc-66f2-4b56-b193-182cbf86db62",
       "common_params": {
@@ -13417,7 +13479,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5153,
       "file_modified": 1761097218.0218704,
@@ -13469,7 +13533,7 @@
               "busyCPU": 2.6713
             }
           ],
-          "test_description": "→ 0.56 Gbps"
+          "test_description": "\u2192 0.56 Gbps"
         },
         {
           "iteration_id": "BC1DE00A-ACB5-11F0-AB13-9AE3F2494D04",
@@ -13517,7 +13581,7 @@
               "busyCPU": 2.9103
             }
           ],
-          "test_description": "→ 4.07 Gbps"
+          "test_description": "\u2192 4.07 Gbps"
         },
         {
           "iteration_id": "BC1DF072-ACB5-11F0-9E9E-8A708F8BFC05",
@@ -13565,7 +13629,7 @@
               "busyCPU": 3.5962
             }
           ],
-          "test_description": "→ 49.88 Gbps"
+          "test_description": "\u2192 49.88 Gbps"
         },
         {
           "iteration_id": "BC1DFF9A-ACB5-11F0-8191-C2CCAD282D2F",
@@ -13613,7 +13677,7 @@
               "busyCPU": 3.5427
             }
           ],
-          "test_description": "→ 45.59 Gbps"
+          "test_description": "\u2192 45.59 Gbps"
         }
       ],
       "summary": {
@@ -13643,7 +13707,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/2-POD/run-srv45-clean-fri-2025-10-19-00:48:39/result-summary.txt",
+      "regulus_data": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/2-POD/run-srv45-clean-fri-2025-10-19-00:48:39/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "f2e3e3b4-7b66-4984-a26a-79ec6ca6105d",
       "common_params": {
@@ -13659,7 +13723,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5093,
       "file_modified": 1761097208.4698062,
@@ -13711,7 +13777,7 @@
               "busyCPU": 2.6346
             }
           ],
-          "test_description": "→ 0.56 Gbps"
+          "test_description": "\u2192 0.56 Gbps"
         },
         {
           "iteration_id": "18E52710-ACAE-11F0-B7E4-C5FFC79D7391",
@@ -13759,7 +13825,7 @@
               "busyCPU": 2.7836
             }
           ],
-          "test_description": "→ 3.96 Gbps"
+          "test_description": "\u2192 3.96 Gbps"
         },
         {
           "iteration_id": "18E53480-ACAE-11F0-838A-97F608152891",
@@ -13807,7 +13873,7 @@
               "busyCPU": 3.4635
             }
           ],
-          "test_description": "→ 40.25 Gbps"
+          "test_description": "\u2192 40.25 Gbps"
         },
         {
           "iteration_id": "18E5429A-ACAE-11F0-BAEF-AB89CC162693",
@@ -13855,7 +13921,7 @@
               "busyCPU": 3.4764
             }
           ],
-          "test_description": "→ 49.09 Gbps"
+          "test_description": "\u2192 49.09 Gbps"
         }
       ],
       "summary": {
@@ -13885,7 +13951,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/N-POD-BITRATE/run-srv45-clean-fri-2025-10-19-04:02:58/result-summary.txt",
+      "regulus_data": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/N-POD-BITRATE/run-srv45-clean-fri-2025-10-19-04:02:58/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "e48e5842-a8dc-4e40-b0dd-840bafd16e08",
       "common_params": {
@@ -13902,7 +13968,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5802,
       "file_modified": 1761097247.73107,
@@ -13955,7 +14023,7 @@
               "busyCPU": 28.4647
             }
           ],
-          "test_description": "→ 363.23 Gbps"
+          "test_description": "\u2192 363.23 Gbps"
         },
         {
           "iteration_id": "49E8F460-ACCA-11F0-A807-E8E0787E3AFD",
@@ -14004,7 +14072,7 @@
               "busyCPU": 28.2918
             }
           ],
-          "test_description": "→ 378.42 Gbps"
+          "test_description": "\u2192 378.42 Gbps"
         },
         {
           "iteration_id": "49E91742-ACCA-11F0-A931-ACC79A09F89A",
@@ -14053,7 +14121,7 @@
               "busyCPU": 29.8577
             }
           ],
-          "test_description": "→ 406.70 Gbps"
+          "test_description": "\u2192 406.70 Gbps"
         },
         {
           "iteration_id": "49E93A1A-ACCA-11F0-A3D9-FC59B987403F",
@@ -14102,7 +14170,7 @@
               "busyCPU": 28.3926
             }
           ],
-          "test_description": "→ 411.63 Gbps"
+          "test_description": "\u2192 411.63 Gbps"
         }
       ],
       "summary": {
@@ -14132,7 +14200,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/N-POD-GU-BITRATE/run-srv45-clean-fri-2025-10-19-05:05:27/result-summary.txt",
+      "regulus_data": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/N-POD-GU-BITRATE/run-srv45-clean-fri-2025-10-19-05:05:27/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "5953988b-4b18-4154-aa9d-a5751c648024",
       "common_params": {
@@ -14149,7 +14217,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5770,
       "file_modified": 1761097257.9231384,
@@ -14202,7 +14272,7 @@
               "busyCPU": 28.7451
             }
           ],
-          "test_description": "→ 366.15 Gbps"
+          "test_description": "\u2192 366.15 Gbps"
         },
         {
           "iteration_id": "0D3DA8A4-ACD3-11F0-9649-8B159CAD8DC3",
@@ -14251,7 +14321,7 @@
               "busyCPU": 29.5723
             }
           ],
-          "test_description": "→ 391.30 Gbps"
+          "test_description": "\u2192 391.30 Gbps"
         },
         {
           "iteration_id": "0D3DCC12-ACD3-11F0-AAE2-C2574DED22AF",
@@ -14300,7 +14370,7 @@
               "busyCPU": 29.2474
             }
           ],
-          "test_description": "→ 385.84 Gbps"
+          "test_description": "\u2192 385.84 Gbps"
         },
         {
           "iteration_id": "0D3DEF08-ACD3-11F0-B010-FFF128D2D324",
@@ -14349,7 +14419,7 @@
               "busyCPU": 28.5155
             }
           ],
-          "test_description": "→ 388.74 Gbps"
+          "test_description": "\u2192 388.74 Gbps"
         }
       ],
       "summary": {
@@ -14379,7 +14449,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/N-POD-GU/run-srv45-clean-fri-2025-10-19-03:00:56/result-summary.txt",
+      "regulus_data": "2_GROUP/NO-PAO/4DPU/INTER-NODE/TCP/N-POD-GU/run-srv45-clean-fri-2025-10-19-03:00:56/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "2fc6de70-8fbe-4a2a-8905-68f0ee13a869",
       "common_params": {
@@ -14395,7 +14465,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5155,
       "file_modified": 1761097237.3780005,
@@ -14447,7 +14519,7 @@
               "busyCPU": 18.4332
             }
           ],
-          "test_description": "→ 6.77 Gbps"
+          "test_description": "\u2192 6.77 Gbps"
         },
         {
           "iteration_id": "9436979C-ACC1-11F0-AFD9-E433F9E1E661",
@@ -14495,7 +14567,7 @@
               "busyCPU": 19.726
             }
           ],
-          "test_description": "→ 51.21 Gbps"
+          "test_description": "\u2192 51.21 Gbps"
         },
         {
           "iteration_id": "9436A5AC-ACC1-11F0-A366-AA4209138FDE",
@@ -14543,7 +14615,7 @@
               "busyCPU": 18.8139
             }
           ],
-          "test_description": "→ 285.33 Gbps"
+          "test_description": "\u2192 285.33 Gbps"
         },
         {
           "iteration_id": "9436B362-ACC1-11F0-BF08-E9806DC12462",
@@ -14591,7 +14663,7 @@
               "busyCPU": 16.5673
             }
           ],
-          "test_description": "→ 282.26 Gbps"
+          "test_description": "\u2192 282.26 Gbps"
         }
       ],
       "summary": {
@@ -14621,7 +14693,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-srv45-clean-wed-2025-10-23-09:52:30/result-summary.txt",
+      "regulus_data": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-srv45-clean-wed-2025-10-23-09:52:30/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "21b5f5d5-49df-4fd8-9803-9e419adfcd8e",
       "common_params": {
@@ -14638,7 +14710,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5152,
       "file_modified": 1761862001.3302484,
@@ -14690,7 +14764,7 @@
               "busyCPU": 2.1054
             }
           ],
-          "test_description": "→ 0.22 Gbps"
+          "test_description": "\u2192 0.22 Gbps"
         },
         {
           "iteration_id": "C205CF3E-B01E-11F0-8958-C26966C7774B",
@@ -14738,7 +14812,7 @@
               "busyCPU": 2.4467
             }
           ],
-          "test_description": "→ 1.63 Gbps"
+          "test_description": "\u2192 1.63 Gbps"
         },
         {
           "iteration_id": "C205DE84-B01E-11F0-B487-DC7136663EFC",
@@ -14786,7 +14860,7 @@
               "busyCPU": 2.9394
             }
           ],
-          "test_description": "→ 26.34 Gbps"
+          "test_description": "\u2192 26.34 Gbps"
         },
         {
           "iteration_id": "C205EE38-B01E-11F0-BF55-BAF002E8BE21",
@@ -14834,7 +14908,7 @@
               "busyCPU": 3.0547
             }
           ],
-          "test_description": "→ 42.97 Gbps"
+          "test_description": "\u2192 42.97 Gbps"
         }
       ],
       "summary": {
@@ -14864,7 +14938,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD/run-srv45-clean-wed-2025-10-23-08:57:20/result-summary.txt",
+      "regulus_data": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD/run-srv45-clean-wed-2025-10-23-08:57:20/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "dadce17e-3a7a-4b1d-b69a-2451e3a90a18",
       "common_params": {
@@ -14881,7 +14955,9 @@
         "pods-per-worker": "1",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5152,
       "file_modified": 1761862154.591018,
@@ -14933,7 +15009,7 @@
               "busyCPU": 2.1451
             }
           ],
-          "test_description": "→ 0.22 Gbps"
+          "test_description": "\u2192 0.22 Gbps"
         },
         {
           "iteration_id": "1865ABCC-B017-11F0-AD92-B8378307956D",
@@ -14981,7 +15057,7 @@
               "busyCPU": 2.4964
             }
           ],
-          "test_description": "→ 1.51 Gbps"
+          "test_description": "\u2192 1.51 Gbps"
         },
         {
           "iteration_id": "1865BA2C-B017-11F0-AC08-A8D97DADCC24",
@@ -15029,7 +15105,7 @@
               "busyCPU": 2.8405
             }
           ],
-          "test_description": "→ 26.65 Gbps"
+          "test_description": "\u2192 26.65 Gbps"
         },
         {
           "iteration_id": "1865C7C4-B017-11F0-8505-AA43763C1C4B",
@@ -15077,7 +15153,7 @@
               "busyCPU": 3.1035
             }
           ],
-          "test_description": "→ 39.73 Gbps"
+          "test_description": "\u2192 39.73 Gbps"
         }
       ],
       "summary": {
@@ -15107,7 +15183,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD-BITRATE/run-srv45-clean-wed-2025-10-23-13:31:05/result-summary.txt",
+      "regulus_data": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD-BITRATE/run-srv45-clean-wed-2025-10-23-13:31:05/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "6fe39f64-a39b-4e01-881e-6551a1d2cadb",
       "common_params": {
@@ -15125,7 +15201,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5803,
       "file_modified": 1761862306.2707808,
@@ -15178,7 +15256,7 @@
               "busyCPU": 29.1593
             }
           ],
-          "test_description": "→ 360.06 Gbps"
+          "test_description": "\u2192 360.06 Gbps"
         },
         {
           "iteration_id": "7909A4F2-B03E-11F0-BD15-D2DFDE57910C",
@@ -15227,7 +15305,7 @@
               "busyCPU": 28.1928
             }
           ],
-          "test_description": "→ 418.45 Gbps"
+          "test_description": "\u2192 418.45 Gbps"
         },
         {
           "iteration_id": "7909CB58-B03E-11F0-8A92-95A797285067",
@@ -15276,7 +15354,7 @@
               "busyCPU": 28.9512
             }
           ],
-          "test_description": "→ 418.02 Gbps"
+          "test_description": "\u2192 418.02 Gbps"
         },
         {
           "iteration_id": "7909F16E-B03E-11F0-884B-F964492895F1",
@@ -15325,7 +15403,7 @@
               "busyCPU": 26.4692
             }
           ],
-          "test_description": "→ 416.88 Gbps"
+          "test_description": "\u2192 416.88 Gbps"
         }
       ],
       "summary": {
@@ -15355,7 +15433,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD-GU-BITRATE/run-srv45-clean-wed-2025-10-23-14:34:30/result-summary.txt",
+      "regulus_data": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD-GU-BITRATE/run-srv45-clean-wed-2025-10-23-14:34:30/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "948f109c-67c0-4af3-8f81-9060a4204747",
       "common_params": {
@@ -15373,7 +15451,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5807,
       "file_modified": 1761862457.8275454,
@@ -15426,7 +15506,7 @@
               "busyCPU": 24.5966
             }
           ],
-          "test_description": "→ 358.28 Gbps"
+          "test_description": "\u2192 358.28 Gbps"
         },
         {
           "iteration_id": "474B680C-B047-11F0-928C-98B2D49F0B87",
@@ -15475,7 +15555,7 @@
               "busyCPU": 27.0465
             }
           ],
-          "test_description": "→ 402.49 Gbps"
+          "test_description": "\u2192 402.49 Gbps"
         },
         {
           "iteration_id": "474B90E8-B047-11F0-ABDF-8AD254BECD32",
@@ -15524,7 +15604,7 @@
               "busyCPU": 27.0168
             }
           ],
-          "test_description": "→ 405.97 Gbps"
+          "test_description": "\u2192 405.97 Gbps"
         },
         {
           "iteration_id": "474BB596-B047-11F0-8502-BCD2F0064069",
@@ -15573,7 +15653,7 @@
               "busyCPU": 25.5934
             }
           ],
-          "test_description": "→ 405.83 Gbps"
+          "test_description": "\u2192 405.83 Gbps"
         }
       ],
       "summary": {
@@ -15603,7 +15683,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD-GU/run-srv45-clean-wed-2025-10-23-12:29:51/result-summary.txt",
+      "regulus_data": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD-GU/run-srv45-clean-wed-2025-10-23-12:29:51/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "ac42d075-e8ff-4307-9088-b907d21e3c8f",
       "common_params": {
@@ -15620,7 +15700,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5193,
       "file_modified": 1761862609.4003093,
@@ -15672,7 +15754,7 @@
               "busyCPU": 17.5203
             }
           ],
-          "test_description": "→ 2.78 Gbps"
+          "test_description": "\u2192 2.78 Gbps"
         },
         {
           "iteration_id": "9CE8FFAC-B035-11F0-AFDE-C56BBF3684F5",
@@ -15720,7 +15802,7 @@
               "busyCPU": 17.2622
             }
           ],
-          "test_description": "→ 20.97 Gbps"
+          "test_description": "\u2192 20.97 Gbps"
         },
         {
           "iteration_id": "9CE90F6A-B035-11F0-9695-B2ED835DC3B8",
@@ -15768,7 +15850,7 @@
               "busyCPU": 22.8525
             }
           ],
-          "test_description": "→ 258.69 Gbps"
+          "test_description": "\u2192 258.69 Gbps"
         },
         {
           "iteration_id": "9CE91E74-B035-11F0-9059-B4531F692B57",
@@ -15816,7 +15898,7 @@
               "busyCPU": 21.788
             }
           ],
-          "test_description": "→ 319.30 Gbps"
+          "test_description": "\u2192 319.30 Gbps"
         }
       ],
       "summary": {
@@ -15846,7 +15928,7 @@
       }
     },
     {
-      "file_path": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD/run-srv45-clean-wed-2025-10-23-11:25:18/result-summary.txt",
+      "regulus_data": "2_GROUP/PAO/4DPU/INTER-NODE/TCP/N-POD/run-srv45-clean-wed-2025-10-23-11:25:18/result-summary.txt",
       "benchmark": "iperf",
       "run_id": "d9f772e6-0661-4213-9e62-e1bddd7f0748",
       "common_params": {
@@ -15863,7 +15945,9 @@
         "pods-per-worker": "13",
         "rcos": "9.6.20250925-0",
         "scale_out_factor": "1",
-        "topo": "internode"
+        "topo": "internode",
+        "nic": "BF-3",
+        "arch": "INTEL(R) XEON(R) GOLD 6548Y+"
       },
       "file_size": 5163,
       "file_modified": 1761862761.2280743,
@@ -15915,7 +15999,7 @@
               "busyCPU": 17.4105
             }
           ],
-          "test_description": "→ 2.52 Gbps"
+          "test_description": "\u2192 2.52 Gbps"
         },
         {
           "iteration_id": "0FBCA212-B02D-11F0-A5B1-CAE37D0CCD77",
@@ -15963,7 +16047,7 @@
               "busyCPU": 17.243
             }
           ],
-          "test_description": "→ 19.25 Gbps"
+          "test_description": "\u2192 19.25 Gbps"
         },
         {
           "iteration_id": "0FBCAFBE-B02D-11F0-AC5E-94734117A9B4",
@@ -16011,7 +16095,7 @@
               "busyCPU": 22.4648
             }
           ],
-          "test_description": "→ 284.36 Gbps"
+          "test_description": "\u2192 284.36 Gbps"
         },
         {
           "iteration_id": "0FBCBE14-B02D-11F0-B771-9E432FC02E7D",
@@ -16059,7 +16143,7 @@
               "busyCPU": 21.1044
             }
           ],
-          "test_description": "→ 291.75 Gbps"
+          "test_description": "\u2192 291.75 Gbps"
         }
       ],
       "summary": {

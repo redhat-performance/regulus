@@ -9,11 +9,13 @@
     "failed_results": 0,
     "timestamp": "2025-01-18T16:10:00Z",
     "benchmarks": ["iperf"],
-    "processing_duration_seconds": 1.8
+    "processing_duration_seconds": 1.8,
+    "reg_root": "/regulus/test/runs",
+    "hostname": "test-server-macvlan-e910.example.com"
   },
   "results": [
     {
-      "file_path": "/results/macvlan-e910-emerald/result-summary-007.txt",
+      "regulus_data": "/results/macvlan-e910-emerald/result-summary-007.txt",
       "benchmark": "iperf",
       "run_id": "jkl012-001",
       "common_params": {
