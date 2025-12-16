@@ -476,7 +476,7 @@ class DashboardApp:
     def _result_to_dict(self, result: BenchmarkResult) -> Dict[str, Any]:
         """Convert BenchmarkResult to dictionary for JSON serialization."""
         return {
-            'file_path': result.file_path,
+            'regulus_data': result.regulus_data,
             'benchmark': result.benchmark,
             'iteration_id': result.iteration_id,
             'test_type': result.test_type,

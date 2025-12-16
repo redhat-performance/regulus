@@ -16,7 +16,7 @@ import re
 @dataclass
 class BenchmarkResult:
     """Single benchmark result from a test iteration."""
-    file_path: str
+    regulus_data: str
     benchmark: str
     iteration_id: str
     test_type: Optional[str] = None
@@ -58,7 +58,7 @@ class BenchmarkResult:
 @dataclass
 class ReportMetadata:
     """Metadata about a loaded report."""
-    file_path: str
+    regulus_data: str
     total_results: int
     benchmarks: List[str]
     timestamp: str
@@ -130,7 +130,7 @@ class ReportLoader:
                         total_iterations += len(iterations)
 
             metadata = ReportMetadata(
-                file_path=str(path),
+                regulus_data=str(path),
                 total_results=gen_info.get('total_results', len(results)),
                 benchmarks=gen_info.get('benchmarks', []),
                 timestamp=gen_info.get('timestamp', ''),
@@ -251,7 +251,8 @@ class ReportLoader:
             # Skip if not a dictionary
             if not isinstance(file_result, dict):
                 continue
-            file_path = file_result.get('file_path', '')
+            # Support both 'file_path' (old) and 'regulus_data' (new) field names
+            regulus_data = file_result.get('regulus_data', '') or file_result.get('file_path', '')
             benchmark = file_result.get('benchmark', '')
             run_id = file_result.get('run_id', '')
 
@@ -298,7 +299,7 @@ class ReportLoader:
                         nic_value = nic_mapping[datapath_model]
 
                     bench_result = BenchmarkResult(
-                        file_path=file_path,
+                        regulus_data=regulus_data,
                         benchmark=benchmark,
                         iteration_id=iteration_id,
                         run_id=run_id,

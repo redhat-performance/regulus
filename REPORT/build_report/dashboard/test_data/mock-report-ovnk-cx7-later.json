@@ -9,11 +9,13 @@
     "failed_results": 0,
     "timestamp": "2025-01-19T11:30:00Z",
     "benchmarks": ["uperf"],
-    "processing_duration_seconds": 2.2
+    "processing_duration_seconds": 2.2,
+    "reg_root": "/regulus/test/runs",
+    "hostname": "test-server-ovnk-cx7.example.com"
   },
   "results": [
     {
-      "file_path": "/results/ovnk-cx7-emerald/result-summary-008.txt",
+      "regulus_data": "/results/ovnk-cx7-emerald/result-summary-008.txt",
       "benchmark": "uperf",
       "run_id": "mno345-001",
       "common_params": {
