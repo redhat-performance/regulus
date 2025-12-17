@@ -5,7 +5,7 @@
       "params": [
         { "arg": "duration", "vals": ["120"] },
         { "arg": "protocol", "vals": ["tcp"] },
-        { "arg": "nthreads", "vals": ["1","32"] },
+        { "arg": "nthreads", "vals": ["1","64"] },
         { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" }
       ]
     }
@@ -15,7 +15,7 @@
       "include": "common-params",
       "params": [
         { "arg": "test-type", "vals": ["stream"] },
-        { "arg": "wsize", "vals": ["64","512","32768","134144"] }
+        { "arg": "wsize", "vals": ["512","32768"] }
       ]
     },
     {
