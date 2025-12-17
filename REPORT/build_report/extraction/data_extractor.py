@@ -374,14 +374,27 @@ class RegexDataExtractor:
 
     def _extract_key_tags(self, tags_str: str) -> Dict[str, str]:
         """Extract key tags: model, nic, arch, perf, offload, kernel, rcos, topo, cpu, etc."""
-        key_tags = {}
+        # Initialize all expected tags to "None"
+        key_tags = {
+            'model': 'None',
+            'nic': 'None',
+            'arch': 'None',
+            'perf': 'None',
+            'offload': 'None',
+            'kernel': 'None',
+            'rcos': 'None',
+            'pods-per-worker': 'None',
+            'scale_out_factor': 'None',
+            'topo': 'None',
+            'cpu': 'None'
+        }
 
-        # Parse tags string
+        # Parse tags string and update values if present
         for tag in tags_str.split():
             if '=' in tag:
                 key, value = tag.split('=', 1)
-                # Extract all important tags including nic and arch
-                if key in ['model', 'nic', 'arch', 'perf', 'offload', 'kernel', 'rcos', 'pods-per-worker', 'scale_out_factor', 'topo', 'cpu']:
+                # Update tag value if it's one of our expected tags
+                if key in key_tags:
                     key_tags[key] = value
 
         return key_tags

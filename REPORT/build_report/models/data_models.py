@@ -62,7 +62,7 @@ class ExtractedData:
 @dataclass
 class ProcessedResult:
     """Processed and transformed result."""
-    file_path: str
+    regulus_data: str
     benchmark: str
     data: Dict[str, Any]
     processing_metadata: Dict[str, Any]

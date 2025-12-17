@@ -23,7 +23,7 @@
     {
       "include": "common-params",
       "params": [
-        { "arg": "bitrate", "vals": [  "300M", "500M", "800M", "1000M", "2000M", "3000M" ], "role": "client" },
+        { "arg": "bitrate", "vals": [ "20M", "25M", "50M", "100M","150M", "200M", "250M", "300M", "350M", "400M", "500M", "600M" ], "role": "client" },
         { "arg": "length", "vals": ["1200"] }
       ]
     }

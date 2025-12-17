@@ -9,11 +9,13 @@
     "failed_results": 0,
     "timestamp": "2025-01-15T10:30:00Z",
     "benchmarks": ["uperf", "iperf"],
-    "processing_duration_seconds": 2.5
+    "processing_duration_seconds": 2.5,
+    "reg_root": "/regulus/test/runs",
+    "hostname": "test-server-ovnk-cx7.example.com"
   },
   "results": [
     {
-      "file_path": "/results/ovnk-cx7-emerald/result-summary-001.txt",
+      "regulus_data": "/results/ovnk-cx7-emerald/result-summary-001.txt",
       "benchmark": "uperf",
       "run_id": "abc123-001",
       "common_params": {
@@ -75,7 +77,7 @@
       ]
     },
     {
-      "file_path": "/results/ovnk-cx7-emerald/result-summary-002.txt",
+      "regulus_data": "/results/ovnk-cx7-emerald/result-summary-002.txt",
       "benchmark": "iperf",
       "run_id": "abc123-002",
       "common_params": {

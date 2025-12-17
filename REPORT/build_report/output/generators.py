@@ -11,6 +11,8 @@ import xml.etree.ElementTree as ET
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 import datetime
+import os
+import socket
 
 from ..interfaces.protocols import OutputGeneratorInterface
 from ..models.data_models import ProcessedResult, SchemaInfo
@@ -41,7 +43,9 @@ class JsonOutputGenerator:
             "generation_info": {
                 "total_results": len(results),
                 "timestamp": datetime.datetime.now().isoformat(),
-                "benchmarks": list(set(r.benchmark for r in results))
+                "benchmarks": list(set(r.benchmark for r in results)),
+                "hostname": socket.gethostname(),
+                "reg_root": os.environ.get('REG_ROOT', '')
             },
             "results": [r.data for r in results],
             "summary_by_benchmark": self._create_benchmark_summary(results),
@@ -56,7 +60,7 @@ class JsonOutputGenerator:
             if benchmark not in summary:
                 summary[benchmark] = {"count": 0, "files": []}
             summary[benchmark]["count"] += 1
-            summary[benchmark]["files"].append(result.file_path)
+            summary[benchmark]["files"].append(result.regulus_data)
         return summary
 
 
@@ -117,7 +121,9 @@ class SchemaAwareOutputGenerator(JsonOutputGenerator):
                 "failed_results": len(failed_results),
                 "timestamp": datetime.datetime.now().isoformat(),
                 "benchmarks": list(set(r.benchmark for r in results)),
-                "processing_duration_seconds": 0.0
+                "processing_duration_seconds": 0.0,
+                "hostname": socket.gethostname(),
+                "reg_root": os.environ.get('REG_ROOT', '')
             },
             "benchmark_definitions": self._generate_benchmark_definitions(results),
             "results": [self._enhance_result_data(r) for r in results],
@@ -156,8 +162,8 @@ class SchemaAwareOutputGenerator(JsonOutputGenerator):
         for benchmark, fields in benchmark_fields.items():
             definitions[benchmark] = {
                 "description": f"Auto-generated definition for {benchmark} benchmark",
-                "required_fields": ["file_path", "benchmark"],
-                "optional_fields": list(fields - {"file_path", "benchmark"}),
+                "required_fields": ["regulus_data", "benchmark"],
+                "optional_fields": list(fields - {"regulus_data", "benchmark"}),
                 "result_format": "structured",
                 "validation_rules": []
             }
@@ -180,7 +186,7 @@ class SchemaAwareOutputGenerator(JsonOutputGenerator):
                 }
             
             summary[benchmark]["count"] += 1
-            summary[benchmark]["files"].append(result.file_path)
+            summary[benchmark]["files"].append(result.regulus_data)
             
             status = result.processing_metadata.get('status', 'success')
             if status == 'success':
@@ -284,7 +290,7 @@ class CsvOutputGenerator:
         """Convert a result with multiple iterations into multiple CSV rows."""
         rows = []
 
-        file_name = Path(result.file_path).name
+        file_name = Path(result.regulus_data).name
         benchmark = result.benchmark
         status = result.processing_metadata.get('status', 'unknown')
 
@@ -303,7 +309,7 @@ class CsvOutputGenerator:
             row = [''] * len(headers)
             if 'file' in headers:
                 if self.base_url:
-                    full_url = f"{self.base_url}/{result.file_path}"
+                    full_url = f"{self.base_url}/{result.regulus_data}"
                     row[headers.index('file')] = f'=HYPERLINK("{full_url}","{file_name}")'
                 else:
                     row[headers.index('file')] = file_name
@@ -318,8 +324,8 @@ class CsvOutputGenerator:
             # One row per iteration
             for iteration in iterations:
                 row = self._iteration_to_row(
-                    iteration, headers, file_name, benchmark, status, 
-                    config, file_common_params, key_tags, result.file_path
+                    iteration, headers, file_name, benchmark, status,
+                    config, file_common_params, key_tags, result.regulus_data
                 )
                 rows.append(row)
 
@@ -466,10 +472,10 @@ class XmlOutputGenerator:
         """Add a result to the XML structure."""
         result_elem = ET.SubElement(parent, "result")
         result_elem.set("benchmark", result.benchmark)
-        result_elem.set("file_path", result.file_path)
-        
+        result_elem.set("regulus_data", result.regulus_data)
+
         for key, value in result.data.items():
-            if key in ["benchmark", "file_path"]:
+            if key in ["benchmark", "regulus_data"]:
                 continue  # Already added as attributes
             
             elem = ET.SubElement(result_elem, key)
@@ -781,20 +787,20 @@ class HtmlOutputGenerator:
         
         for result in results:
             data = result.data
-            file_name = Path(result.file_path).name
+            file_name = Path(result.regulus_data).name
             # Get common_params from file level
             file_common_params = data.get('common_params', {})
-            file_path = result.file_path
+            regulus_data = result.regulus_data
             status = result.processing_metadata.get('status', 'unknown')
-            
+
             # Get all iterations from this file
             iterations = data.get('iterations', [])
-            
+
             if not iterations:
                 # No iterations found - create single metric entry
                 metrics.append({
                     'file': file_name,
-                    'file_path': file_path,
+                    'regulus_data': regulus_data,
                     'status': status,
                     'iteration': 'N/A',
                     'result': 'No iterations found'
@@ -805,10 +811,10 @@ class HtmlOutputGenerator:
                     iteration_id = iteration.get('iteration_id', 'unknown')
                     unique_params = iteration.get('unique_params', {})
                     iteration_results = iteration.get('results', [])  # Now plural - list of results
-                    
+
                     metric = {
                         'file': file_name,
-                        'file_path': file_path,
+                        'regulus_data': regulus_data,
                         'status': status,
                         'iteration': iteration_id[:8] + '...',
                     }
@@ -937,7 +943,7 @@ class HtmlOutputGenerator:
             all_keys.update(metric.keys())
 
         # Remove status and file from main columns (they'll be handled specially)
-        #columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']])
+        #columns = sorted([k for k in all_keys if k not in ['file', 'regulus_data', 'status']])
         column_order = ['model','perf', 'offload', 'config', 'cpu', 'test_type', 'threads', 'wsize', 'rsize', 'samples', 'mean', 'unit', 'busyCPU', 'stddev%', 'iteration']
 
         # Sort with custom order
@@ -947,7 +953,7 @@ class HtmlOutputGenerator:
             except ValueError:
                 return 999  # Put unknown columns at end
 
-        columns = sorted([k for k in all_keys if k not in ['file', 'file_path', 'status']], 
+        columns = sorted([k for k in all_keys if k not in ['file', 'regulus_data', 'status']], 
                  key=custom_sort)
 
         table = """
@@ -972,15 +978,15 @@ class HtmlOutputGenerator:
         for metric in metrics:
             status_class = {
                 'success': 'status-success',
-                'failed': 'status-failed', 
+                'failed': 'status-failed',
                 'partial': 'status-warning'
             }.get(metric.get('status', 'unknown'), 'status-unknown')
-            file_path = metric.get('file_path', '#')
-            
+            regulus_data = metric.get('regulus_data', '#')
+
             table += f"""
                     <tr>
                         <td style="text-align: center; color: #94a3b8; font-weight: 500;">{row_num}</td>
-                        <td class="file-name"><a href="{file_path}" target="_blank">{metric.get('file', 'Unknown')}</a></td>
+                        <td class="file-name"><a href="{regulus_data}" target="_blank">{metric.get('file', 'Unknown')}</a></td>
                         <td><span class="status-badge {status_class}">{metric.get('status', 'unknown').title()}</span></td>
             """
             
@@ -1015,7 +1021,7 @@ class HtmlOutputGenerator:
             
             items.append(f"""
                 <li>
-                    {status_icon} <code>{Path(result.file_path).name}</code>
+                    {status_icon} <code>{Path(result.regulus_data).name}</code>
                     <small>({iter_count} iteration{'s' if iter_count != 1 else ''}, {self._format_file_size(result.data.get('file_size', 0))})</small>
                 </li>
             """)
@@ -1055,7 +1061,7 @@ class HtmlOutputGenerator:
         for result in results:
             status = result.processing_metadata.get('status', 'unknown')
             status_class = f"status-{status}"
-            file_name = Path(result.file_path).name
+            file_name = Path(result.regulus_data).name
             # Get common_params from file level
             file_common_params = result.data.get('common_params', {})
 
@@ -1066,7 +1072,7 @@ class HtmlOutputGenerator:
                 # Fallback: show file-level row if no iterations found
                 rows.append(f"""
                     <tr>
-                        <td class="file-name"><a href="{result.file_path}" target="_blank">{file_name}</a></td>
+                        <td class="file-name"><a href="{result.regulus_data}" target="_blank">{file_name}</a></td>
                         <td colspan="2"><em>No iterations found</em></td>
                         <td><span class="benchmark-badge">{result.benchmark}</span></td>
                         <td><span class="status-badge {status_class}">{status.title()}</span></td>
@@ -1079,12 +1085,12 @@ class HtmlOutputGenerator:
                     iteration_id = iteration.get('iteration_id', 'unknown')
                     unique_params = iteration.get('unique_params', {})
                     iteration_results = iteration.get('results', [])
-                    
+
                     key_tags = result.data.get('key_tags', {})
                     config_str = f"{key_tags.get('pods-per-worker', '?')},{key_tags.get('scale_out_factor', '?')},{key_tags.get('topo', '?')}"
                     rows.append(f"""
                         <tr>
-                            <td class="file-name"><a href="{result.file_path}" target="_blank">{file_name}</a></td>
+                            <td class="file-name"><a href="{result.regulus_data}" target="_blank">{file_name}</a></td>
                             <td style="font-size: 0.85rem;">{config_str}</td>  <!-- NEW -->
                             <td><code style="font-size: 0.75rem;">{iteration_id[:8]}...</code></td>
                             <!-- rest of columns -->
@@ -1156,10 +1162,10 @@ class HtmlOutputGenerator:
                     
                     # Format result data - show all results
                     result_str = self._format_iteration_results(iteration_results)
-                    
+
                     rows.append(f"""
                         <tr>
-                            <td class="file-name"><a href="{result.file_path}" target="_blank">{file_name}</a></td>
+                            <td class="file-name"><a href="{result.regulus_data}" target="_blank">{file_name}</a></td>
                             <td><code style="font-size: 0.75rem;">{iteration_id[:8]}...</code></td>
                             <td style="font-size: 0.85rem;">{config_str}</td>
                             <td><span class="benchmark-badge">{result.benchmark}</span></td>

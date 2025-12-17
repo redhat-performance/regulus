@@ -45,9 +45,6 @@ report-jobs:
 		prefix=$$(ls -l $$dir/latest | awk '/->/ {print $$NF}' | sed 's|/$$||'); \
 		if [ -e "$$dir/$$prefix.log.error" ]; then \
 			(ls $$dir/$$prefix.log.error); \
-		fi; \
-		if [ ! -e "$$dir/latest/result-summary.txt" ]; then \
-			echo "  MISSING: $$dir/latest/report-summary.txt"; \
 		fi \
 	done
 

@@ -9,11 +9,13 @@
     "failed_results": 0,
     "timestamp": "2025-01-17T09:45:00Z",
     "benchmarks": ["uperf", "iperf"],
-    "processing_duration_seconds": 2.1
+    "processing_duration_seconds": 2.1,
+    "reg_root": "/regulus/test/runs",
+    "hostname": "test-server-sriov-e810.example.com"
   },
   "results": [
     {
-      "file_path": "/results/sriov-e810-ice/result-summary-005.txt",
+      "regulus_data": "/results/sriov-e810-ice/result-summary-005.txt",
       "benchmark": "uperf",
       "run_id": "ghi789-001",
       "common_params": {
@@ -75,7 +77,7 @@
       ]
     },
     {
-      "file_path": "/results/sriov-e810-ice/result-summary-006.txt",
+      "regulus_data": "/results/sriov-e810-ice/result-summary-006.txt",
       "benchmark": "iperf",
       "run_id": "ghi789-002",
       "common_params": {

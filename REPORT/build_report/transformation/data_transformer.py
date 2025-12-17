@@ -37,7 +37,7 @@ class StandardDataTransformer:
     def _transform_multi_result(self, extracted_data: MultiResultExtractedData) -> ProcessedResult:
         """Transform multi-iteration extracted data."""
         transformed_data = {
-            "file_path": str(extracted_data.file_info.path),
+            "regulus_data": str(extracted_data.file_info.path),
             "benchmark": extracted_data.benchmark,
             "run_id": extracted_data.run_id,
             "common_params": extracted_data.common_params,
@@ -78,7 +78,7 @@ class StandardDataTransformer:
         }
         
         return ProcessedResult(
-            file_path=str(extracted_data.file_info.path),
+            regulus_data=str(extracted_data.file_info.path),
             benchmark=extracted_data.benchmark,
             data=transformed_data,
             processing_metadata=processing_metadata
@@ -87,7 +87,7 @@ class StandardDataTransformer:
     def _transform_legacy(self, extracted_data: ExtractedData) -> ProcessedResult:
         """Transform legacy ExtractedData format."""
         transformed_data = {
-            "file_path": str(extracted_data.file_info.path),
+            "regulus_data": str(extracted_data.file_info.path),
             "benchmark": extracted_data.benchmark,
             "file_size": extracted_data.file_info.size,
             "file_modified": extracted_data.file_info.modified_time
@@ -129,7 +129,7 @@ class StandardDataTransformer:
         }
         
         return ProcessedResult(
-            file_path=str(extracted_data.file_info.path),
+            regulus_data=str(extracted_data.file_info.path),
             benchmark=extracted_data.benchmark,
             data=transformed_data,
             processing_metadata=processing_metadata

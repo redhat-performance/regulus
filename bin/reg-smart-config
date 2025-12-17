@@ -164,7 +164,7 @@ get_ovn_interface() {
 dpdk_acceptable() {
     local model=$1
     case "$model" in
-        BF3|CX7|CX8|CX6|E810|E820|XXV710|X710)
+        CX7|CX8|CX6|E810|E820|XXV710|X710)
             return 0  # true
             ;;
         *)
@@ -176,7 +176,7 @@ dpdk_acceptable() {
 sriov_acceptable() {
     local model=$1
     case "$model" in
-        BF3|CX7|CX8|CX6|E810|E820|XXV710|X710|X550)
+        CX7|CX8|CX6|E810|E820|XXV710|X710|X550)
             return 0  # true
             ;;
         *)
@@ -316,8 +316,6 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                         model="CX5"
                     elif echo "$lspci_info" | grep -q -i "ConnectX-6"; then
                         model="CX6"
-                    elif echo "$lspci_info" | grep -q -i "BlueField-3"; then
-                        model="BF3"
                     elif echo "$lspci_info" | grep -q -i "ConnectX-7"; then
                         model="CX7"
                     elif echo "$lspci_info" | grep -q -i "Mellanox.*Connect"; then
@@ -628,9 +626,6 @@ update_config_var "TREX_SRIOV_INTERFACE_1" "$TREX_SRIOV_INTERFACE_1" "$LAB_CONFI
 update_config_var "TREX_SRIOV_INTERFACE_2" "$TREX_SRIOV_INTERFACE_2" "$LAB_CONFIG"
 update_config_var "TREX_DPDK_NIC_MODEL" "$TREX_DPDK_NIC_MODEL" "$LAB_CONFIG"
 update_config_var "REM_DPDK_CONFIG" "false" "$LAB_CONFIG"
-update_config_var "REG_OVN_NIC" "$OVN_INTERFACE" "$LAB_CONFIG"
-update_config_var "REG_OVN_NIC_MODEL" "$REG_OVN_NIC_MODEL" "$LAB_CONFIG"
-update_config_var "REG_OVN_NIC_MTU" "$REG_OVN_NIC_MTU" "$LAB_CONFIG"
 
 DPRINT $LINENO "Updated $LAB_CONFIG successfully. Backup saved as ${LAB_CONFIG}.bak"
 
