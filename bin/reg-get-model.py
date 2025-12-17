@@ -21,7 +21,7 @@ def detect_datapath_model(file_path):
 
         if re.search(r'"k8s\.v1\.cni\.cncf\.io/networks":\s*"regulus-macvlan-net"', content):
             return 'MACVLAN'
-        if re.search(r'"k8s\.v1\.cni\.cncf\.io/networks":\s*"default/sriov', content):
+        if re.search(r'"k8s\.v1\.cni\.cncf\.io/networks"\s*:\s*"[^"]*sriov[^"]*"', content):
             return 'SRIOV'
         if re.search(r'"v1\.multus-cni\.io/default-network":\s*"default/default"', content):
             return 'HWOL'
