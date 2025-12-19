@@ -22,7 +22,7 @@ init-jobs: init-lab
 	echo JOBS=$$JOBS
 	@for dir in $(JOBS); do \
 		echo "Executing script in $$dir"; \
-		$(MAKE) -C $$dir init; \
+		. "$$REG_ROOT/bootstrap.sh" && $(MAKE) -C $$dir init; \
 	done
 
 clean-jobs: 
