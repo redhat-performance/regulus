@@ -71,9 +71,9 @@ fi
 
 #### Now do the Regulus work.
 ./bin/reg-smart-config || { echo "reg-smart-config failed"; exit 1; }
-source bootstrap.sh || { echo "bootstrap.sh failed"; exit 1; }
 source lab.config || { echo "lab.config failed"; exit 1; }
 make init-lab || { echo "make init-lab failed"; exit 1; }
+source bootstrap.sh || { echo "bootstrap.sh failed"; exit 1; }
 pushd templates/uperf/TEST || { echo "pushd failed"; exit 1; }
 bash setmode one || { echo "setmode failed"; exit 1; }
 popd || { echo "popd failed"; exit 1; }
