@@ -79,8 +79,57 @@ async function loadFilters() {
         populateSelect('filterScaleUp', filterOptions.pods_per_worker || []);
         populateSelect('filterScaleOut', filterOptions.scale_out_factor || []);
         populateSelect('filterWsize', filterOptions.wsize || []);
+
+        // Setup event listeners for dynamic filter updates
+        setupDynamicFilters();
     } catch (error) {
         console.error('Error loading filters:', error);
+    }
+}
+
+// Setup event listeners for cascading/dynamic filters
+function setupDynamicFilters() {
+    const filterIds = [
+        'filterBenchmark', 'filterModel', 'filterNic', 'filterArch',
+        'filterProtocol', 'filterTestType', 'filterCpu', 'filterKernel',
+        'filterRcos', 'filterTopo', 'filterPerf', 'filterOffload',
+        'filterThreads', 'filterScaleUp', 'filterScaleOut', 'filterWsize'
+    ];
+
+    filterIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', updateDynamicFilters);
+        }
+    });
+}
+
+// Update filter options based on current selections (cascading filters)
+async function updateDynamicFilters() {
+    try {
+        const params = buildFilterParams();
+        const response = await fetch(`/api/dynamic_filters?${params.toString()}`);
+        const dynamicOptions = await response.json();
+
+        // Update each filter dropdown with new options
+        populateSelect('filterBenchmark', dynamicOptions.benchmark || []);
+        populateSelect('filterModel', dynamicOptions.model || []);
+        populateSelect('filterNic', dynamicOptions.nic || []);
+        populateSelect('filterArch', dynamicOptions.arch || []);
+        populateSelect('filterProtocol', dynamicOptions.protocol || []);
+        populateSelect('filterTestType', dynamicOptions.test_type || []);
+        populateSelect('filterCpu', dynamicOptions.cpu || []);
+        populateSelect('filterKernel', dynamicOptions.kernel || []);
+        populateSelect('filterRcos', dynamicOptions.rcos || []);
+        populateSelect('filterTopo', dynamicOptions.topo || []);
+        populateSelect('filterPerf', dynamicOptions.perf || []);
+        populateSelect('filterOffload', dynamicOptions.offload || []);
+        populateSelect('filterThreads', dynamicOptions.threads || []);
+        populateSelect('filterScaleUp', dynamicOptions.pods_per_worker || []);
+        populateSelect('filterScaleOut', dynamicOptions.scale_out_factor || []);
+        populateSelect('filterWsize', dynamicOptions.wsize || []);
+    } catch (error) {
+        console.error('Error updating dynamic filters:', error);
     }
 }
 
