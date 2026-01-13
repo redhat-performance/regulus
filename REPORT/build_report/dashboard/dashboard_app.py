@@ -463,6 +463,57 @@ class DashboardApp:
 
             return jsonify(values)
 
+        @self.app.route('/api/dynamic_filters')
+        def api_dynamic_filters():
+            """Get available filter options based on current filter selections (cascading filters)."""
+            if not self.results:
+                return jsonify({})
+
+            # Get all filter parameters
+            filter_params = {
+                'benchmark': request.args.get('benchmark'),
+                'model': request.args.get('model'),
+                'nic': request.args.get('nic'),
+                'arch': request.args.get('arch'),
+                'protocol': request.args.get('protocol'),
+                'test_type': request.args.get('test_type'),
+                'cpu': request.args.get('cpu'),
+                'kernel': request.args.get('kernel'),
+                'rcos': request.args.get('rcos'),
+                'topo': request.args.get('topo'),
+                'perf': request.args.get('perf'),
+                'offload': request.args.get('offload'),
+                'threads': request.args.get('threads'),
+                'pods_per_worker': request.args.get('pods_per_worker'),
+                'scale_out_factor': request.args.get('scale_out_factor'),
+                'wsize': request.args.get('wsize')
+            }
+
+            # Get unique values for each filter field from filtered results
+            # IMPORTANT: For each field, exclude that field from filtering so users can change their selection
+            filter_fields = [
+                'benchmark', 'model', 'nic', 'arch', 'protocol', 'test_type', 'cpu',
+                'kernel', 'rcos', 'topo', 'perf', 'offload', 'threads',
+                'pods_per_worker', 'scale_out_factor', 'wsize'
+            ]
+
+            filters = {}
+            for field in filter_fields:
+                # Create a copy of filter_params excluding the current field
+                field_filter_params = {k: v for k, v in filter_params.items() if k != field}
+
+                # Apply filters (excluding the current field)
+                filtered = self._apply_filters(
+                    self.results,
+                    field_filter_params,
+                    request.args.get('date_range_days')
+                )
+
+                # Get unique values for this field from the filtered results
+                filters[field] = ReportFilter.get_unique_values(filtered, field)
+
+            return jsonify(filters)
+
         @self.app.route('/api/reload', methods=['POST'])
         def api_reload():
             """Reload reports from disk."""
