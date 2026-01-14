@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: regulus-dashboard:latest
+    container_name: regulus-dashboard
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount to /tmp/regulus-data on host
+      # :Z option for SELinux (RHEL/Fedora) - ignored on non-SELinux systems
+      - /tmp/regulus-data:/app/data:Z
+    environment:
+      - DATA_DIR=/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
