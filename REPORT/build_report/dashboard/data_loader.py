@@ -53,6 +53,7 @@ class BenchmarkResult:
     # Metadata
     timestamp: Optional[str] = None
     run_id: Optional[str] = None
+    report_source: Optional[str] = None  # Path to the report.json file
 
 
 @dataclass
@@ -220,7 +221,7 @@ class ReportLoader:
 
         return mapping
 
-    def extract_benchmark_results(self, report_data: Dict[str, Any]) -> List[BenchmarkResult]:
+    def extract_benchmark_results(self, report_data: Dict[str, Any], report_source: Optional[str] = None) -> List[BenchmarkResult]:
         """
         Extract individual benchmark results from a report.
 
@@ -229,6 +230,7 @@ class ReportLoader:
 
         Args:
             report_data: Loaded report data
+            report_source: Path to the report.json file (for tracking which report the results came from)
 
         Returns:
             List of BenchmarkResult objects, one per test iteration
@@ -255,6 +257,25 @@ class ReportLoader:
             regulus_data = file_result.get('regulus_data', '') or file_result.get('file_path', '')
             benchmark = file_result.get('benchmark', '')
             run_id = file_result.get('run_id', '')
+
+            # Get file modification timestamp (Unix timestamp from result-summary file)
+            # This ensures date filtering is based on when the result-summary file was created,
+            # not when the report.json was generated. Falls back to report timestamp for backward compatibility.
+            file_modified = file_result.get('file_modified')
+            file_timestamp = None
+            if file_modified:
+                # Convert Unix timestamp to ISO format for consistency
+                from datetime import datetime
+                try:
+                    dt = datetime.fromtimestamp(file_modified)
+                    file_timestamp = dt.isoformat()
+                except (ValueError, OSError):
+                    # If conversion fails, fall back to report timestamp
+                    file_timestamp = report_timestamp
+            else:
+                # Fall back to report generation timestamp if file_modified not available
+                # This maintains backward compatibility with older JSON reports
+                file_timestamp = report_timestamp
 
             # Ensure these are dictionaries, not strings
             common_params = file_result.get('common_params', {})
@@ -303,7 +324,8 @@ class ReportLoader:
                         benchmark=benchmark,
                         iteration_id=iteration_id,
                         run_id=run_id,
-                        timestamp=report_timestamp,
+                        timestamp=file_timestamp,
+                        report_source=report_source,
 
                         # Key tags
                         model=datapath_model,         # Datapath model
@@ -349,8 +371,10 @@ class ReportLoader:
             Combined list of all benchmark results across all reports
         """
         all_results = []
-        for report in self.loaded_reports:
-            results = self.extract_benchmark_results(report)
+        for i, report in enumerate(self.loaded_reports):
+            # Get report source from metadata if available
+            report_source = self.metadata[i].regulus_data if i < len(self.metadata) else None
+            results = self.extract_benchmark_results(report, report_source=report_source)
             all_results.extend(results)
         return all_results
 
