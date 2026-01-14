@@ -96,11 +96,65 @@ class DashboardApp:
 
         @self.app.route('/api/summary')
         def api_summary():
-            """Get summary statistics."""
+            """Get summary statistics with optional filtering."""
             if not self.aggregator:
                 return jsonify({'error': 'No reports loaded'}), 404
 
-            summary = self.loader.get_summary_stats()
+            # Get filter parameters
+            filter_params = {
+                'benchmark': request.args.get('benchmark'),
+                'model': request.args.get('model'),
+                'nic': request.args.get('nic'),
+                'arch': request.args.get('arch'),
+                'protocol': request.args.get('protocol'),
+                'test_type': request.args.get('test_type'),
+                'cpu': request.args.get('cpu'),
+                'kernel': request.args.get('kernel'),
+                'rcos': request.args.get('rcos'),
+                'topo': request.args.get('topo'),
+                'perf': request.args.get('perf'),
+                'offload': request.args.get('offload'),
+                'threads': request.args.get('threads'),
+                'pods_per_worker': request.args.get('pods_per_worker'),
+                'scale_out_factor': request.args.get('scale_out_factor'),
+                'wsize': request.args.get('wsize')
+            }
+
+            # Apply filters including date range
+            filtered = self._apply_filters(
+                self.results,
+                filter_params,
+                request.args.get('date_range_days')
+            )
+
+            # Calculate summary stats from filtered results
+            # Count unique report.json files (not result-summary files)
+            unique_reports = set()
+            unique_benchmarks = set()
+            for r in filtered:
+                if r.report_source:
+                    unique_reports.add(r.report_source)
+                if r.benchmark:
+                    unique_benchmarks.add(r.benchmark)
+
+            # Get date range from filtered results
+            timestamps = [r.timestamp for r in filtered if r.timestamp]
+            date_range = None
+            if timestamps:
+                sorted_ts = sorted(timestamps)
+                date_range = {
+                    'earliest': sorted_ts[0],
+                    'latest': sorted_ts[-1]
+                }
+
+            summary = {
+                'total_reports': len(unique_reports),
+                'total_iterations': len(filtered),
+                'benchmarks': sorted(list(unique_benchmarks)),
+                'date_range': date_range
+            }
+
+            # Get benchmark summary from aggregator (unfiltered for now)
             benchmark_summary = self.aggregator.get_benchmark_summary()
 
             return jsonify({
