@@ -28,10 +28,12 @@ function hideLoading() {
     document.getElementById('loadingOverlay').style.display = 'none';
 }
 
-// Load summary statistics
+// Load summary statistics with optional filters
 async function loadSummary() {
     try {
-        const response = await fetch('/api/summary');
+        // Pass current filters to summary endpoint
+        const params = buildFilterParams();
+        const response = await fetch(`/api/summary?${params.toString()}`);
         const data = await response.json();
 
         // Update summary cards
@@ -292,6 +294,9 @@ async function applyFilters() {
         showLoading();
         const response = await fetch(`/api/results?${params.toString()}`);
         filteredResults = await response.json();
+
+        // Reload summary statistics with current filters
+        loadSummary();
 
         // Reload current tab data
         const activeTab = document.querySelector('.nav-link.active').id;
