@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (except in docker/)
+*.md
+!docker/README.md
+!docker/SETUP.md
+!docker/SIMPLIFIED.md
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Test files
+test/
+tests/
+*.test.py
+
+# Exclude everything except what we need
+build_report/*
+!build_report/dashboard/
+
+docker/*
+!docker/requirements.txt
+!docker/entrypoint.sh
+!docker/sample_data/
