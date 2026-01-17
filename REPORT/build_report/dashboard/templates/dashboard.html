@@ -196,6 +196,12 @@
                     </select>
                 </div>
                 <div class="col-xl-1 col-lg-2 col-md-2">
+                    <label class="form-label small mb-0">Kernel</label>
+                    <select class="form-select form-select-sm" id="filterKernel" multiple size="3" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-xl-1 col-lg-2 col-md-2">
                     <label class="form-label small mb-0">Protocol</label>
                     <select class="form-select form-select-sm" id="filterProtocol" onchange="applyFilters()">
                         <option value="">All</option>
@@ -209,13 +215,7 @@
                 </div>
                 <div class="col-xl-1 col-lg-2 col-md-2">
                     <label class="form-label small mb-0">CPU</label>
-                    <select class="form-select form-select-sm" id="filterCpu" onchange="applyFilters()">
-                        <option value="">All</option>
-                    </select>
-                </div>
-                <div class="col-xl-1 col-lg-2 col-md-2">
-                    <label class="form-label small mb-0">Kernel</label>
-                    <select class="form-select form-select-sm" id="filterKernel" onchange="applyFilters()">
+                    <select class="form-select form-select-sm" id="filterCpu" multiple size="3" onchange="applyFilters()">
                         <option value="">All</option>
                     </select>
                 </div>
@@ -248,7 +248,7 @@
             <div class="row g-2 mt-1">
                 <div class="col-xl-1 col-lg-2 col-md-2">
                     <label class="form-label small mb-0">Threads</label>
-                    <select class="form-select form-select-sm" id="filterThreads" onchange="applyFilters()">
+                    <select class="form-select form-select-sm" id="filterThreads" multiple size="3" onchange="applyFilters()">
                         <option value="">All</option>
                     </select>
                 </div>

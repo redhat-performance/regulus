@@ -146,10 +146,8 @@ function populateSelect(selectId, options) {
     // Clear and populate
     select.innerHTML = '';
 
-    // Add "All" option only for single-select
-    if (!isMultiple) {
-        select.innerHTML = '<option value="">All</option>';
-    }
+    // Add "All" option for both single and multi-select
+    select.innerHTML = '<option value="">All</option>';
 
     options.forEach(opt => {
         const option = document.createElement('option');
@@ -161,7 +159,7 @@ function populateSelect(selectId, options) {
     // Restore previous selection if still valid
     if (isMultiple) {
         currentValues.forEach(val => {
-            if (val && options.includes(val)) {
+            if (val === '' || options.includes(val)) {
                 const option = select.querySelector(`option[value="${val}"]`);
                 if (option) option.selected = true;
             }
@@ -175,8 +173,13 @@ function populateSelect(selectId, options) {
 function getSelectValue(selectId) {
     const select = document.getElementById(selectId);
     if (select.hasAttribute('multiple')) {
-        // Multi-select: return array of selected values (or empty array)
-        return Array.from(select.selectedOptions).map(opt => opt.value);
+        // Multi-select: return array of selected values (excluding empty "All")
+        const values = Array.from(select.selectedOptions).map(opt => opt.value);
+        // If "All" is selected, return empty array (meaning show all)
+        if (values.includes('')) {
+            return [];
+        }
+        return values;
     } else {
         // Single-select: return value or empty string
         return select.value || '';
