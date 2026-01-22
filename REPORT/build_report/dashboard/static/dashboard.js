@@ -323,7 +323,7 @@ async function applyFilters() {
 }
 
 // Clear all filters
-function clearFilters() {
+async function clearFilters() {
     const filterIds = [
         'filterBenchmark', 'filterModel', 'filterNic', 'filterArch',
         'filterProtocol', 'filterTestType', 'filterCpu', 'filterKernel',
@@ -342,6 +342,9 @@ function clearFilters() {
             select.value = '';
         }
     });
+
+    // Refresh all filter options to show all available values
+    await updateDynamicFilters();
 
     applyFilters();
 }
