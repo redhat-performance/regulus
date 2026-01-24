@@ -48,7 +48,7 @@ cd /path/to/build_report
 python3 dashboard/run_dashboard.py --reports /path/to/reports
 
 # Example:
-cd /home/hnhan/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report
+cd /home/user/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report
 python3 dashboard/run_dashboard.py --reports /tmp/reports
 ```
 

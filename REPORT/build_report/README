@@ -2,7 +2,7 @@
 Usage:
     $ cd $REG_ROOT
     $ find build_report/ -name "__pycache__" -exec rm -rf {} +
-    $ python3.9 -m build_report.reg-report --formats html --output foo-report --root /home/hnhan/nvd-44-regulus
+    $ python3.9 -m build_report.reg-report --formats html --output foo-report --root /home/user/regulus
 
 
 # Multi-File Structure Implementation Guide

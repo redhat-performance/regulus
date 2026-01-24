@@ -37,6 +37,6 @@ if [ "$FORCE" -eq 1 ] || [ ! -e "$LABJSON" ]; then
     bash  $INVENTORY/create-labconfig-json.sh $LABJSON
 fi
 
-python3 $DIR/combine_sections.py -s custom $TBJSON $LABJSON $REG_ROOT/report.json -k lab_info testbed_info results -o $DIR/all-output.json
+python3 $DIR/combine_sections.py -s custom $TBJSON $LABJSON $REG_ROOT/report.json -k lab_info testbed_info results -o $DIR/report-with-testbed-info.json
 
 

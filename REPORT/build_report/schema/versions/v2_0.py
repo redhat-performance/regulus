@@ -65,9 +65,9 @@ def get_v2_0_schema() -> Dict[str, Any]:
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "required": ["file_path", "benchmark", "processing_status"],
+                    "required": ["regulus_data", "benchmark", "processing_status"],
                     "properties": {
-                        "file_path": {"type": "string"},
+                        "regulus_data": {"type": "string"},
                         "benchmark": {"type": "string"},
                         "processing_status": {"type": "string", "enum": ["success", "partial", "failed", "skipped"]},
                         "run-id": {"type": "string"},
@@ -168,7 +168,7 @@ def get_benchmark_specific_schemas() -> Dict[str, Dict[str, Any]]:
     return {
         "trafficgen": {
             "description": "Network traffic generation benchmark",
-            "required_fields": ["file_path", "benchmark", "run-id", "result"],
+            "required_fields": ["regulus_data", "benchmark", "run-id", "result"],
             "optional_fields": ["period_length", "tags", "iteration-id", "sample-id", "period_range"],
             "field_schemas": {
                 "result": get_trafficgen_benchmark_schema(),
@@ -189,7 +189,7 @@ def get_benchmark_specific_schemas() -> Dict[str, Dict[str, Any]]:
         },
         "iperf": {
             "description": "Network performance testing with iPerf",
-            "required_fields": ["file_path", "benchmark", "bandwidth"],
+            "required_fields": ["regulus_data", "benchmark", "bandwidth"],
             "optional_fields": ["duration", "protocol", "parallel_streams"],
             "field_schemas": {
                 "bandwidth": {
@@ -204,7 +204,7 @@ def get_benchmark_specific_schemas() -> Dict[str, Dict[str, Any]]:
         },
         "fio": {
             "description": "Storage I/O performance testing",
-            "required_fields": ["file_path", "benchmark", "iops"],
+            "required_fields": ["regulus_data", "benchmark", "iops"],
             "optional_fields": ["bandwidth", "latency", "block_size"],
             "field_schemas": {
                 "iops": {"type": "number", "minimum": 0},

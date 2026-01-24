@@ -1,0 +1,101 @@
+{
+  "index_patterns": ["benchmark-results-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1,
+      "index.mapping.total_fields.limit": 2000
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "regulus_data": {
+          "type": "keyword"
+        },
+        "run_id": {
+          "type": "keyword"
+        },
+        "iteration_id": {
+          "type": "keyword"
+        },
+        "benchmark": {
+          "type": "keyword"
+        },
+        "test_type": {
+          "type": "keyword"
+        },
+        "protocol": {
+          "type": "keyword"
+        },
+        "model": {
+          "type": "keyword"
+        },
+        "nic": {
+          "type": "keyword"
+        },
+        "arch": {
+          "type": "keyword"
+        },
+        "cpu": {
+          "type": "keyword"
+        },
+        "kernel": {
+          "type": "keyword"
+        },
+        "rcos": {
+          "type": "keyword"
+        },
+        "topology": {
+          "type": "keyword"
+        },
+        "performance_profile": {
+          "type": "keyword"
+        },
+        "offload": {
+          "type": "keyword"
+        },
+        "threads": {
+          "type": "integer"
+        },
+        "wsize": {
+          "type": "integer"
+        },
+        "rsize": {
+          "type": "integer"
+        },
+        "pods_per_worker": {
+          "type": "integer"
+        },
+        "scale_out_factor": {
+          "type": "integer"
+        },
+        "mean": {
+          "type": "float"
+        },
+        "min": {
+          "type": "float"
+        },
+        "max": {
+          "type": "float"
+        },
+        "stddev": {
+          "type": "float"
+        },
+        "stddev_pct": {
+          "type": "float"
+        },
+        "unit": {
+          "type": "keyword"
+        },
+        "busy_cpu": {
+          "type": "float"
+        },
+        "samples_count": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}
