@@ -671,7 +671,7 @@ When making changes, test these scenarios:
 
 ### Start Dashboard
 ```bash
-cd /home/hnhan/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report
+cd /home/user/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report
 python3 dashboard/run_dashboard.py --reports dashboard/test_data
 ```
 
