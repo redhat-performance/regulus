@@ -66,15 +66,6 @@ dry-run-jobs: init-lab
 jobs:
 	@make run-jobs 2>&1 | tee $(LOG_FILE)
 
-report-summary:
-	@bash REPORT/build_report/build_report --formats html csv --output report
-
-report-live:
-	@bash REPORT/build_report/build_report --formats html csv --output live
-
-report-upload:
-	@bash REPORT/upload/assemble_report.sh
-
 confirm_execute:
 	@echo "Are you sure you want to execute the target? [y/N] " && read ans && [ $${ans:-N} = y ]
 
@@ -173,5 +164,33 @@ init-lab: $(LAB_TARGET) SRIOV_INIT inventory
 	#
 
 clean-lab:
-	@ rm -f $(LAB_TARGET) $(LAB_TARGET_ENV) 
+	@ rm -f $(LAB_TARGET) $(LAB_TARGET_ENV)
+
+# =============================================================================
+# Report Targets (delegate to REPORT/Makefile)
+# =============================================================================
+
+report-summary:
+	@$(MAKE) -C REPORT summary
+
+report-summary-with-testbed-info:
+	@$(MAKE) -C REPORT summary-with-testbed-info
+
+report-dashboard:
+	@$(MAKE) -C REPORT dashboard
+
+report-dashboard-stop:
+	@$(MAKE) -C REPORT dashboard-stop
+
+report-dashboard-restart:
+	@$(MAKE) -C REPORT dashboard-restart
+
+report-flatten:
+	@$(MAKE) -C REPORT flatten ES_HOST=$(ES_HOST) ES_INDEX=$(ES_INDEX)
+
+report-es-upload:
+	@$(MAKE) -C REPORT es-upload ES_HOST=$(ES_HOST) ES_INDEX=$(ES_INDEX)
+
+report-es-full:
+	@$(MAKE) -C REPORT es-full ES_HOST=$(ES_HOST) ES_INDEX=$(ES_INDEX)
 

@@ -36,9 +36,9 @@ def get_v1_0_schema() -> Dict[str, Any]:
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "required": ["file_path", "benchmark"],
+                    "required": ["regulus_data", "benchmark"],
                     "properties": {
-                        "file_path": {"type": "string"},
+                        "regulus_data": {"type": "string"},
                         "benchmark": {"type": "string"},
                         "run-id": {"type": "string"},
                         "result": {"type": ["object", "string", "number"]},
