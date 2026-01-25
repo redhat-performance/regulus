@@ -37,6 +37,17 @@ if [ "$FORCE" -eq 1 ] || [ ! -e "$LABJSON" ]; then
     bash  $INVENTORY/create-labconfig-json.sh $LABJSON
 fi
 
-python3 $DIR/combine_sections.py -s custom $TBJSON $LABJSON $REG_ROOT/report.json -k lab_info testbed_info results -o $DIR/report-with-testbed-info.json
+REPORT_JSON=$REG_ROOT/REPORT/generated/report.json
+TESTBED_REPORT_JSON=$REG_ROOT/REPORT/generated/report-with-testbed-info.json
+
+# Combine report.json with testbed/lab info
+python3 $DIR/combine_sections.py -s custom $TBJSON $LABJSON $REPORT_JSON -k lab_info testbed_info results -o $TESTBED_REPORT_JSON
+
+# Backup report.json to avoid duplicate loading in dashboard
+# The testbed-info version is newer and contains all the same data plus additional metadata
+if [ -f "$REPORT_JSON" ]; then
+    echo "Backing up $REPORT_JSON to $REPORT_JSON.bak"
+    mv -f "$REPORT_JSON" "$REPORT_JSON.bak"
+fi
 
 
