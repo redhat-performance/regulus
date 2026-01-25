@@ -8,6 +8,8 @@
 # Configuration
 PYTHON := python3
 BUILD_REPORT_DIR := build_report
+REPORT_DIR := $(shell pwd)
+GENERATED_DIR := $(REPORT_DIR)/generated
 REG_ROOT ?= $(shell cd .. && pwd)
 ES_HOST ?= localhost:9200
 ES_INDEX ?= regulus-results
@@ -45,16 +47,23 @@ help:
 # =============================================================================
 
 summary:
-	@echo "Generating unflatten report (report.json, HTML, CSV)..."
-	@cd $(REG_ROOT) && bash REPORT/$(BUILD_REPORT_DIR)/build_report --formats html csv --output report
+	@echo "Creating generated directory if needed..."
+	@mkdir -p $(GENERATED_DIR)
+	@# Backup report-with-testbed-info.json if it exists (to avoid dashboard duplicates)
+	@if [ -f "$(GENERATED_DIR)/report-with-testbed-info.json" ]; then \
+		echo "Backing up report-with-testbed-info.json to report-with-testbed-info.json.bak"; \
+		mv -f "$(GENERATED_DIR)/report-with-testbed-info.json" "$(GENERATED_DIR)/report-with-testbed-info.json.bak"; \
+	fi
+	@echo "Generating unflatten report (report.json, HTML, CSV) in REPORT/generated/..."
+	@cd $(REG_ROOT) && bash REPORT/$(BUILD_REPORT_DIR)/build_report --formats html csv --output REPORT/generated/report
 	@echo ""
 	@echo "Flattening report.json to NDJSON for ElasticSearch..."
-	@$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(REG_ROOT)/report.json -o $(REG_ROOT)/reports.ndjson --es-index $(ES_INDEX)
+	@$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_INDEX)
 	@echo ""
 	@echo "✓ Report generation complete:"
-	@echo "  - Unflatten: $(REG_ROOT)/report.json"
-	@echo "  - Flatten:   $(REG_ROOT)/reports.ndjson"
-	@ls -lh $(REG_ROOT)/report.json $(REG_ROOT)/reports.ndjson 2>/dev/null || true
+	@echo "  - Unflatten: $(GENERATED_DIR)/report.json"
+	@echo "  - Flatten:   $(GENERATED_DIR)/reports.ndjson"
+	@ls -lh $(GENERATED_DIR)/report.json $(GENERATED_DIR)/reports.ndjson 2>/dev/null || true
 
 summary-with-testbed-info:
 	@cd $(REG_ROOT) && bash REPORT/assembly/assemble_report.sh
@@ -64,7 +73,7 @@ summary-with-testbed-info:
 # =============================================================================
 
 dashboard:
-	@$(MAKE) -C $(BUILD_REPORT_DIR) dashboard REPORTS_DIR=$(REG_ROOT)
+	@$(MAKE) -C $(BUILD_REPORT_DIR) dashboard REPORTS_DIR=$(GENERATED_DIR)
 
 dashboard-stop:
 	@$(MAKE) -C $(BUILD_REPORT_DIR) dashboard-stop
@@ -83,18 +92,19 @@ dashboard-status:
 # Note: 'make summary' already generates both unflatten and flatten outputs
 # This target is kept for backward compatibility
 flatten:
-	@if [ ! -f "$(REG_ROOT)/report.json" ]; then \
+	@mkdir -p $(GENERATED_DIR)
+	@if [ ! -f "$(GENERATED_DIR)/report.json" ]; then \
 		echo "report.json not found. Running 'make summary' to generate both outputs..."; \
 		$(MAKE) summary; \
 	else \
 		echo "Flattening existing report.json..."; \
-		$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(REG_ROOT)/report.json -o $(REG_ROOT)/reports.ndjson --es-index $(ES_INDEX); \
-		echo "✓ Flatten complete: $(REG_ROOT)/reports.ndjson"; \
+		$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_INDEX); \
+		echo "✓ Flatten complete: $(GENERATED_DIR)/reports.ndjson"; \
 	fi
 
 # Create human-readable pretty JSON
 flatten-pretty: flatten
-	@$(MAKE) -C $(BUILD_REPORT_DIR) flatten-pretty OUTPUT_DIR=$(REG_ROOT)
+	@$(MAKE) -C $(BUILD_REPORT_DIR) flatten-pretty OUTPUT_DIR=$(GENERATED_DIR)
 
 # ElasticSearch operations
 es-check:
@@ -106,12 +116,12 @@ es-template: es-check
 		ES_HOST=$(ES_HOST)
 
 es-upload:
-	@if [ ! -f "$(REG_ROOT)/reports.ndjson" ]; then \
+	@if [ ! -f "$(GENERATED_DIR)/reports.ndjson" ]; then \
 		echo "reports.ndjson not found. Running 'make summary' to generate it..."; \
 		$(MAKE) summary; \
 	fi
 	@$(MAKE) -C $(BUILD_REPORT_DIR) es-upload \
-		REPORTS_DIR=$(REG_ROOT) \
+		REPORTS_DIR=$(GENERATED_DIR) \
 		ES_HOST=$(ES_HOST) \
 		ES_INDEX=$(ES_INDEX)
 
@@ -119,8 +129,8 @@ es-upload:
 es-full: summary es-template es-upload
 	@echo ""
 	@echo "✓ Complete ElasticSearch workflow finished:"
-	@echo "  - Report generated: $(REG_ROOT)/report.json"
-	@echo "  - Flattened to: $(REG_ROOT)/reports.ndjson"
+	@echo "  - Report generated: $(GENERATED_DIR)/report.json"
+	@echo "  - Flattened to: $(GENERATED_DIR)/reports.ndjson"
 	@echo "  - Uploaded to: $(ES_HOST)/$(ES_INDEX)"
 
 # =============================================================================
@@ -130,6 +140,5 @@ es-full: summary es-template es-upload
 # Clean build artifacts
 clean:
 	@$(MAKE) -C $(BUILD_REPORT_DIR) clean
-	@rm -f $(REG_ROOT)/report.json $(REG_ROOT)/report.html $(REG_ROOT)/report.csv
-	@rm -f $(REG_ROOT)/reports.ndjson $(REG_ROOT)/reports_pretty.json
-	@echo "✓ Report artifacts cleaned"
+	@rm -rf $(GENERATED_DIR)/*
+	@echo "✓ Report artifacts cleaned from REPORT/generated/"
