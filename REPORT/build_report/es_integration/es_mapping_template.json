@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["benchmark-results-*"],
+  "index_patterns": ["regulus-*"],
   "template": {
     "settings": {
       "number_of_shards": 1,
