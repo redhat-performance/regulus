@@ -164,12 +164,12 @@ es-check:
 es-template: es-check
 	@echo "Applying ElasticSearch index template..."
 	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
-		curl -X PUT "http://$(ES_HOST)/_index_template/benchmark-results-template" \
+		curl -X PUT "http://$(ES_HOST)/_index_template/regulus-template" \
 			-u "$(ES_USER):$(ES_PASSWORD)" \
 			-H 'Content-Type: application/json' \
 			-d @$(ES_TEMPLATE); \
 	else \
-		curl -X PUT "http://$(ES_HOST)/_index_template/benchmark-results-template" \
+		curl -X PUT "http://$(ES_HOST)/_index_template/regulus-template" \
 			-H 'Content-Type: application/json' \
 			-d @$(ES_TEMPLATE); \
 	fi

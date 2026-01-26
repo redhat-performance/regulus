@@ -108,22 +108,31 @@ flatten-pretty: flatten
 
 # ElasticSearch operations
 es-check:
-	@$(MAKE) -C $(BUILD_REPORT_DIR) es-check \
-		ES_HOST=$(ES_HOST)
+	@[ -f "$(REG_ROOT)/lab.config" ] && source $(REG_ROOT)/lab.config; \
+	$(MAKE) -C $(BUILD_REPORT_DIR) es-check \
+		ES_HOST=$${ES_HOST:-$(ES_HOST)} \
+		ES_USER=$${ES_USER} \
+		ES_PASSWORD=$${ES_PASSWORD}
 
 es-template: es-check
-	@$(MAKE) -C $(BUILD_REPORT_DIR) es-template \
-		ES_HOST=$(ES_HOST)
+	@[ -f "$(REG_ROOT)/lab.config" ] && source $(REG_ROOT)/lab.config; \
+	$(MAKE) -C $(BUILD_REPORT_DIR) es-template \
+		ES_HOST=$${ES_HOST:-$(ES_HOST)} \
+		ES_USER=$${ES_USER} \
+		ES_PASSWORD=$${ES_PASSWORD}
 
 es-upload:
 	@if [ ! -f "$(GENERATED_DIR)/reports.ndjson" ]; then \
 		echo "reports.ndjson not found. Running 'make summary' to generate it..."; \
 		$(MAKE) summary; \
 	fi
-	@$(MAKE) -C $(BUILD_REPORT_DIR) es-upload \
+	@[ -f "$(REG_ROOT)/lab.config" ] && source $(REG_ROOT)/lab.config; \
+	$(MAKE) -C $(BUILD_REPORT_DIR) es-upload \
 		REPORTS_DIR=$(GENERATED_DIR) \
-		ES_HOST=$(ES_HOST) \
-		ES_INDEX=$(ES_INDEX)
+		ES_HOST=$${ES_HOST:-$(ES_HOST)} \
+		ES_INDEX=$${ES_INDEX:-$(ES_INDEX)} \
+		ES_USER=$${ES_USER} \
+		ES_PASSWORD=$${ES_PASSWORD}
 
 # Complete ElasticSearch workflow
 es-full: summary es-template es-upload
