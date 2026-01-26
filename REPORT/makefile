@@ -66,7 +66,24 @@ summary:
 	@ls -lh $(GENERATED_DIR)/report.json $(GENERATED_DIR)/reports.ndjson 2>/dev/null || true
 
 summary-with-testbed-info:
+	@mkdir -p $(GENERATED_DIR)
+	@# First generate base report.json if it doesn't exist
+	@if [ ! -f "$(GENERATED_DIR)/report.json" ]; then \
+		echo "Base report.json not found. Generating it first..."; \
+		echo ""; \
+		cd $(REG_ROOT) && bash REPORT/$(BUILD_REPORT_DIR)/build_report --formats html csv --output REPORT/generated/report; \
+		echo ""; \
+	fi
+	@echo "Generating report with testbed info..."
 	@cd $(REG_ROOT) && bash REPORT/assembly/assemble_report.sh
+	@echo ""
+	@echo "Flattening report-with-testbed-info.json to NDJSON for ElasticSearch..."
+	@$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(GENERATED_DIR)/report-with-testbed-info.json -o $(GENERATED_DIR)/reports-with-testbed-info.ndjson --es-index $(ES_INDEX)
+	@echo ""
+	@echo "✓ Report with testbed info generation complete:"
+	@echo "  - Unflatten: $(GENERATED_DIR)/report-with-testbed-info.json"
+	@echo "  - Flatten:   $(GENERATED_DIR)/reports-with-testbed-info.ndjson"
+	@ls -lh $(GENERATED_DIR)/report-with-testbed-info.json $(GENERATED_DIR)/reports-with-testbed-info.ndjson 2>/dev/null || true
 
 # =============================================================================
 # Dashboard Targets (delegate to build_report/Makefile)
