@@ -72,9 +72,10 @@ class SchemaAwareOutputGenerator(JsonOutputGenerator):
         self.schema_manager = schema_manager
         self.validate_output = True
     
-    def generate_output(self, results: List[ProcessedResult], output_path: str) -> None:
+    def generate_output(self, results: List[ProcessedResult], output_path: str,
+                       git_branch: str = None, execution_label: str = None) -> None:
         """Generate schema-compliant output with validation."""
-        summary = self._build_schema_compliant_summary(results)
+        summary = self._build_schema_compliant_summary(results, git_branch, execution_label)
         
         # Validate against schema
         if self.validate_output:
@@ -107,29 +108,38 @@ class SchemaAwareOutputGenerator(JsonOutputGenerator):
         except Exception as e:
             print(f"Error generating output: {e}")
     
-    def _build_schema_compliant_summary(self, results: List[ProcessedResult]) -> Dict[str, Any]:
+    def _build_schema_compliant_summary(self, results: List[ProcessedResult],
+                                        git_branch: str = None, execution_label: str = None) -> Dict[str, Any]:
         """Build summary structure compliant with current schema version."""
         schema_info = self.schema_manager.get_schema_info()
         successful_results = [r for r in results if r.processing_metadata.get('status') != 'failed']
         failed_results = [r for r in results if r.processing_metadata.get('status') == 'failed']
-        
+
+        generation_info = {
+            "total_results": len(results),
+            "successful_results": len(successful_results),
+            "failed_results": len(failed_results),
+            "timestamp": datetime.datetime.now().isoformat(),
+            "benchmarks": list(set(r.benchmark for r in results)),
+            "processing_duration_seconds": 0.0,
+            "hostname": socket.gethostname(),
+            "reg_root": os.environ.get('REG_ROOT', '')
+        }
+
+        # Add execution metadata if provided
+        if git_branch is not None:
+            generation_info["regulus_git_branch"] = git_branch
+        if execution_label is not None:
+            generation_info["execution_label"] = execution_label
+
         summary = {
             "schema_info": schema_info.to_dict(),
-            "generation_info": {
-                "total_results": len(results),
-                "successful_results": len(successful_results),
-                "failed_results": len(failed_results),
-                "timestamp": datetime.datetime.now().isoformat(),
-                "benchmarks": list(set(r.benchmark for r in results)),
-                "processing_duration_seconds": 0.0,
-                "hostname": socket.gethostname(),
-                "reg_root": os.environ.get('REG_ROOT', '')
-            },
+            "generation_info": generation_info,
             "benchmark_definitions": self._generate_benchmark_definitions(results),
             "results": [self._enhance_result_data(r) for r in results],
             "summary_by_benchmark": self._create_enhanced_benchmark_summary(results)
         }
-        
+
         return summary
     
     def _enhance_result_data(self, result: ProcessedResult) -> Dict[str, Any]:
@@ -1681,12 +1691,12 @@ class EnhancedMultiFormatOutputGenerator(MultiFormatOutputGenerator):
         self.generators['html'] = HtmlOutputGenerator()
         self.generators['csv'] = CsvOutputGenerator(base_url=base_url)
     
-    def generate_output(self, results, output_path):
-        """Generate output with HTML support."""
+    def generate_output(self, results, output_path, git_branch=None, execution_label=None):
+        """Generate output with HTML support and metadata."""
         base_path = Path(output_path)
         base_name = base_path.stem
         base_dir = base_path.parent
-        
+
         for format_name in self.enabled_formats:
             if format_name in self.generators:
                 try:
@@ -1700,8 +1710,14 @@ class EnhancedMultiFormatOutputGenerator(MultiFormatOutputGenerator):
                         format_path = base_dir / f"{base_name}.xml"
                     else:
                         format_path = base_dir / f"{base_name}.{format_name}"
-                    
-                    self.generators[format_name].generate_output(results, str(format_path))
+
+                    # Pass metadata only to JSON generator (others don't need it)
+                    if format_name == 'json':
+                        self.generators[format_name].generate_output(results, str(format_path),
+                                                                    git_branch=git_branch,
+                                                                    execution_label=execution_label)
+                    else:
+                        self.generators[format_name].generate_output(results, str(format_path))
                 except Exception as e:
                     print(f"Error generating {format_name} output: {e}")
 
