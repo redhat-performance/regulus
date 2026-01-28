@@ -46,38 +46,40 @@ class ReportOrchestrator:
             'avg_processing_time': 0.0
         }
     
-    def generate_report(self, root_path: str = ".", 
+    def generate_report(self, root_path: str = ".",
                        file_pattern: str = "result-summary.txt",
-                       output_path: str = "summary-all.json") -> None:
+                       output_path: str = "summary-all.json",
+                       git_branch: str = None,
+                       execution_label: str = None) -> None:
         """Generate the complete report."""
         start_time = time.time() if self.enable_timing else None
-        
+
         if self.enable_progress:
             print("Starting modular report generation...")
-        
+
         # Step 1: Discover files
         files = self.file_discovery.discover_files(root_path, file_pattern)
         self.stats['files_discovered'] = len(files)
-        
+
         if self.enable_progress:
             print(f"Discovered {len(files)} files")
-        
+
         if not files:
             print("No files found!")
             return
-        
+
         results = []
         file_times = []
-        
+
         # Step 2: Process each file
         for i, file_info in enumerate(files):
             if self.enable_progress and len(files) > 10:
                 if i % max(1, len(files) // 10) == 0:
                     print(f"Processing file {i+1}/{len(files)}...")
-            
+
             try:
                 file_start_time = time.time() if self.enable_timing else None
-                
+
                 # Parse content
                 content = self.content_parser.parse_file(file_info)
                 if content is None:
@@ -85,42 +87,44 @@ class ReportOrchestrator:
                     if not self.continue_on_error:
                         raise Exception(f"Failed to parse {file_info.path}")
                     continue
-                
+
                 # Extract benchmark type to get appropriate rules
                 benchmark_match = re.search(r"benchmark:\s*(.+)", content)
                 benchmark = benchmark_match.group(1).strip() if benchmark_match else "default"
-                
+
                 # Get rules and extract data
                 rules = self.rule_engine.get_rules_for_benchmark(benchmark)
                 extracted_data = self.data_extractor.extract_data(content, rules, file_info)
-                
+
                 # Transform data
                 processed_result = self.data_transformer.transform_data(extracted_data)
                 results.append(processed_result)
-                
+
                 self.stats['files_processed'] += 1
-                
+
                 if self.enable_timing:
                     file_duration = time.time() - file_start_time
                     file_times.append(file_duration)
-                
+
             except Exception as e:
                 self.stats['files_failed'] += 1
                 if self.enable_progress:
                     print(f"Error processing {file_info.path}: {e}")
-                
+
                 if not self.continue_on_error:
                     raise
-        
+
         # Update statistics
         if self.enable_timing:
             self.stats['total_duration'] = time.time() - start_time
             if file_times:
                 self.stats['avg_processing_time'] = sum(file_times) / len(file_times)
-        
-        # Step 3: Generate output
-        self.output_generator.generate_output(results, output_path)
-        
+
+        # Step 3: Generate output with metadata
+        self.output_generator.generate_output(results, output_path,
+                                             git_branch=git_branch,
+                                             execution_label=execution_label)
+
         # Print summary
         if self.enable_progress:
             self._print_summary()

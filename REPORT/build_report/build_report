@@ -1,6 +1,12 @@
 #!/bin/bash
 # usage:  $REG_ROOT/build_report/build_report --formats html --output report
+#         $REG_ROOT/build_report/build_report --formats html --output report \
+#                 --git-branch feature-x --execution-label nightly
 #
+# Source lab.config if it exists to pick up EXECUTION_LABEL and other settings
+if [ -f "$REG_ROOT/lab.config" ]; then
+    source $REG_ROOT/lab.config
+fi
 
 export PYTHONPATH=${REG_ROOT}/REPORT:$PYTHONPATH
 
@@ -12,5 +18,33 @@ WORKSPACE_PATH=$(pwd)  # Current directory where report is being generated
 
 BASE_URL="http://${HOSTNAME}:${PORT}${WORKSPACE_PATH}"
 
-# Pass base-url automatically
-python3.9 -m build_report.reg-report --base-url "$BASE_URL" "$@"
+# =============================================================================
+# Auto-detect Git Metadata with CLI Override Support
+# =============================================================================
+# These values can be explicitly passed via CLI arguments or auto-detected from:
+# 1. CLI arguments (highest priority)
+# 2. lab.config environment variables (if sourced above)
+# 3. Git auto-detection for branch
+# 4. Default values
+
+# Parse existing arguments to see if metadata was already provided
+ARGS_WITH_METADATA="$@"
+
+if [[ ! "$@" =~ --git-branch ]]; then
+    # Auto-detect git branch if not already set from lab.config
+    if [[ -z "${GIT_BRANCH}" ]] && command -v git &> /dev/null && git rev-parse --git-dir &> /dev/null 2>&1; then
+        GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    fi
+    if [[ -n "${GIT_BRANCH}" ]]; then
+        ARGS_WITH_METADATA="$ARGS_WITH_METADATA --git-branch $GIT_BRANCH"
+    fi
+fi
+
+if [[ ! "$@" =~ --execution-label ]]; then
+    # Use environment variable EXECUTION_LABEL if set from lab.config, otherwise default to "default"
+    EXECUTION_LABEL="${EXECUTION_LABEL:-default}"
+    ARGS_WITH_METADATA="$ARGS_WITH_METADATA --execution-label $EXECUTION_LABEL"
+fi
+
+# Pass base-url and metadata to Python module
+python3.9 -m build_report.reg-report --base-url "$BASE_URL" $ARGS_WITH_METADATA

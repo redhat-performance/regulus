@@ -38,6 +38,8 @@ class ESDocumentFlattener:
 
     def __init__(self, index_name: str = "regulus-results"):
         self.index_name = index_name
+        self.regulus_git_branch = None
+        self.execution_label = None
 
     def flatten_result(self, result: BenchmarkResult) -> Dict[str, Any]:
         """
@@ -49,6 +51,11 @@ class ESDocumentFlattener:
         doc = {
             # Document metadata
             "@timestamp": result.timestamp or datetime.utcnow().isoformat(),
+
+            # Execution context metadata
+            "regulus_git_branch": self.regulus_git_branch,
+            "execution_label": self.execution_label,
+
             "regulus_data": result.regulus_data,
             "run_id": result.run_id,
             "iteration_id": result.iteration_id,
@@ -140,6 +147,18 @@ def process_report(report_path: str, flattener: ESDocumentFlattener, loader: Rep
     Process a single report file and return NDJSON lines.
     """
     print(f"Processing: {report_path}")
+
+    # Load the JSON file to extract generation_info metadata
+    try:
+        with open(report_path, 'r') as f:
+            report_data = json.load(f)
+
+        # Extract metadata from generation_info
+        generation_info = report_data.get('generation_info', {})
+        flattener.regulus_git_branch = generation_info.get('regulus_git_branch')
+        flattener.execution_label = generation_info.get('execution_label')
+    except Exception as e:
+        print(f"  Warning: Could not extract metadata from {report_path}: {e}")
 
     # Load and extract results
     loader.load_report(report_path)

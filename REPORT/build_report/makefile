@@ -3,7 +3,7 @@
 
 .PHONY: help dashboard dashboard-stop dashboard-restart \
         test-dashboard test-flatten test-flatten-pretty test-es-setup test-dev test-integration \
-        flatten es-upload es-template es-check \
+        flatten es-upload es-template es-check es-index-stats es-template-info es-index-mapping \
         test clean
 
 # Configuration variables
@@ -47,6 +47,9 @@ help:
 	@echo "ElasticSearch Operations:"
 	@echo "  make es-check               - Check ElasticSearch connection"
 	@echo "  make es-template            - Apply ES index template"
+	@echo "  make es-index-stats         - Show ES index statistics"
+	@echo "  make es-template-info       - Show ES index template details"
+	@echo "  make es-index-mapping       - Show current index mapping"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make test                   - Run all tests"
@@ -202,6 +205,61 @@ es-upload:
 	fi
 
 es-upload-with-template: es-template es-upload
+
+# =============================================================================
+# ElasticSearch Debug Targets
+# =============================================================================
+
+es-index-stats: es-check
+	@echo "=========================================="
+	@echo "  ElasticSearch Index Statistics"
+	@echo "=========================================="
+	@echo ""
+	@echo "Index: $(ES_INDEX)"
+	@echo "Host: $(ES_HOST)"
+	@echo ""
+	@echo "Detailed Stats (verbose):"
+	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
+		curl -s -u "$(ES_USER):$(ES_PASSWORD)" "http://$(ES_HOST)/_cat/indices/$(ES_INDEX)?v&h=health,status,index,uuid,pri,rep,docs.count,docs.deleted,store.size,pri.store.size"; \
+	else \
+		curl -s "http://$(ES_HOST)/_cat/indices/$(ES_INDEX)?v&h=health,status,index,uuid,pri,rep,docs.count,docs.deleted,store.size,pri.store.size"; \
+	fi
+	@echo ""
+	@echo ""
+	@echo "Index Settings and Stats (JSON):"
+	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
+		curl -s -u "$(ES_USER):$(ES_PASSWORD)" "http://$(ES_HOST)/$(ES_INDEX)/_stats" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index may not exist yet"; \
+	else \
+		curl -s "http://$(ES_HOST)/$(ES_INDEX)/_stats" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index may not exist yet"; \
+	fi
+
+es-template-info: es-check
+	@echo "=========================================="
+	@echo "  ElasticSearch Index Template Info"
+	@echo "=========================================="
+	@echo ""
+	@echo "Template: regulus-template"
+	@echo "Host: $(ES_HOST)"
+	@echo ""
+	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
+		curl -s -u "$(ES_USER):$(ES_PASSWORD)" "http://$(ES_HOST)/_index_template/regulus-template" | $(PYTHON) -m json.tool 2>/dev/null || echo "Template does not exist. Run 'make es-template' to create it."; \
+	else \
+		curl -s "http://$(ES_HOST)/_index_template/regulus-template" | $(PYTHON) -m json.tool 2>/dev/null || echo "Template does not exist. Run 'make es-template' to create it."; \
+	fi
+
+es-index-mapping: es-check
+	@echo "=========================================="
+	@echo "  ElasticSearch Index Mapping"
+	@echo "=========================================="
+	@echo ""
+	@echo "Index: $(ES_INDEX)"
+	@echo "Host: $(ES_HOST)"
+	@echo ""
+	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
+		curl -s -u "$(ES_USER):$(ES_PASSWORD)" "http://$(ES_HOST)/$(ES_INDEX)/_mapping" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist yet"; \
+	else \
+		curl -s "http://$(ES_HOST)/$(ES_INDEX)/_mapping" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist yet"; \
+	fi
 
 # =============================================================================
 # Testing Targets
