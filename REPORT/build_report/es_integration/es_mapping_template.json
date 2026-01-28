@@ -94,6 +94,12 @@
         },
         "samples_count": {
           "type": "integer"
+        },
+        "regulus_git_branch": {
+          "type": "keyword"
+        },
+        "execution_label": {
+          "type": "keyword"
         }
       }
     }
