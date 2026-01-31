@@ -11,7 +11,6 @@ BUILD_REPORT_DIR := build_report
 REPORT_DIR := $(shell pwd)
 GENERATED_DIR := $(REPORT_DIR)/generated
 REG_ROOT ?= $(shell cd .. && pwd)
-ES_HOST ?= localhost:9200
 ES_INDEX ?= regulus-results
 
 # Default target
@@ -38,7 +37,7 @@ help:
 	@echo ""
 	@echo "Configuration:"
 	@echo "  REG_ROOT    = $(REG_ROOT)"
-	@echo "  ES_HOST     = $(ES_HOST)"
+	@echo "  ES_URL      = Set by caller (from lab.config or environment)"
 	@echo "  ES_INDEX    = $(ES_INDEX)"
 	@echo "====================================================================="
 
@@ -58,7 +57,7 @@ summary:
 	@cd $(REG_ROOT) && bash REPORT/$(BUILD_REPORT_DIR)/build_report --formats html csv --output REPORT/generated/report
 	@echo ""
 	@echo "Flattening report.json to NDJSON for ElasticSearch..."
-	@$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_INDEX)
+	@$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $${ES_INDEX:-regulus-results}
 	@echo ""
 	@echo "✓ Report generation complete:"
 	@echo "  - Unflatten: $(GENERATED_DIR)/report.json"
@@ -78,7 +77,7 @@ summary-with-testbed-info:
 	@cd $(REG_ROOT) && bash REPORT/assembly/assemble_report.sh
 	@echo ""
 	@echo "Flattening report-with-testbed-info.json to NDJSON for ElasticSearch..."
-	@$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(GENERATED_DIR)/report-with-testbed-info.json -o $(GENERATED_DIR)/reports-with-testbed-info.ndjson --es-index $(ES_INDEX)
+	@$(PYTHON) $(BUILD_REPORT_DIR)/es_integration/flatten_to_es.py $(GENERATED_DIR)/report-with-testbed-info.json -o $(GENERATED_DIR)/reports-with-testbed-info.ndjson --es-index $${ES_INDEX:-regulus-results}
 	@echo ""
 	@echo "✓ Report with testbed info generation complete:"
 	@echo "  - Unflatten: $(GENERATED_DIR)/report-with-testbed-info.json"
@@ -127,16 +126,12 @@ flatten-pretty: flatten
 es-check:
 	@[ -f "$(REG_ROOT)/lab.config" ] && source $(REG_ROOT)/lab.config; \
 	$(MAKE) -C $(BUILD_REPORT_DIR) es-check \
-		ES_HOST=$${ES_HOST:-$(ES_HOST)} \
-		ES_USER=$${ES_USER} \
-		ES_PASSWORD=$${ES_PASSWORD}
+		ES_URL="$${ES_URL}"
 
 es-template: es-check
 	@[ -f "$(REG_ROOT)/lab.config" ] && source $(REG_ROOT)/lab.config; \
 	$(MAKE) -C $(BUILD_REPORT_DIR) es-template \
-		ES_HOST=$${ES_HOST:-$(ES_HOST)} \
-		ES_USER=$${ES_USER} \
-		ES_PASSWORD=$${ES_PASSWORD}
+		ES_URL="$${ES_URL}"
 
 es-upload:
 	@if [ ! -f "$(GENERATED_DIR)/reports.ndjson" ]; then \
@@ -146,10 +141,8 @@ es-upload:
 	@[ -f "$(REG_ROOT)/lab.config" ] && source $(REG_ROOT)/lab.config; \
 	$(MAKE) -C $(BUILD_REPORT_DIR) es-upload \
 		REPORTS_DIR=$(GENERATED_DIR) \
-		ES_HOST=$${ES_HOST:-$(ES_HOST)} \
-		ES_INDEX=$${ES_INDEX:-$(ES_INDEX)} \
-		ES_USER=$${ES_USER} \
-		ES_PASSWORD=$${ES_PASSWORD}
+		ES_URL="$${ES_URL}" \
+		ES_INDEX=$${ES_INDEX:-$(ES_INDEX)}
 
 # Complete ElasticSearch workflow
 es-full: summary es-template es-upload
@@ -157,7 +150,7 @@ es-full: summary es-template es-upload
 	@echo "✓ Complete ElasticSearch workflow finished:"
 	@echo "  - Report generated: $(GENERATED_DIR)/report.json"
 	@echo "  - Flattened to: $(GENERATED_DIR)/reports.ndjson"
-	@echo "  - Uploaded to: $(ES_HOST)/$(ES_INDEX)"
+	@echo "  - Uploaded to ES index: $(ES_INDEX)"
 
 # =============================================================================
 # Advanced Targets

@@ -1,0 +1,86 @@
+{
+  "policy": {
+    "description": "OpenSearch ISM policy for regulus benchmark data with rollover and retention",
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          {
+            "rollover": {
+              "min_primary_shard_size": "50gb",
+              "min_index_age": "30d",
+              "min_doc_count": 1000000
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "warm",
+            "conditions": {
+              "min_index_age": "7d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "warm",
+        "actions": [
+          {
+            "replica_count": {
+              "number_of_replicas": 1
+            }
+          },
+          {
+            "force_merge": {
+              "max_num_segments": 1
+            }
+          },
+          {
+            "read_only": {}
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "cold",
+            "conditions": {
+              "min_index_age": "30d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "cold",
+        "actions": [
+          {
+            "replica_count": {
+              "number_of_replicas": 0
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "90d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "delete": {}
+          }
+        ]
+      }
+    ],
+    "ism_template": [
+      {
+        "index_patterns": ["regulus-*"],
+        "priority": 100
+      }
+    ]
+  }
+}

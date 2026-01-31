@@ -3,6 +3,18 @@
 #         $REG_ROOT/build_report/build_report --formats html --output report \
 #                 --git-branch feature-x --execution-label nightly
 #
+# Check if REG_ROOT is set
+if [ -z "${REG_ROOT}" ]; then
+    echo "ERROR: REG_ROOT environment variable is not set"
+    echo ""
+    echo "Please source bootstrap.sh first:"
+    echo "  source \$REG_ROOT/bootstrap.sh"
+    echo ""
+    echo "Or set REG_ROOT manually:"
+    echo "  export REG_ROOT=/path/to/regulus"
+    exit 1
+fi
+
 # Source lab.config if it exists to pick up EXECUTION_LABEL and other settings
 if [ -f "$REG_ROOT/lab.config" ]; then
     source $REG_ROOT/lab.config
