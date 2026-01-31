@@ -79,6 +79,8 @@ bash setmode one || { echo "setmode failed"; exit 1; }
 popd || { echo "popd failed"; exit 1; }
 make init-jobs || { echo "make init-jobs failed"; exit 1; }
 make jobs || { echo "make jobs failed"; exit 1; }
-make report-summary || { echo "make report-summary failed"; exit 1; }
+
+#### Index the summary results to {Elastic/Open}Search ####
+./run_es.sh || { echo "run_es.sh failed"; exit 1; }
 
 #EOF

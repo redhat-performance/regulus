@@ -96,8 +96,25 @@ class ESDocumentFlattener:
             "samples_count": result.samples_count
         }
 
+        # Remove null values and convert string "None" to null for numeric fields only
+        # This handles cases where upstream data has "None" as a string instead of null
+        # Define fields that should be numeric (ES expects integers/floats for these)
+        numeric_fields = {
+            'threads', 'wsize', 'rsize', 'cpu',
+            'pods_per_worker', 'scale_out_factor',
+            'mean', 'min', 'max', 'stddev', 'stddev_pct', 'busy_cpu', 'samples_count'
+        }
+
+        def sanitize_value(key, value):
+            """Convert string 'None' to None for numeric fields only"""
+            if key in numeric_fields and (value == "None" or value == ""):
+                return None
+            return value
+
+        sanitized_doc = {k: sanitize_value(k, v) for k, v in doc.items()}
+
         # Remove null values to save space
-        return {k: v for k, v in doc.items() if v is not None}
+        return {k: v for k, v in sanitized_doc.items() if v is not None}
 
     def create_bulk_action(self, doc: Dict[str, Any], doc_id: Optional[str] = None) -> Dict[str, Any]:
         """
