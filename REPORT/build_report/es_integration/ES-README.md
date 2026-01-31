@@ -1,6 +1,8 @@
-# ElasticSearch Integration Guide
+# ElasticSearch/OpenSearch Integration Guide
 
-This guide covers how to upload benchmark results to ElasticSearch and manage the data.
+This guide covers how to upload benchmark results to ElasticSearch or OpenSearch and manage the data.
+
+**Platform Auto-Detection**: All targets automatically detect whether you're using ElasticSearch or OpenSearch and use the appropriate APIs. No manual configuration needed!
 
 ## Quick Start
 
@@ -154,6 +156,62 @@ curl -X POST "http://localhost:9200/regulus-results/_search?pretty" \
 curl "http://localhost:9200/regulus-results/_doc/YOUR_DOCUMENT_ID?pretty"
 ```
 
+## Index Lifecycle Management (ILM/ISM)
+
+Automatically manage index rollover and retention with lifecycle policies. Both ElasticSearch and OpenSearch are supported with automatic platform detection.
+
+### Lifecycle Phases
+
+1. **Hot Phase (0-30 days)** - Active data receiving writes
+   - Rollover triggers: 50GB size OR 30 days age OR 1M documents
+   - Highest priority for search
+
+2. **Warm Phase (7-30 days)** - Read-only optimization
+   - Force merge to 1 segment for better performance
+   - Medium priority
+
+3. **Cold Phase (30-90 days)** - Long-term storage
+   - ElasticSearch: Searchable snapshots
+   - OpenSearch: Replica reduction
+   - Lowest priority
+
+4. **Delete Phase (90+ days)** - Automatic deletion
+
+### Setup Lifecycle Policy
+
+```bash
+# Apply lifecycle policy (auto-detects ES/OpenSearch)
+make -C REPORT/build_report es-ilm-policy ES_HOST=localhost:9200
+
+# View applied policy
+make -C REPORT/build_report es-ilm-info ES_HOST=localhost:9200
+
+# Check lifecycle status for an index
+make -C REPORT/build_report es-ilm-explain ES_HOST=localhost:9200 ES_INDEX=regulus-results
+```
+
+### Bootstrap Rollover Index
+
+Before uploading data with lifecycle management:
+
+```bash
+# Create rollover-enabled index with write alias
+make -C REPORT/build_report es-bootstrap-index ES_HOST=localhost:9200
+```
+
+This creates:
+- Index: `regulus-results-000001`
+- Write alias: `regulus-results`
+
+New indices are automatically created when rollover conditions are met (e.g., `regulus-results-000002`, `regulus-results-000003`, etc.).
+
+### Files
+
+- **detect_platform.sh** - Auto-detection script for ES/OpenSearch
+- **es_ilm_policy.json** - ElasticSearch ILM policy
+- **opensearch_ism_policy.json** - OpenSearch ISM policy
+- **es_mapping_template.json** - Index template with lifecycle settings
+
 ## Makefile Targets Reference
 
 ### From Root Directory
@@ -179,6 +237,17 @@ make es-check ES_HOST=localhost:9200        # Check ES connection
 make es-template ES_HOST=localhost:9200     # Apply index template
 make es-upload ES_HOST=localhost:9200       # Upload data
 make es-full ES_HOST=localhost:9200         # Complete workflow
+
+# Index Lifecycle Management (auto-detects ES/OpenSearch)
+make es-ilm-policy ES_HOST=localhost:9200   # Apply ILM/ISM policy
+make es-ilm-info ES_HOST=localhost:9200     # View policy details
+make es-ilm-explain ES_HOST=localhost:9200  # Check index lifecycle status
+make es-bootstrap-index ES_HOST=localhost:9200  # Create rollover index
+
+# Debugging
+make es-index-stats ES_HOST=localhost:9200  # Show index statistics
+make es-index-mapping ES_HOST=localhost:9200 # Show index mapping
+make es-template-info ES_HOST=localhost:9200 # Show template details
 ```
 
 ## Configuration
