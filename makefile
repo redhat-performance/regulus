@@ -14,9 +14,54 @@
 #
 include ./jobs.config
 SHELL := /bin/bash
-.PHONY: confirm_execute summary
+.PHONY: help confirm_execute summary
 
 LOG_FILE := jobs.log-$(shell date "+%Y-%m-%d-%H-%M-%S")
+
+# Default target
+help:
+	@echo "======================================================================"
+	@echo "  REGULUS - Network Performance Benchmark Framework"
+	@echo "======================================================================"
+	@echo ""
+	@echo "Job Targets (work with JOBS defined in jobs.config):"
+	@echo "  make init-jobs        - Initialize jobs in JOBS variable"
+	@echo "  make run-jobs         - Run jobs in JOBS variable"
+	@echo "  make clean-jobs       - Clean artifacts from jobs"
+	@echo "  make report-jobs      - Show jobs with errors (run-*.log.error)"
+	@echo "  make reindex-jobs     - Reindex jobs"
+	@echo "  make dry-run-jobs     - Dry run jobs without execution"
+	@echo "  make jobs             - Run jobs and save to timestamped log"
+	@echo ""
+	@echo "Batch Targets (work with ALL benchmark directories):"
+	@echo "  make init-all         - Initialize ALL benchmark dirs (requires confirmation)"
+	@echo "  make run-all          - Run ALL benchmark dirs (requires confirmation)"
+	@echo "  make clean-all        - Clean ALL benchmark dirs (requires confirmation)"
+	@echo "  make dry-run-all      - Dry run ALL benchmark dirs (requires confirmation)"
+	@echo ""
+	@echo "Lab/Environment Targets:"
+	@echo "  make init-lab         - Discover cluster from lab.config, generate .LAB files"
+	@echo "  make clean-lab        - Remove .LAB files"
+	@echo "  make inventory        - Run inventory collection"
+	@echo "  make clean-inventory  - Clean inventory artifacts"
+	@echo ""
+	@echo "Report Targets (delegate to REPORT/):"
+	@echo "  make report-summary                    - Generate report (JSON, HTML, CSV)"
+	@echo "  make report-summary-with-testbed-info  - Generate report with testbed info"
+	@echo "  make report-dashboard                  - Start interactive web dashboard"
+	@echo "  make report-dashboard-stop             - Stop dashboard instances"
+	@echo "  make report-dashboard-restart          - Restart dashboard"
+	@echo "  make report-flatten                    - Flatten report.json to NDJSON"
+	@echo "  make report-es-upload                  - Upload to ElasticSearch"
+	@echo "  make report-es-full                    - Full ES workflow (summary + upload)"
+	@echo ""
+	@echo "Configuration:"
+	@echo "  JOBS config: ./jobs.config"
+	@echo "  Lab config:  ./lab.config"
+	@echo "  ES config:   ES_URL and ES_INDEX from lab.config or environment"
+	@echo ""
+	@echo "For more details on report targets: cd REPORT && make help"
+	@echo "======================================================================"
 
 init-jobs: init-lab
 	echo JOBS=$$JOBS
@@ -186,11 +231,11 @@ report-dashboard-restart:
 	@$(MAKE) -C REPORT dashboard-restart
 
 report-flatten:
-	@$(MAKE) -C REPORT flatten ES_HOST=$(ES_HOST) ES_INDEX=$(ES_INDEX)
+	@$(MAKE) -C REPORT flatten
 
 report-es-upload:
-	@$(MAKE) -C REPORT es-upload ES_HOST=$(ES_HOST) ES_INDEX=$(ES_INDEX)
+	@$(MAKE) -C REPORT es-upload
 
 report-es-full:
-	@$(MAKE) -C REPORT es-full ES_HOST=$(ES_HOST) ES_INDEX=$(ES_INDEX)
+	@$(MAKE) -C REPORT es-full
 

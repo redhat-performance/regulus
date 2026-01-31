@@ -4,6 +4,7 @@
 .PHONY: help dashboard dashboard-stop dashboard-restart \
         test-dashboard test-flatten test-flatten-pretty test-es-setup test-dev test-integration \
         flatten es-upload es-template es-check es-index-stats es-template-info es-index-mapping \
+        es-ilm-policy es-ilm-info es-ilm-explain es-bootstrap-index \
         test clean
 
 # Configuration variables
@@ -11,13 +12,31 @@ PYTHON := python3
 DASHBOARD_SCRIPT := dashboard/run_dashboard.py
 FLATTEN_SCRIPT := es_integration/flatten_to_es.py
 ES_TEMPLATE := es_integration/es_mapping_template.json
+ES_ILM_POLICY := es_integration/es_ilm_policy.json
 TEST_DATA_DIR := dashboard/test_data
-REPORTS_DIR ?= $(TEST_DATA_DIR)
+REPORTS_DIR ?= ../generated
 OUTPUT_DIR ?= /tmp
-ES_HOST ?= localhost:9200
+
+# Determine REG_ROOT (regulus root directory)
+# Try multiple methods to find it: env var, parent directories
+REG_ROOT ?= $(shell \
+	if [ -n "$$REG_ROOT" ]; then \
+		echo "$$REG_ROOT"; \
+	elif [ -f "../../lab.config" ]; then \
+		cd ../.. && pwd; \
+	elif [ -f "../../../lab.config" ]; then \
+		cd ../../.. && pwd; \
+	else \
+		cd ../.. && pwd; \
+	fi)
+
+# ElasticSearch configuration
+# ES_URL must be set by the caller (outside REPORT/) with complete connection info
+# Examples:
+#   Dev:  ES_URL="http://localhost:9200"
+#   Prod: ES_URL="https://user:pass@search-perfscale-pro-xxxxx.us-west-2.es.amazonaws.com"
+# ES_INDEX - Index name for upload operations
 ES_INDEX ?= regulus-results
-ES_USER ?=
-ES_PASSWORD ?=
 
 # Default target
 help:
@@ -41,7 +60,7 @@ help:
 	@echo "Production Data Targets:"
 	@echo "  make flatten REPORTS_DIR=<path> OUTPUT_DIR=<path>"
 	@echo "                              - Flatten custom reports to NDJSON"
-	@echo "  make es-upload REPORTS_DIR=<path> ES_HOST=<host> ES_INDEX=<index>"
+	@echo "  make es-upload REPORTS_DIR=<path> ES_URL=<url> ES_INDEX=<index>"
 	@echo "                              - Upload custom reports to ES"
 	@echo ""
 	@echo "ElasticSearch Operations:"
@@ -51,6 +70,12 @@ help:
 	@echo "  make es-template-info       - Show ES index template details"
 	@echo "  make es-index-mapping       - Show current index mapping"
 	@echo ""
+	@echo "Index Lifecycle Management (ILM):"
+	@echo "  make es-ilm-policy          - Apply ILM policy for data retention"
+	@echo "  make es-ilm-info            - Show current ILM policy details"
+	@echo "  make es-ilm-explain         - Explain ILM phase for an index"
+	@echo "  make es-bootstrap-index     - Create initial bootstrapped index"
+	@echo ""
 	@echo "Maintenance:"
 	@echo "  make test                   - Run all tests"
 	@echo "  make clean                  - Clean temporary files"
@@ -58,15 +83,15 @@ help:
 	@echo "Configuration Variables:"
 	@echo "  REPORTS_DIR    = $(REPORTS_DIR)"
 	@echo "  OUTPUT_DIR     = $(OUTPUT_DIR)"
-	@echo "  ES_HOST        = $(ES_HOST)"
+	@echo "  ES_URL         = Complete ES connection URL (set by caller)"
 	@echo "  ES_INDEX       = $(ES_INDEX)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-dashboard              # Start dashboard with mock data"
 	@echo "  make test-flatten                # Flatten test data to NDJSON"
 	@echo "  make dashboard REPORTS_DIR=/path # Start with production data"
-	@echo "  make es-template ES_HOST=prod-es:9200"
-	@echo "  make es-upload REPORTS_DIR=/path ES_HOST=localhost:9200"
+	@echo "  make es-template ES_URL=http://localhost:9200"
+	@echo "  make es-upload REPORTS_DIR=/path ES_URL=https://user:pass@prod-es:9200"
 	@echo "====================================================================="
 
 # =============================================================================
@@ -157,52 +182,48 @@ flatten-pretty:
 # =============================================================================
 
 es-check:
-	@echo "Checking ElasticSearch connection at $(ES_HOST)..."
-	@curl -s "http://$(ES_HOST)" > /dev/null && \
-		echo "✓ ElasticSearch is reachable at $(ES_HOST)" || \
-		echo "✗ Cannot connect to ElasticSearch at $(ES_HOST)"
-	@echo ""
-	@curl -s "http://$(ES_HOST)" | $(PYTHON) -m json.tool 2>/dev/null || true
+	@if [ -z "$(ES_URL)" ]; then \
+		echo "ERROR: ES_URL must be set (determined outside REPORT/)"; \
+		exit 1; \
+	fi; \
+	echo "Checking ElasticSearch connection at $(ES_URL)..."; \
+	curl -s "$(ES_URL)" > /dev/null && \
+		echo "✓ ElasticSearch is reachable at $(ES_URL)" || \
+		echo "✗ Cannot connect to ElasticSearch at $(ES_URL)"
 
 es-template: es-check
-	@echo "Applying ElasticSearch index template..."
-	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
-		curl -X PUT "http://$(ES_HOST)/_index_template/regulus-template" \
-			-u "$(ES_USER):$(ES_PASSWORD)" \
-			-H 'Content-Type: application/json' \
-			-d @$(ES_TEMPLATE); \
-	else \
-		curl -X PUT "http://$(ES_HOST)/_index_template/regulus-template" \
-			-H 'Content-Type: application/json' \
-			-d @$(ES_TEMPLATE); \
-	fi
-	@echo ""
-	@echo "✓ Index template applied successfully"
+	@echo "Detecting platform and applying index template..."
+	@eval $$(es_integration/detect_platform.sh); \
+	echo "Detected platform: $$PLATFORM (version $$VERSION)"; \
+	echo "Applying template: $$TEMPLATE_FILE"; \
+	echo ""; \
+	curl -X PUT "$(ES_URL)/_index_template/regulus-template" \
+		-H 'Content-Type: application/json' \
+		-d @es_integration/$${TEMPLATE_FILE} | $(PYTHON) -m json.tool; \
+	echo ""; \
+	echo "✓ Index template applied successfully"; \
+	echo "  Platform: $$PLATFORM"; \
+	echo "  Template: $$TEMPLATE_FILE"
 
 es-upload:
 	@echo "Uploading reports to ElasticSearch..."
 	@echo "  Source: $(REPORTS_DIR)"
-	@echo "  ES Host: $(ES_HOST)"
+	@echo "  ES URL: $(ES_URL)"
 	@echo "  ES Index: $(ES_INDEX)"
-	@# First, flatten to NDJSON if needed
-	@if [ ! -f "$(OUTPUT_DIR)/reports.ndjson" ] || [ "$(REPORTS_DIR)" -nt "$(OUTPUT_DIR)/reports.ndjson" ]; then \
-		echo "Flattening reports to NDJSON..."; \
-		$(PYTHON) $(FLATTEN_SCRIPT) $(REPORTS_DIR) -o $(OUTPUT_DIR)/reports.ndjson; \
-	fi
-	@# Then upload using curl (no Python elasticsearch package needed)
-	@echo "Uploading $(shell grep -c '{\"index\"' $(OUTPUT_DIR)/reports.ndjson 2>/dev/null || echo 0) documents..."
-	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
-		curl -s -u "$(ES_USER):$(ES_PASSWORD)" \
-			-H "Content-Type: application/x-ndjson" \
-			-XPOST "http://$(ES_HOST)/$(ES_INDEX)/_bulk" \
-			--data-binary @$(OUTPUT_DIR)/reports.ndjson | \
-			$(PYTHON) -c "import sys, json; r=json.load(sys.stdin); print('✓ Uploaded:', r.get('items', []) and len(r['items']), 'documents'); print('  Errors:', r.get('errors', False))"; \
+	@# Check if reports.ndjson already exists in REPORTS_DIR
+	@if [ -f "$(REPORTS_DIR)/reports.ndjson" ]; then \
+		echo "Using existing NDJSON file: $(REPORTS_DIR)/reports.ndjson"; \
+		NDJSON_FILE="$(REPORTS_DIR)/reports.ndjson"; \
 	else \
-		curl -s -H "Content-Type: application/x-ndjson" \
-			-XPOST "http://$(ES_HOST)/$(ES_INDEX)/_bulk" \
-			--data-binary @$(OUTPUT_DIR)/reports.ndjson | \
-			$(PYTHON) -c "import sys, json; r=json.load(sys.stdin); print('✓ Uploaded:', r.get('items', []) and len(r['items']), 'documents'); print('  Errors:', r.get('errors', False))"; \
-	fi
+		echo "No pre-generated NDJSON found, flattening reports..."; \
+		$(PYTHON) $(FLATTEN_SCRIPT) $(REPORTS_DIR) -o $(OUTPUT_DIR)/reports.ndjson; \
+		NDJSON_FILE="$(OUTPUT_DIR)/reports.ndjson"; \
+	fi; \
+	echo "Uploading $$(grep -c '{\"index\"' $$NDJSON_FILE 2>/dev/null || echo 0) documents..."; \
+	curl -s -H "Content-Type: application/x-ndjson" \
+		-XPOST "$(ES_URL)/$(ES_INDEX)/_bulk" \
+		--data-binary @$$NDJSON_FILE | \
+		$(PYTHON) es_integration/debug_upload_errors.py
 
 es-upload-with-template: es-template es-upload
 
@@ -216,22 +237,14 @@ es-index-stats: es-check
 	@echo "=========================================="
 	@echo ""
 	@echo "Index: $(ES_INDEX)"
-	@echo "Host: $(ES_HOST)"
+	@echo "URL: $(ES_URL)"
 	@echo ""
 	@echo "Detailed Stats (verbose):"
-	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
-		curl -s -u "$(ES_USER):$(ES_PASSWORD)" "http://$(ES_HOST)/_cat/indices/$(ES_INDEX)?v&h=health,status,index,uuid,pri,rep,docs.count,docs.deleted,store.size,pri.store.size"; \
-	else \
-		curl -s "http://$(ES_HOST)/_cat/indices/$(ES_INDEX)?v&h=health,status,index,uuid,pri,rep,docs.count,docs.deleted,store.size,pri.store.size"; \
-	fi
+	@curl -s "$(ES_URL)/_cat/indices/$(ES_INDEX)?v&h=health,status,index,uuid,pri,rep,docs.count,docs.deleted,store.size,pri.store.size"
 	@echo ""
 	@echo ""
 	@echo "Index Settings and Stats (JSON):"
-	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
-		curl -s -u "$(ES_USER):$(ES_PASSWORD)" "http://$(ES_HOST)/$(ES_INDEX)/_stats" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index may not exist yet"; \
-	else \
-		curl -s "http://$(ES_HOST)/$(ES_INDEX)/_stats" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index may not exist yet"; \
-	fi
+	@curl -s "$(ES_URL)/$(ES_INDEX)/_stats" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index may not exist yet"
 
 es-template-info: es-check
 	@echo "=========================================="
@@ -239,13 +252,9 @@ es-template-info: es-check
 	@echo "=========================================="
 	@echo ""
 	@echo "Template: regulus-template"
-	@echo "Host: $(ES_HOST)"
+	@echo "URL: $(ES_URL)"
 	@echo ""
-	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
-		curl -s -u "$(ES_USER):$(ES_PASSWORD)" "http://$(ES_HOST)/_index_template/regulus-template" | $(PYTHON) -m json.tool 2>/dev/null || echo "Template does not exist. Run 'make es-template' to create it."; \
-	else \
-		curl -s "http://$(ES_HOST)/_index_template/regulus-template" | $(PYTHON) -m json.tool 2>/dev/null || echo "Template does not exist. Run 'make es-template' to create it."; \
-	fi
+	@curl -s "$(ES_URL)/_index_template/regulus-template" | $(PYTHON) -m json.tool 2>/dev/null || echo "Template does not exist. Run 'make es-template' to create it."
 
 es-index-mapping: es-check
 	@echo "=========================================="
@@ -253,13 +262,79 @@ es-index-mapping: es-check
 	@echo "=========================================="
 	@echo ""
 	@echo "Index: $(ES_INDEX)"
-	@echo "Host: $(ES_HOST)"
+	@echo "URL: $(ES_URL)"
 	@echo ""
-	@if [ -n "$(ES_USER)" ] && [ -n "$(ES_PASSWORD)" ]; then \
-		curl -s -u "$(ES_USER):$(ES_PASSWORD)" "http://$(ES_HOST)/$(ES_INDEX)/_mapping" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist yet"; \
-	else \
-		curl -s "http://$(ES_HOST)/$(ES_INDEX)/_mapping" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist yet"; \
-	fi
+	@curl -s "$(ES_URL)/$(ES_INDEX)/_mapping" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist yet"
+
+# =============================================================================
+# Index Lifecycle Management (ILM/ISM) Targets
+# Auto-detects ElasticSearch vs OpenSearch and uses appropriate APIs
+# =============================================================================
+
+es-ilm-policy: es-check
+	@echo "Detecting platform and applying lifecycle policy..."
+	@eval $$(es_integration/detect_platform.sh); \
+	echo "Detected platform: $$PLATFORM (version $$VERSION)"; \
+	echo "Applying policy: $$POLICY_NAME"; \
+	echo ""; \
+	curl -X PUT "$(ES_URL)$${POLICY_ENDPOINT}/$${POLICY_NAME}" \
+		-H 'Content-Type: application/json' \
+		-d @es_integration/$${POLICY_FILE} | $(PYTHON) -m json.tool; \
+	echo ""; \
+	echo "✓ Lifecycle policy applied successfully"; \
+	echo "  Platform: $$PLATFORM"; \
+	echo "  Policy: $$POLICY_NAME"; \
+	echo "  Phases: hot (30d) -> warm (7d) -> cold (30d) -> delete (90d)"
+
+es-ilm-info: es-check
+	@echo "=========================================="
+	@echo "  Lifecycle Policy Information"
+	@echo "=========================================="
+	@echo ""
+	@eval $$(es_integration/detect_platform.sh); \
+	echo "Platform: $$PLATFORM (version $$VERSION)"; \
+	echo "Policy: $$POLICY_NAME"; \
+	echo "URL: $(ES_URL)"; \
+	echo ""; \
+	curl -s "$(ES_URL)$${POLICY_ENDPOINT}/$${POLICY_NAME}" | $(PYTHON) -m json.tool 2>/dev/null || echo "Policy does not exist. Run 'make es-ilm-policy' to create it."
+
+es-ilm-explain: es-check
+	@echo "=========================================="
+	@echo "  Lifecycle Phase Explanation for Index"
+	@echo "=========================================="
+	@echo ""
+	@eval $$(es_integration/detect_platform.sh); \
+	echo "Platform: $$PLATFORM"; \
+	echo "Index: $(ES_INDEX)"; \
+	echo "URL: $(ES_URL)"; \
+	echo ""; \
+	curl -s "$(ES_URL)$${POLICY_EXPLAIN_PREFIX}$(ES_INDEX)$${POLICY_EXPLAIN_SUFFIX}" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist or lifecycle management not enabled yet"
+
+es-bootstrap-index: es-check es-ilm-policy es-template
+	@echo "=========================================="
+	@echo "  Bootstrapping Rollover Index"
+	@echo "=========================================="
+	@echo ""
+	@eval $$(es_integration/detect_platform.sh); \
+	echo "Platform: $$PLATFORM"; \
+	echo "Creating initial write index: $(ES_INDEX)-000001"; \
+	echo "Write alias: $(ES_INDEX)"; \
+	echo ""; \
+	echo "{\"aliases\":{\"$(ES_INDEX)\":{\"is_write_index\":true}}}" > /tmp/bootstrap-index.json; \
+	curl -X PUT "$(ES_URL)/$(ES_INDEX)-000001" \
+		-H 'Content-Type: application/json' \
+		-d @/tmp/bootstrap-index.json | $(PYTHON) -m json.tool; \
+	rm -f /tmp/bootstrap-index.json; \
+	echo ""; \
+	echo "✓ Rollover-enabled index created successfully"; \
+	echo "  Platform: $$PLATFORM"; \
+	echo "  Index: $(ES_INDEX)-000001"; \
+	echo "  Alias: $(ES_INDEX) (write)"; \
+	echo ""; \
+	echo "Next steps:"; \
+	echo "  1. Upload data using: make es-upload"; \
+	echo "  2. Monitor rollover: make es-ilm-explain"; \
+	echo "  3. Check index stats: make es-index-stats"
 
 # =============================================================================
 # Testing Targets
