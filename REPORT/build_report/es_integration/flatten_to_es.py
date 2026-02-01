@@ -19,6 +19,7 @@ Usage:
 import sys
 import json
 import argparse
+import uuid
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -40,6 +41,7 @@ class ESDocumentFlattener:
         self.index_name = index_name
         self.regulus_git_branch = None
         self.execution_label = None
+        self.batch_id = str(uuid.uuid4())  # UUID to group documents from the same upload batch
 
     def flatten_result(self, result: BenchmarkResult) -> Dict[str, Any]:
         """
@@ -51,6 +53,9 @@ class ESDocumentFlattener:
         doc = {
             # Document metadata
             "@timestamp": result.timestamp or datetime.utcnow().isoformat(),
+
+            # Upload batch tracking
+            "batch_id": self.batch_id,
 
             # Execution context metadata
             "regulus_git_branch": self.regulus_git_branch,

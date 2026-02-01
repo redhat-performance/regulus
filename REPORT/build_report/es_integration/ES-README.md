@@ -250,6 +250,69 @@ make es-index-mapping ES_HOST=localhost:9200 # Show index mapping
 make es-template-info ES_HOST=localhost:9200 # Show template details
 ```
 
+### From REPORT/build_report Directory
+
+```bash
+cd REPORT/build_report
+
+# Batch Management (track and delete upload batches)
+make es-list-batches                     # List all upload batches
+make es-show-last-batch                  # Show most recent batch
+make es-batch-count ES_BATCH_ID=<uuid>   # Count documents in batch
+make es-batch-info ES_BATCH_ID=<uuid>    # Show batch details
+make es-delete-batch ES_BATCH_ID=<uuid>  # Delete bad batch (with confirmation)
+```
+
+## Batch ID Tracking
+
+Each upload session is automatically assigned a unique `batch_id` (UUID) to track which documents came from which upload. This enables you to:
+
+- **Identify uploads**: See which documents were uploaded together
+- **Delete bad uploads**: Remove all documents from a misconfigured test run
+- **Audit changes**: Track upload history over time
+
+### How It Works
+
+1. **Upload Session**: Each time `flatten_to_es.py` runs, it generates a new UUID
+2. **Document Tagging**: All documents created in that session get the same `batch_id`
+3. **Update Behavior**: If the same document (same `run_id + iteration_id + unit`) is uploaded again, its `batch_id` is updated to the new upload's `batch_id`
+
+### Common Use Cases
+
+**Scenario 1: Delete bad upload due to misconfigured BIOS**
+```bash
+# Day 1: Upload results
+make summary && make es-upload
+# batch_id: abc-123, 50 documents uploaded
+
+# Day 2: Discover BIOS was misconfigured
+# List batches to find the bad one
+make es-list-batches
+# Output: abc-123 (50 documents)
+
+# Delete the bad batch
+make es-delete-batch ES_BATCH_ID=abc-123
+# All 50 documents deleted ✓
+```
+
+**Scenario 2: Track incremental uploads**
+```bash
+# Day 1: Upload initial results
+make summary && make es-upload
+# batch_id: aaa-111, 10 documents
+
+# Day 2: Run more tests, upload again
+make summary && make es-upload
+# batch_id: bbb-222, 15 documents (10 updated + 5 new)
+
+# Show all batches
+make es-list-batches
+# Output:
+#   bbb-222 (15 documents) ← All docs now have this batch_id
+```
+
+**Note:** When documents are re-uploaded, their `batch_id` is updated to the latest upload. This means the batch_id always reflects the most recent upload that touched each document.
+
 ## Configuration
 
 ### Environment Variables
@@ -280,6 +343,7 @@ Each document in the index contains:
 ```json
 {
   "@timestamp": "2025-11-21T23:49:33.266144",
+  "batch_id": "f2c533ef-b020-473e-babf-b81371e8147b",
   "regulus_data": "path/to/result-summary.txt",
   "run_id": "957f87ae-7221-42fc-ae36-3ad65e7c1b5e",
   "iteration_id": "84C3D740-C75E-11F0-883A-A3313D4C31ED",

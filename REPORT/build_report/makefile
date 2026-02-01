@@ -5,6 +5,7 @@
         test-dashboard test-flatten test-flatten-pretty test-es-setup test-dev test-integration \
         flatten es-upload es-template es-check es-index-stats es-template-info es-index-mapping \
         es-ilm-policy es-ilm-info es-ilm-explain es-bootstrap-index \
+        es-list-batches es-batch-count es-batch-info es-delete-batch es-show-last-batch \
         test clean
 
 # Configuration variables
@@ -75,6 +76,13 @@ help:
 	@echo "  make es-ilm-info            - Show current ILM policy details"
 	@echo "  make es-ilm-explain         - Explain ILM phase for an index"
 	@echo "  make es-bootstrap-index     - Create initial bootstrapped index"
+	@echo ""
+	@echo "Batch Management:"
+	@echo "  make es-list-batches                     - List all upload batches"
+	@echo "  make es-batch-count ES_BATCH_ID=<uuid>   - Count documents in batch"
+	@echo "  make es-batch-info ES_BATCH_ID=<uuid>    - Show batch details"
+	@echo "  make es-delete-batch ES_BATCH_ID=<uuid>  - Delete all documents in batch"
+	@echo "  make es-show-last-batch                  - Show most recent batch"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make test                   - Run all tests"
@@ -335,6 +343,87 @@ es-bootstrap-index: es-check es-ilm-policy es-template
 	echo "  1. Upload data using: make es-upload"; \
 	echo "  2. Monitor rollover: make es-ilm-explain"; \
 	echo "  3. Check index stats: make es-index-stats"
+
+# =============================================================================
+# Batch Management Targets
+# =============================================================================
+
+es-list-batches: es-check
+	@echo "=========================================="
+	@echo "  Upload Batches in $(ES_INDEX)"
+	@echo "=========================================="
+	@echo ""
+	@curl -s "$(ES_URL)/$(ES_INDEX)/_search?size=0&pretty" \
+		-H 'Content-Type: application/json' \
+		-d '{"aggs": {"batches": {"terms": {"field": "batch_id.keyword", "size": 100}}}}' | \
+		$(PYTHON) -c 'import sys, json; \
+		data = json.load(sys.stdin); \
+		buckets = data.get("aggregations", {}).get("batches", {}).get("buckets", []); \
+		print("Found {} unique batch(es):\n".format(len(buckets))); \
+		[print("  {} ({} documents)".format(b["key"], b["doc_count"])) for b in buckets]'
+
+es-batch-count: es-check
+	@if [ -z "$(ES_BATCH_ID)" ]; then \
+		echo "ERROR: ES_BATCH_ID required. Usage: make es-batch-count ES_BATCH_ID=<uuid>"; \
+		exit 1; \
+	fi
+	@curl -s "$(ES_URL)/$(ES_INDEX)/_count?pretty" \
+		-H 'Content-Type: application/json' \
+		-d '{"query": {"term": {"batch_id.keyword": "$(ES_BATCH_ID)"}}}' | \
+		$(PYTHON) -c 'import sys, json; print("Documents in batch: {}".format(json.load(sys.stdin)["count"]))'
+
+es-batch-info: es-check
+	@if [ -z "$(ES_BATCH_ID)" ]; then \
+		echo "ERROR: ES_BATCH_ID required. Usage: make es-batch-info ES_BATCH_ID=<uuid>"; \
+		exit 1; \
+	fi
+	@echo "=========================================="
+	@echo "  Batch Information"
+	@echo "=========================================="
+	@echo ""
+	@echo "Batch ID: $(ES_BATCH_ID)"
+	@echo "Index: $(ES_INDEX)"
+	@echo ""
+	@curl -s "$(ES_URL)/$(ES_INDEX)/_search?size=5&pretty" \
+		-H 'Content-Type: application/json' \
+		-d '{"query": {"term": {"batch_id.keyword": "$(ES_BATCH_ID)"}}, "aggs": {"benchmarks": {"terms": {"field": "benchmark"}}, "models": {"terms": {"field": "model"}}}}' | \
+		$(PYTHON) -m json.tool
+
+es-delete-batch: es-check
+	@if [ -z "$(ES_BATCH_ID)" ]; then \
+		echo "ERROR: ES_BATCH_ID required. Usage: make es-delete-batch ES_BATCH_ID=<uuid>"; \
+		exit 1; \
+	fi
+	@echo "=========================================="
+	@echo "  WARNING: Delete Batch"
+	@echo "=========================================="
+	@echo ""
+	@echo "This will DELETE all documents with batch_id=$(ES_BATCH_ID)"
+	@echo "Index: $(ES_INDEX)"
+	@echo ""
+	@$(MAKE) es-batch-count ES_BATCH_ID=$(ES_BATCH_ID)
+	@echo ""
+	@read -p "Are you sure you want to delete this batch? [y/N] " confirm && [ "$$confirm" = "y" ] || (echo "Cancelled."; exit 1)
+	@echo ""
+	@echo "Deleting batch..."
+	@curl -s -X POST "$(ES_URL)/$(ES_INDEX)/_delete_by_query?pretty" \
+		-H 'Content-Type: application/json' \
+		-d '{"query": {"term": {"batch_id.keyword": "$(ES_BATCH_ID)"}}}' | \
+		$(PYTHON) -m json.tool
+	@echo ""
+	@echo "✓ Batch deleted"
+
+es-show-last-batch: es-check
+	@echo "Most recent upload batch:"
+	@curl -s "$(ES_URL)/$(ES_INDEX)/_search?size=0&pretty" \
+		-H 'Content-Type: application/json' \
+		-d '{"aggs": {"latest": {"terms": {"field": "batch_id.keyword", "size": 1, "order": {"max_timestamp": "desc"}}, "aggs": {"max_timestamp": {"max": {"field": "@timestamp"}}}}}}' | \
+		$(PYTHON) -c 'import sys, json; \
+		data = json.load(sys.stdin); \
+		buckets = data.get("aggregations", {}).get("latest", {}).get("buckets", []); \
+		print("Batch ID: {}".format(buckets[0]["key"]) if buckets else "No batches found"); \
+		print("Documents: {}".format(buckets[0]["doc_count"]) if buckets else ""); \
+		print("Last upload: {}".format(buckets[0]["max_timestamp"]["value_as_string"]) if buckets else "")'
 
 # =============================================================================
 # Testing Targets
