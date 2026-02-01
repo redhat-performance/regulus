@@ -13,6 +13,9 @@
         "@timestamp": {
           "type": "date"
         },
+        "batch_id": {
+          "type": "keyword"
+        },
         "regulus_data": {
           "type": "keyword"
         },
