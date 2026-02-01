@@ -345,8 +345,9 @@ class ReportLoader:
                         protocol=common_params.get('protocol'),
                         # nthreads can be in either unique_params or common_params
                         threads=self._parse_int(unique_params.get('nthreads') or common_params.get('nthreads')),
-                        wsize=self._parse_int(unique_params.get('wsize')),
-                        rsize=self._parse_int(unique_params.get('rsize')),
+                        # wsize and rsize can be in either unique_params or common_params
+                        wsize=self._parse_int(unique_params.get('wsize') or common_params.get('wsize')),
+                        rsize=self._parse_int(unique_params.get('rsize') or common_params.get('rsize')),
 
                         # Metrics
                         mean=result.get('mean'),
