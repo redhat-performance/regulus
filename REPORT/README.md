@@ -310,7 +310,41 @@ make report-es-full
 
 For detailed ElasticSearch documentation, see `REPORT/build_report/es_integration/ES-README.md`.
 
-### 5. Development: Test Dashboard Changes
+### 5. Manage Upload Batches (Batch ID Tracking)
+
+Each upload session is assigned a unique `batch_id` (UUID) to track which documents came from which upload. This allows you to identify and delete bad uploads (e.g., due to misconfigured BIOS).
+
+```bash
+cd REPORT/build_report
+
+# List all upload batches
+make es-list-batches
+
+# Show most recent batch
+make es-show-last-batch
+
+# Get details about a specific batch
+make es-batch-info ES_BATCH_ID=<uuid>
+
+# Count documents in a batch
+make es-batch-count ES_BATCH_ID=<uuid>
+
+# Delete a bad batch (with confirmation)
+make es-delete-batch ES_BATCH_ID=<uuid>
+```
+
+**Example scenario:**
+1. Day 1: Upload test results → All docs tagged with `batch_id=abc-123`
+2. Day 2: Discover BIOS was misconfigured
+3. Delete bad batch: `make es-delete-batch ES_BATCH_ID=abc-123`
+4. All Day 2 documents deleted, Day 1 documents remain intact ✓
+
+**How it works:**
+- Each `make summary` + `make es-upload` generates a new batch_id
+- All documents uploaded in that session share the same batch_id
+- When the same test is uploaded again (different batch), its batch_id is updated to the new upload's batch_id
+
+### 6. Development: Test Dashboard Changes
 
 ```bash
 cd REPORT/build_report
@@ -325,7 +359,7 @@ make dashboard-restart
 # View at http://localhost:5000
 ```
 
-### 6. Validate ElasticSearch Format
+### 7. Validate ElasticSearch Format
 
 ```bash
 cd REPORT/build_report
