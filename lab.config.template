@@ -55,10 +55,14 @@ export REM_DPDK_CONFIG=false   # fale to disable DPDK test, until we manually ve
 # ElasticSearch configuration for report upload requires ES_INDEX and ES_URL
 export ES_INDEX=regulus-results
 
-# For development, http or https server
+# For development http or https server
 # export ES_URL="http://localhost:9200"
 # export ES_URL='https://$ES_USER:$ES_PASSWORD@$ES_HOST'
 
-# For production, ci-tools/Prow/CPT invokes the chain: run_cpt.sh -> run_es.sh - run_es.sh constructs ES_URL from /secret
+# For production, the ci-tools/Prow/CPT invokes a chain: run_cpt.sh -> run_es.sh - run_es.sh constructs ES_URL from /secret
 # You do not need to define ES_URL here.
+
+# EXECUTION_LABEL is optional. A user-defined tag (i.e nighlty, weekly, EUS, nok, vz etc.) added to each document,
+# export EXECUTION_LABEL="your-token"
+# 
 
