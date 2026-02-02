@@ -9,8 +9,10 @@ WORKDIR /app
 COPY docker/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy dashboard application
-COPY build_report/dashboard/ ./dashboard/
+# Copy dashboard application (from build context root, excluding docker/)
+COPY *.py ./dashboard/
+COPY templates/ ./dashboard/templates/
+COPY static/ ./dashboard/static/
 
 # Create directories for data
 RUN mkdir -p /app/data /app/initial_data
