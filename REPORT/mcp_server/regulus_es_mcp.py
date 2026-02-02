@@ -14,9 +14,15 @@ Configuration:
 
 import os
 import json
+import logging
+import sys
 from typing import Any, Optional
+from urllib.parse import urlparse
 from mcp.server.fastmcp import FastMCP
 import httpx
+
+# Disable httpx logging to prevent credential leakage in URLs
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Initialize FastMCP server
 mcp = FastMCP("regulus-elasticsearch")
@@ -25,6 +31,27 @@ mcp = FastMCP("regulus-elasticsearch")
 ES_URL = os.getenv("ES_URL", "http://localhost:9200")
 ES_INDEX = os.getenv("ES_INDEX", "regulus-results")
 DEFAULT_SIZE = 10
+
+
+def sanitize_url(url: str) -> str:
+    """Remove credentials from URL for safe logging."""
+    try:
+        parsed = urlparse(url)
+        if parsed.username or parsed.password:
+            # Replace credentials with ***
+            netloc = f"***:***@{parsed.hostname}"
+            if parsed.port:
+                netloc += f":{parsed.port}"
+            return f"{parsed.scheme}://{netloc}{parsed.path}"
+        return url
+    except Exception:
+        return "***"
+
+
+def log_es_request(method: str, endpoint: str, status: str):
+    """Log ES request with sanitized URL."""
+    safe_url = sanitize_url(f"{ES_URL}/{endpoint}")
+    print(f"[ES] {method} {safe_url} - {status}", file=sys.stderr)
 
 
 async def es_request(
@@ -52,10 +79,16 @@ async def es_request(
                 return {"error": f"Unsupported HTTP method: {method}"}
 
             response.raise_for_status()
+
+            # Log with sanitized URL
+            log_es_request(method, endpoint, f"{response.status_code} {response.reason_phrase}")
+
             return response.json()
         except httpx.HTTPError as e:
+            log_es_request(method, endpoint, f"ERROR: {type(e).__name__}")
             return {"error": str(e)}
         except Exception as e:
+            log_es_request(method, endpoint, f"ERROR: {str(e)}")
             return {"error": f"Request failed: {str(e)}"}
 
 
@@ -266,9 +299,12 @@ async def search_benchmarks(
         },
         "sort": [{"mean": {"order": "desc"}}, {"@timestamp": {"order": "desc"}}],
         "_source": [
-            "batch_id", "run_id", "benchmark", "model", "nic", "kernel",
+            "batch_id", "run_id", "benchmark", "model", "nic", "kernel", "rcos",
             "topology", "protocol", "test_type", "arch", "cpu",
-            "threads", "wsize", "rsize", "mean", "unit", "busy_cpu", "@timestamp"
+            "performance_profile", "offload",
+            "threads", "wsize", "rsize",
+            "pods_per_worker", "scale_out_factor",
+            "mean", "unit", "busy_cpu", "@timestamp"
         ]
     }
 
@@ -287,16 +323,34 @@ async def search_benchmarks(
 
     for hit in hits:
         doc = hit["_source"]
+
+        # Format throughput and CPU with reasonable precision
+        mean_val = doc.get('mean')
+        mean_str = f"{mean_val:.2f}" if mean_val is not None else 'N/A'
+
+        cpu_val = doc.get('busy_cpu')
+        cpu_str = f"{cpu_val:.1f}" if cpu_val is not None else 'N/A'
+
+        # First line: benchmark, model, NIC, throughput, CPU
         output.append(
             f"• {doc.get('benchmark', 'N/A')} | {doc.get('model', 'N/A')} | "
-            f"{doc.get('nic', 'N/A')} | Throughput: {doc.get('mean', 'N/A')} {doc.get('unit', '')}"
+            f"{doc.get('nic', 'N/A')} | Throughput: {mean_str} {doc.get('unit', '')}, "
+            f"CPU: {cpu_str}"
         )
+
+        # Second line: topology, protocol, test_type
         output.append(
             f"  Topology: {doc.get('topology', 'N/A')}, Protocol: {doc.get('protocol', 'N/A')}, "
             f"Test: {doc.get('test_type', 'N/A')}"
         )
 
-        # Build size info string
+        # Third line: arch, kernel, rcos
+        output.append(
+            f"  Arch: {doc.get('arch', 'N/A')}, Kernel: {doc.get('kernel', 'N/A')}, "
+            f"RCOS: {doc.get('rcos', 'N/A')}"
+        )
+
+        # Fourth line: performance profile, offload, threads, sizes, CPU count
         size_info = []
         if doc.get('wsize'):
             size_info.append(f"wsize: {doc.get('wsize')}")
@@ -305,10 +359,26 @@ async def search_benchmarks(
         size_str = ", ".join(size_info) if size_info else "N/A"
 
         output.append(
-            f"  Threads: {doc.get('threads', 'N/A')}, {size_str}, CPU: {doc.get('busy_cpu', 'N/A')}%, "
-            f"CPUs: {doc.get('cpu', 'N/A')}"
+            f"  Perf: {doc.get('performance_profile', 'N/A')}, Offload: {doc.get('offload', 'N/A')}, "
+            f"Threads: {doc.get('threads', 'N/A')}, {size_str}, CPUs: {doc.get('cpu', 'N/A')}"
         )
-        output.append(f"  Batch: {doc.get('batch_id', 'N/A')[:8]}..., Time: {doc.get('@timestamp', 'N/A')}")
+
+        # Fifth line: scale parameters if present
+        scale_info = []
+        if doc.get('pods_per_worker'):
+            scale_info.append(f"Pods/Worker: {doc.get('pods_per_worker')}")
+        if doc.get('scale_out_factor'):
+            scale_info.append(f"Scale: {doc.get('scale_out_factor')}")
+
+        if scale_info:
+            output.append(f"  {', '.join(scale_info)}")
+
+        # Last line: batch and timestamp (shortened)
+        timestamp = doc.get('@timestamp', 'N/A')
+        if timestamp != 'N/A' and len(timestamp) > 19:
+            timestamp = timestamp[:19]  # Keep YYYY-MM-DDTHH:MM:SS
+
+        output.append(f"  Batch: {doc.get('batch_id', 'N/A')[:8]}..., Time: {timestamp}")
         output.append("")
 
     return "\n".join(output)
