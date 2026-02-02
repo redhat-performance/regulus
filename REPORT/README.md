@@ -17,190 +17,128 @@ This directory contains the complete reporting infrastructure for the Regulus be
 ```
 REPORT/
 ├── README.md                  # This file
-├── makefile                   # Central REPORT operations (delegates to build_report/)
+├── makefile                   # Central REPORT operations
+├── generated/                 # Output directory for generated reports
 ├── assembly/                  # Scripts to merge inventory data into reports
 │   └── assemble_report.sh     # Main assembly script
-├── build_report/              # Report generation and dashboard
-│   ├── makefile               # Dashboard, flattening, and ElasticSearch operations
+├── build_report/              # Core report generation (6-stage ETL pipeline)
 │   ├── build_report           # Main report generation script
-│   ├── dashboard/             # Web dashboard application
-│   │   ├── run_dashboard.py   # Flask dashboard server
-│   │   ├── data_loader.py     # Report loading logic
-│   │   ├── templates/         # HTML templates
-│   │   ├── static/            # JS/CSS assets
-│   │   └── test_data/         # Sample benchmark data (16 JSON files, 318 results)
-│   └── es_integration/        # ElasticSearch integration
-│       ├── ES-README.md       # Complete ElasticSearch user guide
-│       ├── README.md          # Technical implementation notes
-│       ├── flatten_to_es.py   # Convert reports to NDJSON format
-│       └── es_mapping_template.json
-└── docker/                    # Docker-related files for containerized the dashboard
+│   ├── reg-report.py          # Python CLI entry point
+│   ├── factories.py           # Factory pattern for orchestrator creation
+│   ├── models/                # Data models and enums
+│   ├── interfaces/            # Protocol definitions (contracts)
+│   ├── schema/                # JSON schema management
+│   ├── discovery/             # File finding and traversal
+│   ├── parsing/               # Content reading
+│   ├── rules/                 # Regex extraction rules
+│   ├── extraction/            # Data extraction from files
+│   ├── transformation/        # Data processing
+│   ├── output/                # Report generation (JSON, HTML, CSV)
+│   └── orchestration/         # Workflow coordination
+├── dashboard/                 # Web dashboard application (peer tool)
+│   ├── run_dashboard.py       # Flask dashboard server
+│   ├── data_loader.py         # Report loading logic
+│   ├── templates/             # HTML templates
+│   ├── static/                # JS/CSS assets
+│   ├── test_data/             # Sample benchmark data (16 JSON files, 318 results)
+│   └── docker/                # Docker containerization for dashboard
+├── es_integration/            # ElasticSearch integration (peer tool)
+│   ├── README.md              # ElasticSearch integration guide
+│   ├── flatten_to_es.py       # Convert reports to NDJSON format
+│   ├── detect_platform.sh     # Auto-detect ES vs OpenSearch
+│   ├── debug_upload_errors.py # Upload error diagnostics
+│   ├── es_mapping_template.json      # ElasticSearch template
+│   └── opensearch_mapping_template.json  # OpenSearch template
+└── mcp_server/                # MCP server for ES queries (peer tool)
+    ├── regulus_es_mcp.py      # FastMCP server with 6 ES tools
+    ├── es_cli.py              # CLI wrapper for all MCP tools
+    ├── es_show_keywords.py    # Display valid filter values
+    └── README.md              # MCP server documentation
 ```
 
 ---
 
 ## Makefile Architecture
 
-The reporting system uses a **three-level makefile delegation pattern**:
+The reporting system uses a **two-level makefile delegation pattern**:
 
 ```
 Root makefile (regulus/)
     ↓ delegates to
 REPORT/makefile
-    ↓ delegates to
-REPORT/build_report/makefile
 ```
 
 ### Key Differences by Level
 
-| Aspect | Root makefile | REPORT/makefile | build_report/makefile |
-|--------|---------------|-----------------|----------------------|
-| **Prefix** | `report-*` targets | No prefix | No prefix |
-| **Purpose** | Convenience wrappers | Orchestration with REG_ROOT | Implementation details |
-| **Data Context** | Production (regulus/) | Production (REG_ROOT) | Test data by default |
-| **Example** | `make report-dashboard` | `make dashboard` | `make dashboard` |
+| Aspect | Root makefile | REPORT/makefile |
+|--------|---------------|-----------------|
+| **Prefix** | `report-*` targets | No prefix |
+| **Purpose** | Convenience wrappers | Direct implementation |
+| **Data Context** | Production (regulus/) | Production (REG_ROOT) |
+| **Example** | `make report-dashboard` | `make dashboard` |
 
 ---
 
 ## Target Reference
 
-### Location-Dependent Targets
+All report targets can be invoked from two locations:
 
-Some targets behave **differently** depending on where they're invoked:
+### Report Generation
 
-#### 1. Dashboard Targets
+| Target | From Root | From REPORT/ | Description |
+|--------|-----------|--------------|-------------|
+| `report-summary` | ✓ | - | Generate report.json, reports.ndjson, HTML, CSV |
+| `summary` | - | ✓ | Generate report.json, reports.ndjson, HTML, CSV |
+| `report-summary-with-testbed-info` | ✓ | - | Generate report with inventory data |
+| `summary-with-testbed-info` | - | ✓ | Generate report with inventory data |
 
-| Command | Working Directory | Reports Directory | Data Type | # Files | # Results |
-|---------|------------------|-------------------|-----------|---------|-----------|
-| `make dashboard` | `REPORT/build_report/` | `dashboard/test_data/` | Test/Mock | 16 | 318 |
-| `make dashboard` | `REPORT/` | `$(REG_ROOT)` = `../` | Production | Varies | Varies |
-| `make report-dashboard` | `regulus/` (root) | `regulus/` | Production | Varies | Varies |
+### Dashboard Management
 
-**Why the difference?**
-- `build_report/Makefile` sets `REPORTS_DIR ?= $(TEST_DATA_DIR)` (defaults to test data)
-- `REPORT/Makefile` passes `REPORTS_DIR=$(REG_ROOT)` (production data)
-- Root makefile delegates to `REPORT/Makefile`
+| Target | From Root | From REPORT/ | Description |
+|--------|-----------|--------------|-------------|
+| `report-dashboard` | ✓ | - | Start dashboard with reports from generated/ |
+| `dashboard` | - | ✓ | Start dashboard with reports from generated/ |
+| `report-dashboard-stop` | ✓ | - | Stop all dashboard instances |
+| `dashboard-stop` | - | ✓ | Stop all dashboard instances |
+| `report-dashboard-restart` | ✓ | - | Restart dashboard |
+| `dashboard-restart` | - | ✓ | Restart dashboard |
 
-**Example usage:**
-```bash
-# Start dashboard with test data (for development)
-cd REPORT/build_report
-make dashboard
+### ElasticSearch Operations
 
-# Start dashboard with production data
-cd REPORT
-make dashboard
-
-# Or from root
-cd regulus
-make report-dashboard
-```
-
-#### 2. Flatten Targets
-
-| Command | Working Directory | Input | Output | Purpose |
-|---------|------------------|-------|--------|---------|
-| `make flatten-test` | `REPORT/build_report/` | `test_data/*.json` | `/tmp/test_reports.ndjson` | Test ES format |
-| `make flatten` | `REPORT/build_report/` | `REPORTS_DIR` | `OUTPUT_DIR/reports.ndjson` | Custom flatten |
-| `make flatten` | `REPORT/` | `$(REG_ROOT)` | `$(REG_ROOT)/reports.ndjson` | Production flatten |
-| `make report-flatten` | `regulus/` (root) | `regulus/` | `regulus/reports.ndjson` | Production flatten |
-
-**Example usage:**
-```bash
-# Flatten test data (quick validation)
-cd REPORT/build_report
-make flatten-test
-
-# Flatten production data
-cd regulus
-make report-flatten
-
-# Flatten custom directory
-cd REPORT/build_report
-make flatten REPORTS_DIR=/path/to/reports OUTPUT_DIR=/output/path
-```
-
-#### 3. ElasticSearch Upload Targets
-
-| Command | Working Directory | Data Source | ES Index | Purpose |
-|---------|------------------|-------------|----------|---------|
-| `make es-upload` | `REPORT/build_report/` | `REPORTS_DIR` (test) | `benchmark-results` | Upload test |
-| `make es-upload` | `REPORT/` | `$(REG_ROOT)` | `$(ES_INDEX)` | Upload prod |
-| `make report-es-upload` | `regulus/` (root) | `regulus/` | `$(ES_INDEX)` | Upload prod |
-
-**Example usage:**
-```bash
-# Upload test data to ElasticSearch
-cd REPORT/build_report
-make es-upload ES_HOST=localhost:9200
-
-# Upload production data
-cd regulus
-make report-es-upload ES_HOST=prod-es:9200 ES_INDEX=my-benchmarks
-```
-
-### Location-Independent Targets
-
-These targets produce the **same behavior** regardless of where they're called:
-
-#### Report Generation
-
-| Target | Root | REPORT/ | build_report/ | Description |
-|--------|------|---------|---------------|-------------|
-| `report-summary` | ✓ | - | - | Generate report.json, HTML, CSV |
-| `summary` | - | ✓ | - | Generate report.json, HTML, CSV |
-| `report-summary-with-testbed-info` | ✓ | - | - | Generate report with inventory data |
-| `summary-with-testbed-info` | - | ✓ | - | Generate report with inventory data |
-
-**Example usage:**
-```bash
-# From root
-cd regulus
-make report-summary
-
-# From REPORT/
-cd REPORT
-make summary
-
-# With testbed/inventory information
-cd regulus
-make report-summary-with-testbed-info
-```
-
-#### Dashboard Management
-
-| Target | Root | REPORT/ | build_report/ | Description |
-|--------|------|---------|---------------|-------------|
-| `report-dashboard-stop` | ✓ | - | - | Stop all dashboard instances |
-| `dashboard-stop` | - | ✓ | ✓ | Stop all dashboard instances |
-| `report-dashboard-restart` | ✓ | - | - | Restart dashboard |
-| `dashboard-restart` | - | ✓ | ✓ | Restart dashboard |
-
-**Example usage:**
-```bash
-# Stop dashboard from anywhere
-make dashboard-stop    # or make report-dashboard-stop from root
-
-# Restart dashboard
-make dashboard-restart
-```
-
-#### ElasticSearch Operations
-
-| Target | Root | REPORT/ | build_report/ | Description |
-|--------|------|---------|---------------|-------------|
-| `es-check` | - | ✓ | ✓ | Verify ES connection |
-| `es-template` | - | ✓ | ✓ | Apply ES index template |
-| `report-es-full` | ✓ | - | - | Complete ES workflow (generate → flatten → upload) |
-| `es-full` | - | ✓ | - | Complete ES workflow |
+| Target | From Root | From REPORT/ | Description |
+|--------|-----------|--------------|-------------|
+| `es-check` | - | ✓ | Verify ES connection |
+| `es-template` | - | ✓ | Apply ES index template |
+| `es-upload` | - | ✓ | Upload reports.ndjson to ES |
+| `report-es-full` | ✓ | - | Complete ES workflow (generate → template → upload) |
+| `es-full` | - | ✓ | Complete ES workflow (generate → template → upload) |
+| `es-index-stats` | - | ✓ | Show ES index statistics |
+| `es-template-info` | - | ✓ | Show ES template details |
+| `es-index-mapping` | - | ✓ | Show current index mapping |
+| `es-list-batches` | - | ✓ | List all upload batches |
+| `es-show-last-batch` | - | ✓ | Show most recent batch |
+| `es-batch-count` | - | ✓ | Count documents in batch (requires ES_BATCH_ID) |
+| `es-batch-info` | - | ✓ | Show batch details (requires ES_BATCH_ID) |
+| `es-delete-batch` | - | ✓ | Delete batch (requires ES_BATCH_ID) |
 
 ---
 
-## Understanding Data Contexts
+## Understanding Data Flow
 
-### Test Data (Mock Data)
+### Generated Reports
 
-**Location:** `REPORT/build_report/dashboard/test_data/`
+**Location:** `REPORT/generated/`
+
+All report generation targets output to this directory:
+- `report.json` - Unflatten benchmark results with full structure
+- `reports.ndjson` - Flatten NDJSON format for ElasticSearch
+- `report.html` - Interactive HTML report
+- `report.csv` - Spreadsheet-friendly CSV
+- `report_schema.json` - JSON schema validation file
+
+### Test Data for Dashboard Development
+
+**Location:** `REPORT/dashboard/test_data/`
 
 **Characteristics:**
 - 16 JSON files with mock benchmark results
@@ -208,61 +146,43 @@ make dashboard-restart
 - Contains diverse scenarios for testing dashboard features
 - Safe for development and testing
 
-**When to use:**
-- Dashboard development and testing
-- Validating new features
-- Learning the system
-- ES format validation
-
-**How to use:**
+**Usage:**
 ```bash
-cd REPORT/build_report
-make dashboard              # View test data in dashboard
-make flatten-test           # Convert to ES format
-make es-setup              # Upload to test ES instance
+cd REPORT
+python3 dashboard/run_dashboard.py --reports dashboard/test_data
+# Open http://localhost:5000
 ```
 
-### Production Data (Real Benchmarks)
+### Production Workflow
 
-**Location:** `regulus/` (or wherever benchmark results are generated)
-
-**Characteristics:**
-- Real benchmark results from actual test runs
-- Number of files and results varies based on what's been run
-- Contains actual performance data from your infrastructure
-
-**When to use:**
-- Analyzing real benchmark results
-- Generating production reports
-- Publishing results to ElasticSearch
-- Creating final HTML/CSV reports
-
-**How to use:**
 ```bash
+# 1. Generate reports
 cd regulus
-make report-summary                        # Generate report
-make report-dashboard                      # View in dashboard
-make report-es-full ES_HOST=prod-es:9200   # Upload to production ES
+make report-summary                    # Creates REPORT/generated/*.{json,ndjson,html,csv}
+
+# 2. View in dashboard
+make report-dashboard                  # Loads from REPORT/generated/
+
+# 3. Upload to ElasticSearch
+make report-es-full                    # Complete workflow: generate → template → upload
 ```
 
 ---
 
 ## Common Workflows
 
-### 1. Generate a Quick Report
+### 1. Generate Reports
 
 ```bash
 cd regulus
 make report-summary
 
-# Outputs:
-# - report.json      (machine-readable, unflatten format)
+# Outputs to REPORT/generated/:
+# - report.json      (unflatten format with full structure)
 # - reports.ndjson   (flatten NDJSON for ElasticSearch)
-# - report.html      (human-readable)
+# - report.html      (interactive HTML with charts)
 # - report.csv       (spreadsheet-friendly)
 ```
-
-**Note:** The `summary` target now generates BOTH unflatten (report.json) and flatten (reports.ndjson) outputs in one step, ensuring the flatten input is always the just-created report.json (safe and predictable).
 
 ### 2. Generate Report with Testbed Information
 
@@ -270,52 +190,45 @@ make report-summary
 cd regulus
 make report-summary-with-testbed-info
 
-# Merges inventory data (CPU, RAM, NIC details) into report.json
-# Uses assembly/assemble_report.sh
+# Merges inventory data (CPU, RAM, NIC details) into report
+# Outputs to REPORT/generated/report-with-testbed-info.json
 ```
 
-### 3. View Reports Interactively
+### 3. View Reports in Dashboard
 
 ```bash
-# Option 1: View test data (development)
-cd REPORT/build_report
-make dashboard
-# Open http://localhost:5000
-
-# Option 2: View production data
 cd regulus
 make report-dashboard
 # Open http://localhost:5000
+
+# Dashboard loads reports from REPORT/generated/
+# Stop with: make report-dashboard-stop
 ```
 
-### 4. Upload to ElasticSearch (Complete Workflow)
+### 4. Upload to ElasticSearch
 
 ```bash
 cd regulus
 
-# Set environment variables (optional, defaults shown)
-export ES_HOST=localhost:9200
-export ES_INDEX=regulus-results
-
-# Run complete workflow
+# Option 1: Complete workflow (recommended)
 make report-es-full
+# Runs: summary → es-template → es-upload
 
-# This runs:
-# 1. make report-summary         (generate report.json + reports.ndjson)
-# 2. make es-template             (apply ES index template)
-# 3. make es-upload               (upload to ES)
+# Option 2: Step by step
+make report-summary        # Generate reports
+cd REPORT
+make es-template           # Apply index template
+make es-upload             # Upload to ES
 ```
 
-**Note:** The `summary` target now generates both report.json and reports.ndjson, so there's no separate flatten step needed.
+For detailed ElasticSearch documentation, see `REPORT/es_integration/README.md`.
 
-For detailed ElasticSearch documentation, see `REPORT/build_report/es_integration/ES-README.md`.
+### 5. Manage Upload Batches
 
-### 5. Manage Upload Batches (Batch ID Tracking)
-
-Each upload session is assigned a unique `batch_id` (UUID) to track which documents came from which upload. This allows you to identify and delete bad uploads (e.g., due to misconfigured BIOS).
+Each upload is assigned a unique `batch_id` (UUID) for tracking and selective deletion.
 
 ```bash
-cd REPORT/build_report
+cd REPORT
 
 # List all upload batches
 make es-list-batches
@@ -323,95 +236,57 @@ make es-list-batches
 # Show most recent batch
 make es-show-last-batch
 
-# Get details about a specific batch
+# Get batch details
 make es-batch-info ES_BATCH_ID=<uuid>
 
-# Count documents in a batch
-make es-batch-count ES_BATCH_ID=<uuid>
-
-# Delete a bad batch (with confirmation)
+# Delete a batch (with confirmation)
 make es-delete-batch ES_BATCH_ID=<uuid>
 ```
 
-**Example scenario:**
-1. Day 1: Upload test results → All docs tagged with `batch_id=abc-123`
-2. Day 2: Discover BIOS was misconfigured
-3. Delete bad batch: `make es-delete-batch ES_BATCH_ID=abc-123`
-4. All Day 2 documents deleted, Day 1 documents remain intact ✓
-
-**How it works:**
-- Each `make summary` + `make es-upload` generates a new batch_id
-- All documents uploaded in that session share the same batch_id
-- When the same test is uploaded again (different batch), its batch_id is updated to the new upload's batch_id
-
-### 6. Development: Test Dashboard Changes
+### 6. Development: Test Dashboard with Mock Data
 
 ```bash
-cd REPORT/build_report
+cd REPORT
+
+# Start dashboard with test data
+python3 dashboard/run_dashboard.py --reports dashboard/test_data
 
 # Edit dashboard files
 vim dashboard/templates/index.html
 vim dashboard/static/dashboard.js
 
-# Restart dashboard with test data
-make dashboard-restart
-
-# View at http://localhost:5000
-```
-
-### 7. Validate ElasticSearch Format
-
-```bash
-cd REPORT/build_report
-
-# Flatten test data
-make flatten-test
-
-# View NDJSON output
-head -20 /tmp/test_reports.ndjson
-
-# Create human-readable version
-make flatten-pretty
-cat /tmp/test_reports_pretty.json
+# Reload browser to see changes
 ```
 
 ---
 
-## Configuration Variables
+## Configuration
 
-### REPORT/makefile
+### Environment Variables
+
+ElasticSearch configuration is determined with the following priority:
+
+1. **ES_URL environment variable** (if already set)
+2. **/secret directory** (Kubernetes/Prow production secrets)
+3. **lab.config file** (development/testing)
+
+**lab.config example:**
+```bash
+export ES_URL='https://user:password@host.example.com'
+export ES_INDEX='regulus-results'
+```
+
+### Makefile Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `REG_ROOT` | `$(shell cd .. && pwd)` | Root directory of regulus project |
-| `ES_HOST` | `localhost:9200` | ElasticSearch host:port |
 | `ES_INDEX` | `regulus-results` | ElasticSearch index name |
 
-### build_report/makefile
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `REPORTS_DIR` | `$(TEST_DATA_DIR)` | Directory containing JSON reports |
-| `OUTPUT_DIR` | `/tmp` | Output directory for generated files |
-| `ES_HOST` | `localhost:9200` | ElasticSearch host:port |
-| `ES_INDEX` | `regulus-results` | ElasticSearch index name |
-| `ES_USER` | (empty) | ElasticSearch username (optional) |
-| `ES_PASSWORD` | (empty) | ElasticSearch password (optional) |
-
-### Overriding Variables
-
+**Override example:**
 ```bash
-# Example: Dashboard with custom reports directory
-cd REPORT/build_report
-make dashboard REPORTS_DIR=/custom/path/to/reports
-
-# Example: Upload to custom ES instance
 cd regulus
-make report-es-upload \
-  ES_HOST=prod-es.example.com:9200 \
-  ES_INDEX=prod-benchmarks \
-  ES_USER=admin \
-  ES_PASSWORD=secret
+make report-es-full ES_INDEX=my-custom-index
 ```
 
 ---
@@ -445,28 +320,29 @@ make dashboard-logs
 
 ### Dashboard Shows No Results
 
-**Possible causes:**
-1. No `*.json` files in the reports directory
-2. JSON files are named `*_schema.json` (these are filtered out)
-3. Dashboard is looking in the wrong directory
-
 **Check:**
 ```bash
-# See where dashboard is looking
-make dashboard  # Check the output for "Loading reports from: ..."
+# Verify generated reports exist
+ls -la generated/
 
-# Verify JSON files exist
-ls -la dashboard/test_data/*.json  # For test data
-ls -la report*.json                # For production data
+# Dashboard loads from generated/ by default
+# Or specify custom directory:
+python3 dashboard/run_dashboard.py --reports /custom/path
 ```
 
-### Understanding File Count Differences
+### ElasticSearch Connection Issues
 
-If dashboard shows fewer reports than expected, remember:
-- Files named `*_schema.json` are intentionally excluded
-- Each `report.json` can contain multiple benchmark iterations
-- "Loaded Reports" = number of JSON files
-- "Total Results" = number of benchmark iterations across all files
+**Check configuration priority:**
+```bash
+# 1. Check if ES_URL is in environment
+echo $ES_URL
+
+# 2. Check lab.config
+grep ES_URL ../lab.config
+
+# 3. Check /secret directory (production only)
+ls -la /secret/
+```
 
 ---
 
@@ -474,37 +350,38 @@ If dashboard shows fewer reports than expected, remember:
 
 ```bash
 # From regulus/ (root):
-make report-summary                         # Generate report
-make report-summary-with-testbed-info       # Generate with inventory
-make report-dashboard                       # View in browser (production)
-make report-dashboard-stop                  # Stop dashboard
-make report-flatten                         # Convert to NDJSON
-make report-es-full                         # Upload to ElasticSearch
+make report-summary                   # Generate all reports
+make report-summary-with-testbed-info # Generate with inventory
+make report-dashboard                 # View in browser
+make report-dashboard-stop            # Stop dashboard
+make report-es-full                   # Complete ES workflow
 
 # From REPORT/:
-make summary                                # Generate report
-make summary-with-testbed-info              # Generate with inventory
-make dashboard                              # View in browser (production)
-make flatten                                # Convert to NDJSON
-make es-full                                # Upload to ElasticSearch
+make summary                          # Generate all reports
+make summary-with-testbed-info        # Generate with inventory
+make dashboard                        # View in browser
+make es-check                         # Verify ES connection
+make es-template                      # Apply ES index template
+make es-upload                        # Upload to ES
+make es-full                          # Complete ES workflow
+make es-list-batches                  # List all batches
+make es-delete-batch ES_BATCH_ID=<uuid>  # Delete batch
 
-# From REPORT/build_report/:
-make dashboard                              # View test data
-make flatten-test                           # Flatten test data
-make flatten-pretty                         # Human-readable JSON
-make es-setup                               # Setup test ES instance
-make test                                   # Run validation tests
+# Dashboard development:
+cd REPORT
+python3 dashboard/run_dashboard.py --reports dashboard/test_data
 ```
 
 ---
 
 ## Additional Documentation
 
-- **ElasticSearch Integration:** See `build_report/es_integration/ES-README.md` - Complete guide for ES setup, upload, and management
-- **Dashboard Development:** See `build_report/dashboard/README.md` and related docs
-- **Report Generation:** See `build_report/README.md`
-- **Assembly Scripts:** See `assembly/assemble_report.sh`
+- **Core Report Generation:** `build_report/README.md` - 6-stage ETL pipeline details
+- **Dashboard:** `dashboard/README.md` - Web dashboard features and API
+- **ElasticSearch Integration:** `es_integration/README.md` - ES/OpenSearch setup and usage
+- **MCP Server:** `mcp_server/README.md` - Claude-integrated ES query tools
+- **Assembly Scripts:** `assembly/assemble_report.sh` - Inventory merging
 
 ---
 
-*Last updated: 2026-01-24*
+*Last updated: 2026-02-02*
