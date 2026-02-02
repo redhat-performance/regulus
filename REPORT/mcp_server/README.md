@@ -67,12 +67,12 @@ Add the MCP server to your Claude Desktop configuration file:
 {
   "mcpServers": {
     "regulus-elasticsearch": {
-      "command": "/home/hnhan/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report/mcp_server/.venv/bin/python",
+      "command": "/path/to/regulus/REPORT/mcp_server/.venv/bin/python",
       "args": [
-        "/home/hnhan/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report/mcp_server/regulus_es_mcp.py"
+        "/path/to/regulus/REPORT/mcp_server/regulus_es_mcp.py"
       ],
       "env": {
-        "ES_URL": "https://admin:nKNQ9=vw_bwaSy1@search-perfscale-pro-wxrjvmobqs7gsyi3xvxkqmn7am.us-west-2.es.amazonaws.com",
+        "ES_URL": "https://username:password@your-es-host.amazonaws.com",
         "ES_INDEX": "regulus-results"
       }
     }
