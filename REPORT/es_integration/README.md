@@ -9,16 +9,20 @@ The dashboard's report.json files have a nested structure that works well for th
 ## Architecture
 
 ```
-build_report/
+REPORT/
 ├── dashboard/
-│   └── data_loader.py       # Shared data loading logic (used by both dashboard and ES)
-└── elasticsearch/
-    ├── flatten_to_es.py      # Flattening script (imports from dashboard/data_loader.py)
-    ├── es_mapping_template.json  # Field type definitions for ElasticSearch
-    └── README.md            # This file
+│   └── data_loader.py       # Shared data loading logic
+├── es_integration/          # This directory
+│   ├── flatten_to_es.py      # Flattening script (imports from ../dashboard/data_loader.py)
+│   ├── detect_platform.sh    # Auto-detect ElasticSearch vs OpenSearch
+│   ├── debug_upload_errors.py # Upload error diagnostics
+│   ├── es_mapping_template.json      # ElasticSearch field mappings
+│   ├── opensearch_mapping_template.json  # OpenSearch field mappings
+│   └── README.md            # This file
+└── build_report/            # Core report generation (peer tool)
 ```
 
-**Key Design Principle**: Both the dashboard and elasticsearch flattener import from the same `dashboard/data_loader.py` module. This ensures consistency - any changes to the BenchmarkResult dataclass automatically propagate to both consumers.
+**Key Design Principle**: Both the dashboard and ES flattener import from the same `dashboard/data_loader.py` module. This ensures consistency - any changes to the BenchmarkResult dataclass automatically propagate to both consumers.
 
 ## Files
 
@@ -208,11 +212,13 @@ The flattened format is also suitable for MCP (Model Context Protocol) servers. 
 
 ### Import Error: Cannot import dashboard.data_loader
 
-Make sure you're running from the `build_report` directory:
+Make sure you're running from the `REPORT` directory or use the makefile targets:
 
 ```bash
-cd /path/to/build_report
-python3 elasticsearch/flatten_to_es.py ...
+cd REPORT
+make flatten
+# Or:
+python3 es_integration/flatten_to_es.py ...
 ```
 
 ### ElasticSearch connection failed

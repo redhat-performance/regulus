@@ -20,13 +20,13 @@ fi
 # Check if we're in the docker directory
 if [ ! -f "Dockerfile" ]; then
     echo "Error: Dockerfile not found in current directory"
-    echo "Please run this script from regulus/REPORT/docker/"
+    echo "Please run this script from regulus/REPORT/dashboard/docker/"
     exit 1
 fi
 
 # Check if dashboard code exists (in parent directory)
-if [ ! -d "../build_report/dashboard" ]; then
-    echo "Error: Dashboard code not found at ../build_report/dashboard"
+if [ ! -f "../run_dashboard.py" ]; then
+    echo "Error: Dashboard code not found at ../"
     echo "Please ensure dashboard code exists"
     exit 1
 fi
@@ -39,7 +39,7 @@ if [ ! -d "sample_data" ] || [ -z "$(ls -A sample_data/*.json 2>/dev/null)" ]; t
     echo "Users will need to add their own JSON files to /tmp/regulus-data/"
     echo ""
     echo "To include sample data:"
-    echo "  cp ../build_report/dashboard/test_data/*.json sample_data/"
+    echo "  cp ../test_data/*.json sample_data/"
     echo ""
     read -p "Continue without sample data? (y/n) " -n 1 -r
     echo
