@@ -30,7 +30,7 @@ cp -r /path/to/docker ./
 
 ```bash
 cd docker
-cp ../build_report/dashboard/test_data/*.json sample_data/
+cp ../test_data/*.json sample_data/
 ```
 
 ### 4. Build
@@ -289,13 +289,16 @@ journalctl --user -u dashboard.service -f
 **Directory Structure:**
 ```
 regulus/REPORT/
-├── build_report/
-│   └── dashboard/       # Original dashboard code (untouched)
-└── docker/              # Container packaging (this directory)
-    ├── Dockerfile
-    ├── run_wrapper.py   # Bypasses interactive prompts
-    ├── build.sh
-    └── run-dashboard.sh
+├── dashboard/           # Dashboard application
+│   ├── run_dashboard.py
+│   ├── templates/
+│   ├── static/
+│   └── docker/          # Container packaging (this directory)
+│       ├── Dockerfile
+│       ├── run_wrapper.py   # Bypasses interactive prompts
+│       ├── build.sh
+│       └── run-dashboard.sh
+└── build_report/        # Core report generation (peer tool)
 ```
 
 **Data Flow:**
@@ -318,7 +321,7 @@ Browser: http://localhost:5000
 ## Support
 
 **For help:**
-- Dashboard code issues: See `../build_report/dashboard/`
+- Dashboard code issues: See `REPORT/dashboard/README.md`
 - Container issues: Include output of `podman logs regulus-dashboard`
 - Build issues: Include output of `./build.sh`
 

@@ -90,8 +90,11 @@ if [ "$DELETE_ALL" = true ]; then
     DELETE_INDICES=true
 fi
 
-# Determine REG_ROOT
-REG_ROOT="${REG_ROOT:-$(cd "$(dirname "$0")" && pwd)}"
+# Determine REG_ROOT (script is in tools/, so go up one level)
+if [ -z "${REG_ROOT:-}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    REG_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+fi
 echo "REG_ROOT: $REG_ROOT"
 
 # ============================================================================
@@ -173,7 +176,7 @@ export ES_INDEX
 # Detect Platform
 # ============================================================================
 
-cd "$REG_ROOT/REPORT/build_report"
+cd "$REG_ROOT/REPORT"
 
 echo ""
 echo "Detecting ElasticSearch/OpenSearch platform..."
