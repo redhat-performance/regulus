@@ -29,25 +29,189 @@ With Regulus, the workflow is as follows
 4. For Regulus to initialize the testbed, among other things, it needs to learn the first worker node CPU topology. So, passwordless ssh from the bastion to the first worker node MUST be setup i.e from the bastion "ssh core@your-workernode-0" works.
 
 ## Set up Regulus on the crucible controller
- 
-1. First, clone the repo
-```
-    git clone https://github.com/HughNhan/regulus.git
-```
-This creates ~/regulus.
 
-2. Adapt the ./lab.config.template to match your lab.
+### Step 1: Clone the repository
+
+```bash
+git clone https://github.com/HughNhan/regulus.git
+cd regulus
 ```
-cd ./regulus; cp lab.config.template lab.config; vi lab.config
+
+This creates `~/regulus`.
+
+### Step 2: Configure your lab (Easy Mode)
+
+Regulus provides a **smart configuration tool** that automatically detects most of your lab settings. You only need to provide 3 basic values:
+
+```bash
+# Copy the template
+cp lab.config.template lab.config
+
+# Edit ONLY these 3 required values:
+vi lab.config
 ```
-3. set Regulus $REG_ROOT and a few other variables by sourcing the bootstrap file
+
+**Minimum required configuration:**
+```bash
+export REG_KNI_USER=your-username      # Your username on the bastion host
+export REG_OCPHOST="192.168.x.x"       # Bastion host IP address
+export KUBECONFIG=/path/to/kubeconfig  # Path to your kubeconfig file
 ```
+
+**That's it!** You can leave all the NIC and topology settings blank - the smart config tool will figure them out.
+
+### Step 3: Bootstrap Regulus
+
+```bash
+# Set up environment variables
 source ./bootstrap.sh
 ```
-4. Init lab params
-```
+
+### Step 4: Initialize lab and auto-detect configuration
+
+```bash
+# Initialize lab infrastructure
 make init-lab
+
+# Auto-detect NICs and network topology
+bash bin/reg-smart-config
 ```
+
+The `reg-smart-config` tool will automatically:
+- ✅ Detect worker nodes (OCP_WORKER_0, OCP_WORKER_1, OCP_WORKER_2)
+- ✅ Identify available NICs and their models (CX6, CX7, E810, etc.)
+- ✅ Find suitable NICs for SRIOV testing (REG_SRIOV_NIC, REG_SRIOV_NIC_MODEL)
+- ✅ Find suitable NICs for MACVLAN testing (REG_MACVLAN_NIC)
+- ✅ Find suitable NICs for DPDK testing (REG_DPDK_NIC)
+- ✅ Determine MTU settings
+- ✅ Identify the OVN-Kubernetes primary interface (to avoid conflicts)
+- ✅ Detect bare-metal hosts if available (BMLHOSTA, BMLHOSTB)
+
+**What the smart config looks for:**
+- NICs that are **UP** (cable connected)
+- NICs that have **no IP address** (not in use)
+- NICs that are **not used by OVN-K** (avoids conflicts)
+- NICs with **recognized models**: XXV710, X710, E810, CX5, CX6, CX7, BF3
+
+After running `reg-smart-config`, check your `lab.config` - it should now be populated with all the discovered values.
+
+### Step 5: Verify configuration
+
+```bash
+# Review the auto-detected configuration
+cat lab.config | grep -E "WORKER|SRIOV|MACVLAN|DPDK|NIC_MODEL"
+```
+
+You should see something like:
+```bash
+export OCP_WORKER_0=worker-0.example.com
+export OCP_WORKER_1=worker-1.example.com
+export OCP_WORKER_2=worker-2.example.com
+export REG_SRIOV_NIC=ens1f0np0
+export REG_SRIOV_NIC_MODEL=CX6
+export REG_MACVLAN_NIC=ens2f0
+export REG_DPDK_NIC=ens3f0
+export REG_SRIOV_MTU=9000
+```
+
+---
+
+### Alternative: Manual Configuration (Advanced Users)
+
+If you prefer to configure everything manually, or if the smart config doesn't detect your setup correctly, you can manually edit `lab.config`:
+
+<details>
+<summary>Click to expand manual configuration guide</summary>
+
+#### Understanding Your Network Topology
+
+Before manually configuring, you need to understand:
+
+1. **OVN-K Primary Interface**: Which NIC is used by OpenShift's primary network
+   ```bash
+   # On a worker node
+   oc debug node/worker-0
+   chroot /host
+   ip addr show | grep -A 5 br-ex
+   ```
+
+2. **Available NICs**: List all network interfaces
+   ```bash
+   # On a worker node
+   oc debug node/worker-0
+   chroot /host
+   lspci | grep -i ethernet
+   ip link show
+   ```
+
+3. **NIC Models**: Identify your hardware
+   ```bash
+   # Common models
+   # Intel: XXV710, X710, E810
+   # Mellanox/NVIDIA: CX5, CX6, CX7, BF3
+   ethtool -i ens1f0 | grep driver
+   ```
+
+#### Manual lab.config Parameters
+
+```bash
+# Required: Basic connection
+export REG_KNI_USER=your-username
+export REG_OCPHOST="192.168.x.x"
+export KUBECONFIG=/path/to/kubeconfig
+
+# Worker nodes (can use IP or FQDN)
+export OCP_WORKER_0=worker-0.example.com
+export OCP_WORKER_1=worker-1.example.com
+export OCP_WORKER_2=worker-2.example.com
+
+# SRIOV Testing NIC
+# - Must NOT be the OVN-K primary interface
+# - Must be UP (cable connected)
+# - Must have no IP address assigned
+export REG_SRIOV_NIC=ens1f0np0          # NIC device name
+export REG_SRIOV_NIC_MODEL=CX6          # Model: CX6, CX7, E810, etc.
+export REG_SRIOV_MTU=9000               # MTU setting
+
+# MACVLAN Testing NIC (different from SRIOV)
+export REG_MACVLAN_NIC=ens2f0
+
+# DPDK Testing NIC (different from SRIOV and MACVLAN)
+# - Cannot have existing SRIOV VFs
+# - Must be recognized model
+export REG_DPDK_NIC=ens3f0
+
+# Bare-metal hosts (optional, for certain tests)
+export BMLHOSTA=bare-metal-1.example.com
+export BMLHOSTB=bare-metal-2.example.com
+
+# Other optional settings
+export REG_DP=415                       # Deployment identifier
+```
+
+#### Rules for NIC Selection
+
+**SRIOV NIC Requirements:**
+- ✅ Different from OVN-K primary interface
+- ✅ Interface is UP (link detected)
+- ✅ No IP address assigned
+- ✅ Supported model (CX6, CX7, E810, etc.)
+
+**MACVLAN NIC Requirements:**
+- ✅ Different from SRIOV NIC
+- ✅ Interface is UP
+- ✅ No IP address assigned
+
+**DPDK NIC Requirements:**
+- ✅ Different from SRIOV and MACVLAN NICs
+- ✅ Interface is UP
+- ✅ No IP address assigned
+- ✅ No existing SRIOV VFs configured
+- ✅ Recognized model
+
+</details>
+
+---
 
 ## Run a pilot test on a fresh Regulus workspace:
 It recommends to run a pilot test to verify your Regulus set up. On the Crucible controller
@@ -103,8 +267,66 @@ Sometime you may have a reason to run a test locally at its directory instead of
 	make clean
     ```
 
-# Examine results
-In each test dir e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD. you should find the results and all run artifects in latest dir.
+# Examine and Analyze Results
+
+## Quick Results Check
+
+In each test directory (e.g., `./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD`), you'll find:
+- **latest/** - All run artifacts and raw results
+- Individual result files from uperf, iperf3, etc.
+
+## Generate Comprehensive Reports
+
+Regulus includes powerful report generation and analysis tools in the `REPORT/` directory:
+
+```bash
+cd $REG_ROOT
+
+# Generate a comprehensive report (JSON, HTML, CSV)
+make summary
+
+# View results in an interactive web dashboard
+make report-dashboard
+# Opens at http://localhost:5001
+
+# Upload to ElasticSearch for trend analysis
+make es-upload
+
+# Query results via command line
+cd REPORT/mcp_server
+./build_and_run.sh search --model OVNK --nic BF3
+./build_and_run.sh stats
+```
+
+### Report Capabilities
+
+The REPORT/ directory provides a complete analysis pipeline:
+
+1. **Automated Report Generation** (`build_report/`)
+   - Discovers all test runs automatically
+   - Extracts metrics from multiple tools (uperf, iperf3, etc.)
+   - Generates JSON, HTML, and CSV reports
+   - Validates data against schemas
+
+2. **Interactive Dashboard** (`dashboard/`)
+   - Load and compare multiple reports side-by-side
+   - Filter by benchmark, model, NIC, topology
+   - Visual performance analysis
+   - Export filtered results
+
+3. **ElasticSearch Integration** (`es_integration/`)
+   - Store results in ElasticSearch/OpenSearch
+   - Track performance trends over time
+   - Compare results across different runs
+   - Advanced querying and aggregations
+
+4. **AI-Powered Queries** (`mcp_server/`)
+   - Query results using natural language (Claude Desktop, Cline, etc.)
+   - Supports any MCP-compatible client
+   - Standalone CLI for direct access (no AI required)
+   - Containerized for easy deployment
+
+**For detailed documentation, see:** [README-report.md](./README-report.md)
 	
 # Configure PAO and SRIOV
 
