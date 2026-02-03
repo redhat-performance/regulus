@@ -5,6 +5,7 @@
 .PHONY: help summary summary-with-testbed-info dashboard dashboard-stop dashboard-restart dashboard-status \
         flatten flatten-pretty es-upload es-template es-check es-full \
         es-index-stats es-template-info es-index-mapping \
+        es-ilm-policy es-ilm-policy-no-delete es-ilm-info es-ilm-explain es-bootstrap-index \
         es-list-batches es-batch-count es-batch-info es-delete-batch es-show-last-batch \
         clean
 
@@ -17,6 +18,10 @@ REPORT_DIR := $(shell pwd)
 GENERATED_DIR := $(REPORT_DIR)/generated
 REG_ROOT ?= $(shell cd .. && pwd)
 ES_INDEX ?= regulus-results
+
+# Helper to sanitize ES_URL for display (removes credentials)
+# Usage: echo $$(echo "$$ES_URL" | $(SANITIZE_URL))
+SANITIZE_URL = sed -E 's|(https?://)([^:]+):([^@]+)@|\1***:***@|'
 
 # Helper to determine ES_URL with priority: env > /secret > lab.config
 # Usage: @$(SOURCE_ES_CONFIG); your_command_using_$$ES_URL
@@ -78,6 +83,13 @@ help:
 	@echo "  make es-index-stats       - Show ES index statistics"
 	@echo "  make es-template-info     - Show ES index template details"
 	@echo "  make es-index-mapping     - Show current index mapping"
+	@echo ""
+	@echo "Index Lifecycle Management (ILM):"
+	@echo "  make es-ilm-policy            - Apply ILM policy (with 90-day deletion)"
+	@echo "  make es-ilm-policy-no-delete  - Apply ILM policy (NO deletion, for CCR)"
+	@echo "  make es-ilm-info              - Show current ILM policy details"
+	@echo "  make es-ilm-explain           - Explain ILM phase for index"
+	@echo "  make es-bootstrap-index       - Create bootstrapped rollover index"
 	@echo ""
 	@echo "Batch Management:"
 	@echo "  make es-list-batches                     - List all upload batches"
@@ -189,10 +201,11 @@ flatten-pretty: flatten
 # ElasticSearch operations
 es-check:
 	@$(SOURCE_ES_CONFIG); \
-	echo "Checking ElasticSearch connection at $${ES_URL}..."; \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
+	echo "Checking ElasticSearch connection at $$SAFE_URL..."; \
 	curl -s "$${ES_URL}" > /dev/null && \
-		echo "✓ ElasticSearch is reachable at $${ES_URL}" || \
-		echo "✗ Cannot connect to ElasticSearch at $${ES_URL}"
+		echo "✓ ElasticSearch is reachable at $$SAFE_URL" || \
+		echo "✗ Cannot connect to ElasticSearch at $$SAFE_URL"
 
 es-template: es-check
 	@$(SOURCE_ES_CONFIG); \
@@ -221,9 +234,10 @@ es-upload:
 		$(MAKE) summary; \
 	fi
 	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
 	echo "Uploading reports to ElasticSearch..."; \
 	echo "  Source: $(GENERATED_DIR)/reports.ndjson"; \
-	echo "  ES URL: $${ES_URL}"; \
+	echo "  ES URL: $$SAFE_URL"; \
 	echo "  ES Index: $(ES_INDEX)"; \
 	echo "Uploading $$(grep -c '{"index"' $(GENERATED_DIR)/reports.ndjson 2>/dev/null || echo 0) documents..."; \
 	curl -s -H "Content-Type: application/x-ndjson" \
@@ -238,6 +252,9 @@ es-full: summary es-template es-upload
 	@echo "  - Report generated: $(GENERATED_DIR)/report.json"
 	@echo "  - Flattened to: $(GENERATED_DIR)/reports.ndjson"
 	@echo "  - Uploaded to ES index: $(ES_INDEX)"
+	@echo ""
+	@echo "NOTE: To enable automatic data retention (90-day lifecycle):"
+	@echo "      Run 'make es-ilm-policy' to apply ILM/ISM policy"
 
 # =============================================================================
 # ElasticSearch Debug and Info Targets
@@ -245,12 +262,13 @@ es-full: summary es-template es-upload
 
 es-index-stats: es-check
 	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
 	echo "=========================================="; \
 	echo "  ElasticSearch Index Statistics"; \
 	echo "=========================================="; \
 	echo ""; \
 	echo "Index: $(ES_INDEX)"; \
-	echo "URL: $${ES_URL}"; \
+	echo "URL: $$SAFE_URL"; \
 	echo ""; \
 	echo "Detailed Stats (verbose):"; \
 	curl -s "$${ES_URL}/_cat/indices/$(ES_INDEX)?v&h=health,status,index,uuid,pri,rep,docs.count,docs.deleted,store.size,pri.store.size"; \
@@ -261,23 +279,25 @@ es-index-stats: es-check
 
 es-template-info: es-check
 	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
 	echo "=========================================="; \
 	echo "  ElasticSearch Index Template Info"; \
 	echo "=========================================="; \
 	echo ""; \
 	echo "Template: regulus-template"; \
-	echo "URL: $${ES_URL}"; \
+	echo "URL: $$SAFE_URL"; \
 	echo ""; \
 	curl -s "$${ES_URL}/_index_template/regulus-template" | $(PYTHON) -m json.tool 2>/dev/null || echo "Template does not exist. Run 'make es-template' to create it."
 
 es-index-mapping: es-check
 	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
 	echo "=========================================="; \
 	echo "  ElasticSearch Index Mapping"; \
 	echo "=========================================="; \
 	echo ""; \
 	echo "Index: $(ES_INDEX)"; \
-	echo "URL: $${ES_URL}"; \
+	echo "URL: $$SAFE_URL"; \
 	echo ""; \
 	curl -s "$${ES_URL}/$(ES_INDEX)/_mapping" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist yet"
 
@@ -366,6 +386,118 @@ es-show-last-batch: es-check
 		print("Batch ID: {}".format(buckets[0]["key"]) if buckets else "No batches found"); \
 		print("Documents: {}".format(buckets[0]["doc_count"]) if buckets else ""); \
 		print("Last upload: {}".format(buckets[0]["max_timestamp"]["value_as_string"]) if buckets else "")'
+
+# =============================================================================
+# Index Lifecycle Management (ILM) Targets
+# =============================================================================
+
+es-ilm-policy: es-check
+	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
+	echo "Detecting platform and applying lifecycle policy..."; \
+	PLATFORM_VARS=$$(export ES_URL="$${ES_URL}"; bash $(ES_INTEGRATION_DIR)/detect_platform.sh 2>&1); \
+	if [ $$? -ne 0 ]; then \
+		echo "ERROR: Failed to detect platform"; \
+		echo "$$PLATFORM_VARS"; \
+		exit 1; \
+	fi; \
+	eval "$$PLATFORM_VARS"; \
+	echo "Detected platform: $$PLATFORM (version $$VERSION)"; \
+	echo "Applying policy: $$POLICY_NAME"; \
+	echo ""; \
+	curl -X PUT "$${ES_URL}$${POLICY_ENDPOINT}/$${POLICY_NAME}" \
+		-H 'Content-Type: application/json' \
+		-d @$(ES_INTEGRATION_DIR)/$${POLICY_FILE} | $(PYTHON) -m json.tool; \
+	echo ""; \
+	echo "✓ Lifecycle policy applied successfully"; \
+	echo "  Platform: $$PLATFORM"; \
+	echo "  Policy: $$POLICY_NAME"; \
+	echo "  Phases: hot (30d) -> warm (7d) -> cold (30d) -> delete (90d)"
+
+es-ilm-policy-no-delete: es-check
+	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
+	echo "Detecting platform and applying lifecycle policy (NO DELETION)..."; \
+	PLATFORM_VARS=$$(export ES_URL="$${ES_URL}"; bash $(ES_INTEGRATION_DIR)/detect_platform.sh 2>&1); \
+	if [ $$? -ne 0 ]; then \
+		echo "ERROR: Failed to detect platform"; \
+		echo "$$PLATFORM_VARS"; \
+		exit 1; \
+	fi; \
+	eval "$$PLATFORM_VARS"; \
+	echo "Detected platform: $$PLATFORM (version $$VERSION)"; \
+	echo "Applying policy: $$POLICY_NAME"; \
+	echo ""; \
+	if [ "$$PLATFORM" = "opensearch" ]; then \
+		POLICY_FILE_NO_DELETE="opensearch_ism_policy_no_delete.json"; \
+	else \
+		echo "ERROR: No-delete policy currently only available for OpenSearch"; \
+		echo "For ElasticSearch, manually edit es_ilm_policy.json to remove delete phase"; \
+		exit 1; \
+	fi; \
+	curl -X PUT "$${ES_URL}$${POLICY_ENDPOINT}/$${POLICY_NAME}" \
+		-H 'Content-Type: application/json' \
+		-d @$(ES_INTEGRATION_DIR)/$${POLICY_FILE_NO_DELETE} | $(PYTHON) -m json.tool; \
+	echo ""; \
+	echo "✓ Lifecycle policy applied successfully (NO DELETION)"; \
+	echo "  Platform: $$PLATFORM"; \
+	echo "  Policy: $$POLICY_NAME"; \
+	echo "  Phases: hot (30d) -> warm (7d) -> cold (30d)"; \
+	echo "  NOTE: No delete phase - data retained permanently for CCR"
+
+es-ilm-info: es-check
+	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
+	echo "=========================================="; \
+	echo "  Lifecycle Policy Information"; \
+	echo "=========================================="; \
+	echo ""; \
+	PLATFORM_VARS=$$(export ES_URL="$${ES_URL}"; bash $(ES_INTEGRATION_DIR)/detect_platform.sh 2>&1); \
+	eval "$$PLATFORM_VARS"; \
+	echo "Platform: $$PLATFORM (version $$VERSION)"; \
+	echo "Policy: $$POLICY_NAME"; \
+	echo "URL: $$SAFE_URL"; \
+	echo ""; \
+	curl -s "$${ES_URL}$${POLICY_ENDPOINT}/$${POLICY_NAME}" | $(PYTHON) -m json.tool 2>/dev/null || echo "Policy does not exist. Run 'make es-ilm-policy' to create it."
+
+es-ilm-explain: es-check
+	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
+	echo "=========================================="; \
+	echo "  Lifecycle Phase Explanation for Index"; \
+	echo "=========================================="; \
+	echo ""; \
+	PLATFORM_VARS=$$(export ES_URL="$${ES_URL}"; bash $(ES_INTEGRATION_DIR)/detect_platform.sh 2>&1); \
+	eval "$$PLATFORM_VARS"; \
+	echo "Platform: $$PLATFORM"; \
+	echo "Index: $(ES_INDEX)"; \
+	echo "URL: $$SAFE_URL"; \
+	echo ""; \
+	curl -s "$${ES_URL}$${POLICY_EXPLAIN_PREFIX}$(ES_INDEX)$${POLICY_EXPLAIN_SUFFIX}" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist or lifecycle management not enabled yet"
+
+es-bootstrap-index: es-check es-ilm-policy es-template
+	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
+	echo "=========================================="; \
+	echo "  Bootstrapping Rollover Index"; \
+	echo "=========================================="; \
+	echo ""; \
+	PLATFORM_VARS=$$(export ES_URL="$${ES_URL}"; bash $(ES_INTEGRATION_DIR)/detect_platform.sh 2>&1); \
+	eval "$$PLATFORM_VARS"; \
+	echo "Platform: $$PLATFORM"; \
+	echo "Creating initial write index: $(ES_INDEX)-000001"; \
+	echo "Write alias: $(ES_INDEX)"; \
+	echo "URL: $$SAFE_URL"; \
+	echo ""; \
+	curl -X PUT "$${ES_URL}/$(ES_INDEX)-000001" \
+		-H 'Content-Type: application/json' \
+		-d '{"aliases": {"$(ES_INDEX)": {"is_write_index": true}}}' | $(PYTHON) -m json.tool; \
+	echo ""; \
+	echo "✓ Bootstrapped index created successfully"; \
+	echo "  Write index: $(ES_INDEX)-000001"; \
+	echo "  Write alias: $(ES_INDEX)"; \
+	echo ""; \
+	echo "NOTE: Upload to '$(ES_INDEX)' alias, not directly to $(ES_INDEX)-000001"
 
 # =============================================================================
 # Advanced Targets
