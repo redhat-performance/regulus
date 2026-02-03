@@ -267,6 +267,14 @@ Each benchmark result is stored as a flat document with fields:
 - **Performance metrics**: `mean`, `min`, `max`, `stddev`, `unit`, `busy_cpu`
 - **Metadata**: `batch_id`, `run_id`, `@timestamp`, `regulus_git_branch`
 
+### Understanding Metrics
+
+**CPU Metric (`busy_cpu`)**: This is **NOT a percentage**. It represents the **aggregated sum of CPU utilization** across all CPUs (mpstat: sum of % busy). For example, `busy_cpu: 44.8` means 44.8 CPU-equivalents of work were consumed.
+
+**Internode Tests**: Each internode benchmark uses 2 workers (sender + receiver on different nodes). When `cpu: 2` is shown in configuration, that's per worker, so total CPUs allocated = 4. The `busy_cpu` metric reflects aggregated utilization across both workers.
+
+See `REPORT/mcp_server/SEARCH_EXAMPLES.md` for detailed metric interpretation.
+
 ### Search Examples
 
 ```bash

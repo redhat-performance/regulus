@@ -45,6 +45,18 @@ The Regulus ES MCP server provides these tools:
 5. **delete_batch** - Delete all documents in a batch (with confirmation)
 6. **get_index_stats** - Get overall index statistics
 
+### Understanding CPU Metrics
+
+**IMPORTANT**: The `CPU` value in search results is **NOT a percentage**.
+
+- **CPU is an aggregated sum** of CPU utilization (mpstat: sum of % busy across all CPUs)
+- `CPU: 44.8` means 44.8 CPU-equivalents of work were consumed
+- For **internode tests**: Each test uses 2 workers (sender + receiver on different nodes)
+- When you see `CPUs: 2` in config, that's per worker (4 CPUs total for internode)
+- The CPU busy metric represents aggregated utilization across both workers
+
+See `SEARCH_EXAMPLES.md` for detailed metric interpretation and analysis examples.
+
 ## Installation
 
 ### Prerequisites

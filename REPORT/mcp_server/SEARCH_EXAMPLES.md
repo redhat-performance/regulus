@@ -1,5 +1,39 @@
 # Search Query Examples
 
+## Understanding Benchmark Metrics
+
+### CPU Metric Interpretation
+
+**IMPORTANT**: The `CPU` value shown in search results is **NOT a percentage**.
+
+- **CPU is an aggregated sum** of CPU utilization across all CPUs (in mpstat terms: sum of % busy)
+- **Example**: `CPU: 44.8` means 44.8 CPU-equivalents of work were consumed
+- If you have 52 CPUs each running at 50% busy, this would show as `CPU: 26.0`
+- If you have 4 CPUs each running at 100% busy, this would show as `CPU: 4.0`
+
+### Internode Test Architecture
+
+- **Each internode benchmark uses 2 workers** (one sender, one receiver on different nodes)
+- When you see `CPUs: 2` in the configuration, that's per worker
+- **Total CPU allocation** for an internode test = 2 workers × CPUs per worker
+- The `CPU` busy metric represents aggregated utilization across both workers
+
+### Example Analysis
+
+```
+Throughput: 329.80 Gbps, CPU: 44.8
+CPUs: 2 (per worker)
+Topology: internode
+```
+
+**Interpretation**:
+- Total CPUs allocated: 2 workers × 2 CPUs/worker = 4 CPUs
+- CPU busy: 44.8 CPU-equivalents consumed
+- This indicates heavy utilization beyond just the 4 allocated CPUs (likely spreading to other cores)
+- Efficiency: 329.80 Gbps / 44.8 CPU = 7.36 Gbps per CPU-equivalent
+
+---
+
 ## All Available Filters
 
 Run `./show_keywords.sh` to see current valid values for each filter.
