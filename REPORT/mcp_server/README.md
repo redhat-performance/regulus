@@ -1,10 +1,38 @@
 # Regulus ElasticSearch MCP Server
 
-Model Context Protocol (MCP) server for interacting with Regulus benchmark data in ElasticSearch through Claude Desktop or other MCP clients.
+Model Context Protocol (MCP) server for interacting with Regulus benchmark data in ElasticSearch through **Claude Desktop, Cline, or other MCP clients**.
 
 ## What is MCP?
 
-MCP (Model Context Protocol) allows Claude to directly interact with your ElasticSearch data through specialized tools. Instead of running makefile commands manually, you can ask Claude to query, analyze, and manage your benchmark results in natural language.
+MCP (Model Context Protocol) is an **open standard** that allows AI assistants to interact with external tools and data sources. The Regulus MCP server provides 6 specialized tools for querying and managing ElasticSearch benchmark data.
+
+### Supported Clients
+
+The MCP server works with any MCP-compatible client:
+
+1. **Claude Desktop** (macOS, Windows)
+   - Official Anthropic desktop app
+   - Natural language queries through Claude AI
+   - Best for interactive exploration
+
+2. **Cline** (VS Code Extension)
+   - AI coding assistant for VS Code
+   - Great for developers and automation
+   - Works on Linux, macOS, Windows
+
+3. **MCP Inspector** (Development Tool)
+   - Interactive testing tool
+   - Useful for development and debugging
+   - Install: `npm install -g @modelcontextprotocol/inspector`
+
+4. **Custom Clients**
+   - Any application implementing the MCP protocol
+   - Use the stdio transport interface
+   - See: https://modelcontextprotocol.io/
+
+### Standalone CLI (No MCP Client Required)
+
+For users who don't want to set up an MCP client, the **standalone CLI** provides direct access to all server functions without requiring Claude Desktop, Cline, or any other frontend.
 
 ## Features
 
@@ -29,21 +57,25 @@ The Regulus ES MCP server provides these tools:
 1. **Create a virtual environment:**
 
 ```bash
-cd $REG_ROOT/REPORT/build_report/mcp_server
-python3 -m venv .venv
+cd $REG_ROOT/REPORT/mcp_server
+
+# Use Python 3.10+ (3.11 recommended if available)
+python3.11 -m venv .venv
+# Or if python3.11 is not available: python3.10 -m venv .venv
+
 source .venv/bin/activate
 ```
 
 2. **Install dependencies:**
 
 ```bash
-pip install "mcp[cli]" httpx
+pip install -r requirements.txt
 ```
 
 3. **Test the server:**
 
 ```bash
-# Set your ES connection
+# Set your ES connection (or source from lab.config)
 export ES_URL='https://admin:password@your-es-host.com'
 export ES_INDEX='regulus-results'
 
@@ -53,13 +85,17 @@ python regulus_es_mcp.py
 
 The server should start without errors (it will wait for stdio input from an MCP client).
 
-## Configuration for Claude Desktop
+## Configuration for MCP Clients
+
+### Option A: Claude Desktop (macOS, Windows)
+
+**Note:** Claude Desktop is currently only available for macOS and Windows.
 
 Add the MCP server to your Claude Desktop configuration file:
 
 **Location:**
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Linux: `~/.config/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
 **Configuration:**
 
@@ -85,7 +121,75 @@ Add the MCP server to your Claude Desktop configuration file:
 - Include your ES credentials in the `ES_URL`
 - Restart Claude Desktop after editing the config
 
-## Standalone CLI Usage (Linux/Terminal)
+---
+
+### Option B: Cline (VS Code Extension - All Platforms)
+
+**Cline** is an AI coding assistant VS Code extension that supports MCP servers. Great for Linux users and developers!
+
+1. **Install Cline Extension**
+   - Open VS Code
+   - Install "Cline" extension from the marketplace
+   - Or: https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev
+
+2. **Configure MCP Server**
+
+   Open Cline settings (VS Code: Settings → Extensions → Cline → Edit in settings.json) and add:
+
+   ```json
+   {
+     "cline.mcpServers": {
+       "regulus-elasticsearch": {
+         "command": "/path/to/regulus/REPORT/mcp_server/.venv/bin/python",
+         "args": [
+           "/path/to/regulus/REPORT/mcp_server/regulus_es_mcp.py"
+         ],
+         "env": {
+           "ES_URL": "https://username:password@your-es-host.amazonaws.com",
+           "ES_INDEX": "regulus-results"
+         }
+       }
+     }
+   }
+   ```
+
+3. **Use with Cline**
+
+   Open Cline in VS Code and ask:
+   - "List all benchmark batches"
+   - "Search for DPU results with throughput over 300 Gbps"
+   - "Compare the last two upload batches"
+
+**Benefits of Cline:**
+- ✅ Works on Linux, macOS, Windows
+- ✅ Integrated into your development environment
+- ✅ Can create code/scripts based on query results
+- ✅ Free and open source
+
+---
+
+### Option C: MCP Inspector (Testing/Development)
+
+For development and testing:
+
+```bash
+# Install MCP Inspector
+npm install -g @modelcontextprotocol/inspector
+
+# Run with your server
+cd $REG_ROOT/REPORT/mcp_server
+source .venv/bin/activate
+export ES_URL='https://username:password@your-es-host.com'
+export ES_INDEX='regulus-results'
+
+mcp-inspector regulus_es_mcp.py
+```
+
+Opens an interactive web interface for testing all MCP tools.
+
+---
+
+## Standalone CLI Usage (No MCP Client Required)
 
 If you're on Linux or prefer command-line tools, you can use the standalone CLI wrapper without Claude Desktop.
 
@@ -135,8 +239,10 @@ export ES_INDEX='other-index'
 If you prefer to run directly with Python:
 
 ```bash
-cd $REG_ROOT/REPORT/build_report/mcp_server
-python3 -m venv .venv
+cd $REG_ROOT/REPORT/mcp_server
+
+# Create venv with Python 3.10+ (3.11 recommended)
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
