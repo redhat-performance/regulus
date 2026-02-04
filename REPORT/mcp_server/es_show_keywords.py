@@ -78,6 +78,7 @@ async def main():
         "topology": "Topologies (--topology)",
         "protocol": "Protocols (--protocol)",
         "test_type": "Test Types (--test-type)",
+        "execution_label.keyword": "Execution Labels (--execution-label)",
         "kernel": "Kernel Versions (--kernel)",
         "rcos": "RCOS/OpenShift Versions (--rcos)",
         "arch": "Architectures (--arch)",
