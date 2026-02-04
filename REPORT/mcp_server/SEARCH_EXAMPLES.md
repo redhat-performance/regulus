@@ -51,6 +51,7 @@ Run `./show_keywords.sh` to see current valid values for each filter.
 | `--kernel` | `5.14.0-570.49.1.el9_6.x86_64` | Kernel version |
 | `--arch` | `INTEL(R)_XEON(R)_GOLD_6548Y+` | CPU architecture |
 | `--cpu` | `4`, `26`, `52` | CPU count |
+| `--execution-label` | `baseline-q1`, `non-accelerated`, `weekly-run-2025-w01` | Campaign/experiment label |
 | `--min-throughput` | `90`, `1000000` | Minimum throughput value |
 | `--max-throughput` | `100`, `5000000` | Maximum throughput value |
 | `--size` | `10`, `50`, `100` | Number of results to return |
@@ -263,6 +264,45 @@ Run `./show_keywords.sh` to see current valid values for each filter.
 
 # BF3 performance
 ./build_and_run.sh search --nic BF3 --test-type stream --size 5
+```
+
+## Campaign/Execution Label Queries
+
+**Use Case**: Compare performance across different test campaigns, baselines, or weekly runs.
+
+### Filter by Execution Label
+```bash
+# All results from a specific campaign
+./build_and_run.sh search --execution-label non-accelerated
+
+# Baseline campaign results
+./build_and_run.sh search --execution-label baseline-q1-2025
+
+# Weekly regression run
+./build_and_run.sh search --execution-label weekly-run-2025-w01
+```
+
+### Compare Campaigns (Manual)
+```bash
+# Get baseline performance
+./build_and_run.sh search --execution-label baseline-q1 --model DPU --topology internode --size 10
+
+# Get optimized performance
+./build_and_run.sh search --execution-label optimized-q1 --model DPU --topology internode --size 10
+
+# Compare outputs manually to see performance delta
+```
+
+### Campaign-Specific Analysis
+```bash
+# Best DPU results from non-accelerated campaign
+./build_and_run.sh search --execution-label non-accelerated --model DPU --size 5
+
+# Best DPU results from accelerated campaign
+./build_and_run.sh search --execution-label dpu-accelerated --model DPU --size 5
+
+# Weekly run internode TCP stream results
+./build_and_run.sh search --execution-label weekly-run-2025-w05 --topology internode --protocol tcp --test-type stream
 ```
 
 ## Debugging and Investigation
