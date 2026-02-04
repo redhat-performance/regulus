@@ -209,12 +209,26 @@ async def search_benchmarks(
     performance_profile: Optional[str] = None,
     offload: Optional[str] = None,
     threads: Optional[int] = None,
+    min_threads: Optional[int] = None,
+    max_threads: Optional[int] = None,
     wsize: Optional[int] = None,
+    min_wsize: Optional[int] = None,
+    max_wsize: Optional[int] = None,
     rsize: Optional[int] = None,
+    min_rsize: Optional[int] = None,
+    max_rsize: Optional[int] = None,
     pods_per_worker: Optional[int] = None,
+    min_pods_per_worker: Optional[int] = None,
+    max_pods_per_worker: Optional[int] = None,
     scale_out_factor: Optional[int] = None,
+    min_scale_out_factor: Optional[int] = None,
+    max_scale_out_factor: Optional[int] = None,
     min_throughput: Optional[float] = None,
     max_throughput: Optional[float] = None,
+    min_stddev_pct: Optional[float] = None,
+    max_stddev_pct: Optional[float] = None,
+    min_busy_cpu: Optional[float] = None,
+    max_busy_cpu: Optional[float] = None,
     execution_label: Optional[str] = None,
     run_id: Optional[str] = None,
     iteration_id: Optional[str] = None,
@@ -236,13 +250,27 @@ async def search_benchmarks(
         cpu: Filter by CPU count (e.g., '4', '26', '52')
         performance_profile: Filter by performance profile (e.g., 'performance', 'latency-performance')
         offload: Filter by offload settings (e.g., 'on', 'off')
-        threads: Filter by thread count (e.g., 1, 32, 64)
-        wsize: Filter by write size (e.g., 64, 1024, 8192)
-        rsize: Filter by read size (e.g., 64, 1024, 8192)
-        pods_per_worker: Filter by pods per worker node
-        scale_out_factor: Filter by scale out factor
+        threads: Exact thread count (e.g., 1, 32, 64)
+        min_threads: Minimum thread count
+        max_threads: Maximum thread count
+        wsize: Exact write size (e.g., 64, 1024, 8192)
+        min_wsize: Minimum write size
+        max_wsize: Maximum write size
+        rsize: Exact read size (e.g., 64, 1024, 8192)
+        min_rsize: Minimum read size
+        max_rsize: Maximum read size
+        pods_per_worker: Exact pods per worker node
+        min_pods_per_worker: Minimum pods per worker
+        max_pods_per_worker: Maximum pods per worker
+        scale_out_factor: Exact scale out factor
+        min_scale_out_factor: Minimum scale out factor
+        max_scale_out_factor: Maximum scale out factor
         min_throughput: Minimum mean throughput value
         max_throughput: Maximum mean throughput value
+        min_stddev_pct: Minimum standard deviation percentage
+        max_stddev_pct: Maximum standard deviation percentage
+        min_busy_cpu: Minimum busy CPU count (NOT percentage - this is a count metric)
+        max_busy_cpu: Maximum busy CPU count (NOT percentage - this is a count metric)
         execution_label: Filter by execution label (e.g., 'baseline-q1', 'non-accelerated', 'weekly-run-2025-w01')
         run_id: Filter by run ID (exact match)
         iteration_id: Filter by iteration ID (exact match)
@@ -286,19 +314,58 @@ async def search_benchmarks(
     if iteration_id:
         must_clauses.append({"term": {"iteration_id": iteration_id}})
 
-    # Integer field filters
+    # Integer field filters (exact match or range)
     if threads is not None:
         must_clauses.append({"term": {"threads": threads}})
+    elif min_threads is not None or max_threads is not None:
+        range_filter = {}
+        if min_threads is not None:
+            range_filter["gte"] = min_threads
+        if max_threads is not None:
+            range_filter["lte"] = max_threads
+        must_clauses.append({"range": {"threads": range_filter}})
+
     if wsize is not None:
         must_clauses.append({"term": {"wsize": wsize}})
+    elif min_wsize is not None or max_wsize is not None:
+        range_filter = {}
+        if min_wsize is not None:
+            range_filter["gte"] = min_wsize
+        if max_wsize is not None:
+            range_filter["lte"] = max_wsize
+        must_clauses.append({"range": {"wsize": range_filter}})
+
     if rsize is not None:
         must_clauses.append({"term": {"rsize": rsize}})
+    elif min_rsize is not None or max_rsize is not None:
+        range_filter = {}
+        if min_rsize is not None:
+            range_filter["gte"] = min_rsize
+        if max_rsize is not None:
+            range_filter["lte"] = max_rsize
+        must_clauses.append({"range": {"rsize": range_filter}})
+
     if pods_per_worker is not None:
         must_clauses.append({"term": {"pods_per_worker": pods_per_worker}})
+    elif min_pods_per_worker is not None or max_pods_per_worker is not None:
+        range_filter = {}
+        if min_pods_per_worker is not None:
+            range_filter["gte"] = min_pods_per_worker
+        if max_pods_per_worker is not None:
+            range_filter["lte"] = max_pods_per_worker
+        must_clauses.append({"range": {"pods_per_worker": range_filter}})
+
     if scale_out_factor is not None:
         must_clauses.append({"term": {"scale_out_factor": scale_out_factor}})
+    elif min_scale_out_factor is not None or max_scale_out_factor is not None:
+        range_filter = {}
+        if min_scale_out_factor is not None:
+            range_filter["gte"] = min_scale_out_factor
+        if max_scale_out_factor is not None:
+            range_filter["lte"] = max_scale_out_factor
+        must_clauses.append({"range": {"scale_out_factor": range_filter}})
 
-    # Throughput range filters
+    # Float field range filters
     if min_throughput is not None or max_throughput is not None:
         range_filter = {}
         if min_throughput is not None:
@@ -307,6 +374,22 @@ async def search_benchmarks(
             range_filter["lte"] = max_throughput
         must_clauses.append({"range": {"mean": range_filter}})
 
+    if min_stddev_pct is not None or max_stddev_pct is not None:
+        range_filter = {}
+        if min_stddev_pct is not None:
+            range_filter["gte"] = min_stddev_pct
+        if max_stddev_pct is not None:
+            range_filter["lte"] = max_stddev_pct
+        must_clauses.append({"range": {"stddev_pct": range_filter}})
+
+    if min_busy_cpu is not None or max_busy_cpu is not None:
+        range_filter = {}
+        if min_busy_cpu is not None:
+            range_filter["gte"] = min_busy_cpu
+        if max_busy_cpu is not None:
+            range_filter["lte"] = max_busy_cpu
+        must_clauses.append({"range": {"busy_cpu": range_filter}})
+
     query = {
         "size": min(size, 100),
         "query": {
@@ -314,12 +397,14 @@ async def search_benchmarks(
         },
         "sort": [{"mean": {"order": "desc"}}, {"@timestamp": {"order": "desc"}}],
         "_source": [
-            "batch_id", "run_id", "benchmark", "model", "nic", "kernel", "rcos",
+            "batch_id", "run_id", "iteration_id", "execution_label",
+            "benchmark", "model", "nic", "kernel", "rcos",
             "topology", "protocol", "test_type", "arch", "cpu",
             "performance_profile", "offload",
             "threads", "wsize", "rsize",
             "pods_per_worker", "scale_out_factor",
-            "mean", "unit", "busy_cpu", "@timestamp"
+            "mean", "min", "max", "stddev", "stddev_pct", "samples_count", "unit", "busy_cpu",
+            "regulus_data", "regulus_git_branch", "@timestamp"
         ]
     }
 
@@ -388,12 +473,43 @@ async def search_benchmarks(
         if scale_info:
             output.append(f"  {', '.join(scale_info)}")
 
-        # Last line: batch and timestamp (shortened)
+        # Statistics line: min, max, stddev if present
+        stats_info = []
+        if doc.get('min') is not None:
+            stats_info.append(f"Min: {doc.get('min'):.2f}")
+        if doc.get('max') is not None:
+            stats_info.append(f"Max: {doc.get('max'):.2f}")
+        if doc.get('stddev') is not None:
+            stats_info.append(f"StdDev: {doc.get('stddev'):.2f}")
+        if doc.get('samples_count'):
+            stats_info.append(f"Samples: {doc.get('samples_count')}")
+
+        if stats_info:
+            output.append(f"  {', '.join(stats_info)}")
+
+        # Execution context line: run_id, iteration_id, execution_label
+        exec_info = []
+        if doc.get('execution_label'):
+            exec_info.append(f"Label: {doc.get('execution_label')}")
+        if doc.get('run_id'):
+            exec_info.append(f"Run: {doc.get('run_id')[:8]}...")
+        if doc.get('iteration_id'):
+            exec_info.append(f"Iter: {doc.get('iteration_id')[:8]}...")
+
+        if exec_info:
+            output.append(f"  {', '.join(exec_info)}")
+
+        # Batch and timestamp line
         timestamp = doc.get('@timestamp', 'N/A')
         if timestamp != 'N/A' and len(timestamp) > 19:
             timestamp = timestamp[:19]  # Keep YYYY-MM-DDTHH:MM:SS
 
         output.append(f"  Batch: {doc.get('batch_id', 'N/A')[:8]}..., Time: {timestamp}")
+
+        # Source data line: regulus_data
+        if doc.get('regulus_data'):
+            output.append(f"  Source: {doc.get('regulus_data')}")
+
         output.append("")
 
     return "\n".join(output)
