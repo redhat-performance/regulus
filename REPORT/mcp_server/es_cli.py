@@ -38,7 +38,8 @@ Examples:
   %(prog)s list-batches
   %(prog)s batch-info f2c533ef-b020-473e-babf-b81371e8147b
   %(prog)s search --benchmark uperf --model OVNK --nic E810
-  %(prog)s search --min-throughput 90
+  %(prog)s search --execution-label non-accelerated --model DPU
+  %(prog)s search --execution-label baseline-q1 --min-throughput 90
   %(prog)s compare batch1-uuid batch2-uuid
   %(prog)s delete batch-uuid
   %(prog)s stats
@@ -77,6 +78,9 @@ Environment Variables:
     search_parser.add_argument('--rsize', type=int, help='Read size')
     search_parser.add_argument('--pods-per-worker', dest='pods_per_worker', type=int, help='Pods per worker')
     search_parser.add_argument('--scale-out-factor', dest='scale_out_factor', type=int, help='Scale out factor')
+    search_parser.add_argument('--execution-label', dest='execution_label', help='Execution label (e.g., baseline-q1, non-accelerated, weekly-run-2025-w01)')
+    search_parser.add_argument('--run-id', dest='run_id', help='Run ID (exact match)')
+    search_parser.add_argument('--iteration-id', dest='iteration_id', help='Iteration ID (exact match)')
     search_parser.add_argument('--min-throughput', type=float, help='Minimum throughput')
     search_parser.add_argument('--max-throughput', type=float, help='Maximum throughput')
     search_parser.add_argument('--size', type=int, default=10, help='Number of results (default: 10)')
@@ -134,6 +138,9 @@ Environment Variables:
                 scale_out_factor=args.scale_out_factor,
                 min_throughput=args.min_throughput,
                 max_throughput=args.max_throughput,
+                execution_label=args.execution_label,
+                run_id=args.run_id,
+                iteration_id=args.iteration_id,
                 size=args.size
             )
 

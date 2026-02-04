@@ -6,7 +6,8 @@
         flatten flatten-pretty es-upload es-template es-check es-full \
         es-index-stats es-template-info es-index-mapping \
         es-ilm-policy es-ilm-policy-no-delete es-ilm-info es-ilm-explain es-bootstrap-index \
-        es-list-batches es-batch-count es-batch-info es-delete-batch es-show-last-batch \
+        es-list-batches es-batch-count es-batch-info es-delete-batch es-show-last-batch es-list-execution-labels \
+        es-delete-index \
         clean
 
 # Configuration
@@ -97,6 +98,7 @@ help:
 	@echo "  make es-batch-info ES_BATCH_ID=<uuid>    - Show batch details"
 	@echo "  make es-delete-batch ES_BATCH_ID=<uuid>  - Delete all documents in batch"
 	@echo "  make es-show-last-batch                  - Show most recent batch"
+	@echo "  make es-list-execution-labels            - List all execution_label values"
 	@echo ""
 	@echo "Configuration:"
 	@echo "  REG_ROOT    = $(REG_ROOT)"
@@ -386,6 +388,56 @@ es-show-last-batch: es-check
 		print("Batch ID: {}".format(buckets[0]["key"]) if buckets else "No batches found"); \
 		print("Documents: {}".format(buckets[0]["doc_count"]) if buckets else ""); \
 		print("Last upload: {}".format(buckets[0]["max_timestamp"]["value_as_string"]) if buckets else "")'
+
+es-list-execution-labels: es-check
+	@$(SOURCE_ES_CONFIG); \
+	echo "==========================================" ;\
+	echo "  Execution Labels in $(ES_INDEX)" ;\
+	echo "==========================================" ;\
+	echo "" ;\
+	curl -s "$${ES_URL}/$(ES_INDEX)/_search?size=0&pretty" \
+		-H 'Content-Type: application/json' \
+		-d '{"aggs": {"execution_labels": {"terms": {"field": "execution_label.keyword", "size": 100, "missing": "__NULL__"}}}}' | \
+		$(PYTHON) -c 'import sys, json; \
+		data = json.load(sys.stdin); \
+		buckets = data.get("aggregations", {}).get("execution_labels", {}).get("buckets", []); \
+		if not buckets: \
+			print("No execution_label data found"); \
+		else: \
+			print("Found {} unique execution label(s):\n".format(len(buckets))); \
+			for b in buckets: \
+				label = b["key"]; \
+				count = b["doc_count"]; \
+				if label == "__NULL__": \
+					print("  (not set): {} documents".format(count)); \
+				else: \
+					print("  \"{}\": {} documents".format(label, count))'
+
+es-delete-index: es-check
+	@$(SOURCE_ES_CONFIG); \
+	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
+	echo "==========================================" ;\
+	echo "  WARNING: Delete Index" ;\
+	echo "==========================================" ;\
+	echo "" ;\
+	echo "This will DELETE the entire index: $(ES_INDEX)" ;\
+	echo "URL: $$SAFE_URL" ;\
+	echo "" ;\
+	read -p "Are you sure? Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] || (echo "Cancelled."; exit 1); \
+	echo "" ;\
+	echo "Checking if $(ES_INDEX) is an alias or concrete index..." ;\
+	ALIAS_CHECK=$$(curl -s "$${ES_URL}/_cat/aliases/$(ES_INDEX)" | head -n 1 | awk '{print $$2}'); \
+	if [ -n "$$ALIAS_CHECK" ]; then \
+		echo "$(ES_INDEX) is an alias pointing to: $$ALIAS_CHECK" ;\
+		echo "Deleting concrete index: $$ALIAS_CHECK" ;\
+		curl -X DELETE "$${ES_URL}/$$ALIAS_CHECK" | $(PYTHON) -m json.tool; \
+	else \
+		echo "$(ES_INDEX) is a concrete index" ;\
+		echo "Deleting index..." ;\
+		curl -X DELETE "$${ES_URL}/$(ES_INDEX)" | $(PYTHON) -m json.tool; \
+	fi; \
+	echo "" ;\
+	echo "✓ Index $(ES_INDEX) deleted. Template will be applied on next upload."
 
 # =============================================================================
 # Index Lifecycle Management (ILM) Targets

@@ -215,6 +215,9 @@ async def search_benchmarks(
     scale_out_factor: Optional[int] = None,
     min_throughput: Optional[float] = None,
     max_throughput: Optional[float] = None,
+    execution_label: Optional[str] = None,
+    run_id: Optional[str] = None,
+    iteration_id: Optional[str] = None,
     size: int = 10
 ) -> str:
     """
@@ -240,6 +243,9 @@ async def search_benchmarks(
         scale_out_factor: Filter by scale out factor
         min_throughput: Minimum mean throughput value
         max_throughput: Maximum mean throughput value
+        execution_label: Filter by execution label (e.g., 'baseline-q1', 'non-accelerated', 'weekly-run-2025-w01')
+        run_id: Filter by run ID (exact match)
+        iteration_id: Filter by iteration ID (exact match)
         size: Number of results to return (default: 10, max: 100)
     """
     # Build query
@@ -270,6 +276,15 @@ async def search_benchmarks(
         must_clauses.append({"term": {"performance_profile": performance_profile}})
     if offload:
         must_clauses.append({"term": {"offload": offload}})
+
+    # Execution context filters
+    # These are defined as 'keyword' type in the mapping template, so no .keyword suffix needed
+    if execution_label:
+        must_clauses.append({"term": {"execution_label": execution_label}})
+    if run_id:
+        must_clauses.append({"term": {"run_id": run_id}})
+    if iteration_id:
+        must_clauses.append({"term": {"iteration_id": iteration_id}})
 
     # Integer field filters
     if threads is not None:
