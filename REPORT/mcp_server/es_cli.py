@@ -73,16 +73,30 @@ Environment Variables:
     search_parser.add_argument('--cpu', help='CPU count')
     search_parser.add_argument('--performance-profile', dest='performance_profile', help='Performance profile')
     search_parser.add_argument('--offload', help='Offload setting (on, off)')
-    search_parser.add_argument('--threads', type=int, help='Thread count')
-    search_parser.add_argument('--wsize', type=int, help='Write size')
-    search_parser.add_argument('--rsize', type=int, help='Read size')
-    search_parser.add_argument('--pods-per-worker', dest='pods_per_worker', type=int, help='Pods per worker')
-    search_parser.add_argument('--scale-out-factor', dest='scale_out_factor', type=int, help='Scale out factor')
+    search_parser.add_argument('--threads', type=int, help='Exact thread count')
+    search_parser.add_argument('--min-threads', dest='min_threads', type=int, help='Minimum thread count')
+    search_parser.add_argument('--max-threads', dest='max_threads', type=int, help='Maximum thread count')
+    search_parser.add_argument('--wsize', type=int, help='Exact write size')
+    search_parser.add_argument('--min-wsize', dest='min_wsize', type=int, help='Minimum write size')
+    search_parser.add_argument('--max-wsize', dest='max_wsize', type=int, help='Maximum write size')
+    search_parser.add_argument('--rsize', type=int, help='Exact read size')
+    search_parser.add_argument('--min-rsize', dest='min_rsize', type=int, help='Minimum read size')
+    search_parser.add_argument('--max-rsize', dest='max_rsize', type=int, help='Maximum read size')
+    search_parser.add_argument('--pods-per-worker', dest='pods_per_worker', type=int, help='Exact pods per worker')
+    search_parser.add_argument('--min-pods-per-worker', dest='min_pods_per_worker', type=int, help='Minimum pods per worker')
+    search_parser.add_argument('--max-pods-per-worker', dest='max_pods_per_worker', type=int, help='Maximum pods per worker')
+    search_parser.add_argument('--scale-out-factor', dest='scale_out_factor', type=int, help='Exact scale out factor')
+    search_parser.add_argument('--min-scale-out-factor', dest='min_scale_out_factor', type=int, help='Minimum scale out factor')
+    search_parser.add_argument('--max-scale-out-factor', dest='max_scale_out_factor', type=int, help='Maximum scale out factor')
     search_parser.add_argument('--execution-label', dest='execution_label', help='Execution label (e.g., baseline-q1, non-accelerated, weekly-run-2025-w01)')
     search_parser.add_argument('--run-id', dest='run_id', help='Run ID (exact match)')
     search_parser.add_argument('--iteration-id', dest='iteration_id', help='Iteration ID (exact match)')
-    search_parser.add_argument('--min-throughput', type=float, help='Minimum throughput')
-    search_parser.add_argument('--max-throughput', type=float, help='Maximum throughput')
+    search_parser.add_argument('--min-throughput', dest='min_throughput', type=float, help='Minimum throughput')
+    search_parser.add_argument('--max-throughput', dest='max_throughput', type=float, help='Maximum throughput')
+    search_parser.add_argument('--min-stddev-pct', dest='min_stddev_pct', type=float, help='Minimum stddev percentage')
+    search_parser.add_argument('--max-stddev-pct', dest='max_stddev_pct', type=float, help='Maximum stddev percentage')
+    search_parser.add_argument('--min-busy-cpu', dest='min_busy_cpu', type=float, help='Minimum busy CPU count (NOT percentage)')
+    search_parser.add_argument('--max-busy-cpu', dest='max_busy_cpu', type=float, help='Maximum busy CPU count (NOT percentage)')
     search_parser.add_argument('--size', type=int, default=10, help='Number of results (default: 10)')
 
     # compare
@@ -132,12 +146,26 @@ Environment Variables:
                 performance_profile=args.performance_profile,
                 offload=args.offload,
                 threads=args.threads,
+                min_threads=args.min_threads,
+                max_threads=args.max_threads,
                 wsize=args.wsize,
+                min_wsize=args.min_wsize,
+                max_wsize=args.max_wsize,
                 rsize=args.rsize,
+                min_rsize=args.min_rsize,
+                max_rsize=args.max_rsize,
                 pods_per_worker=args.pods_per_worker,
+                min_pods_per_worker=args.min_pods_per_worker,
+                max_pods_per_worker=args.max_pods_per_worker,
                 scale_out_factor=args.scale_out_factor,
+                min_scale_out_factor=args.min_scale_out_factor,
+                max_scale_out_factor=args.max_scale_out_factor,
                 min_throughput=args.min_throughput,
                 max_throughput=args.max_throughput,
+                min_stddev_pct=args.min_stddev_pct,
+                max_stddev_pct=args.max_stddev_pct,
+                min_busy_cpu=args.min_busy_cpu,
+                max_busy_cpu=args.max_busy_cpu,
                 execution_label=args.execution_label,
                 run_id=args.run_id,
                 iteration_id=args.iteration_id,
