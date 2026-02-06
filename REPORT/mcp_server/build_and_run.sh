@@ -46,7 +46,9 @@ fi
 # Check if image exists, build if not
 if ! podman image exists "$IMAGE_NAME" 2>/dev/null; then
     echo "Building container image: $IMAGE_NAME"
-    podman build -t "$IMAGE_NAME" "$SCRIPT_DIR"
+    # Build from REPORT directory to include es_integration/es_config.py in context
+    REPORT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+    podman build -t "$IMAGE_NAME" -f "$SCRIPT_DIR/Dockerfile" "$REPORT_DIR"
     echo "Image built successfully"
 else
     echo "Using existing image: $IMAGE_NAME"

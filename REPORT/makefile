@@ -264,8 +264,7 @@ es-full: summary es-template es-upload
 	@echo "  - Flattened to: $(GENERATED_DIR)/reports.ndjson"
 	@echo "  - Uploaded to ES write alias: $(ES_WRITE_ALIAS)"
 	@echo ""
-	@echo "NOTE: To enable automatic data retention (90-day lifecycle):"
-	@echo "      Run 'make es-ilm-policy' to apply ILM/ISM policy"
+	@echo "NOTE: ISM policy auto-attached via ism_template during es-bootstrap-index"
 
 # =============================================================================
 # ElasticSearch Debug and Info Targets
@@ -406,21 +405,8 @@ es-list-execution-labels: es-check
 	echo "" ;\
 	curl -s "$${ES_URL}/$(ES_INDEX)/_search?size=0&pretty" \
 		-H 'Content-Type: application/json' \
-		-d '{"aggs": {"execution_labels": {"terms": {"field": "execution_label.keyword", "size": 100, "missing": "__NULL__"}}}}' | \
-		$(PYTHON) -c 'import sys, json; \
-		data = json.load(sys.stdin); \
-		buckets = data.get("aggregations", {}).get("execution_labels", {}).get("buckets", []); \
-		if not buckets: \
-			print("No execution_label data found"); \
-		else: \
-			print("Found {} unique execution label(s):\n".format(len(buckets))); \
-			for b in buckets: \
-				label = b["key"]; \
-				count = b["doc_count"]; \
-				if label == "__NULL__": \
-					print("  (not set): {} documents".format(count)); \
-				else: \
-					print("  \"{}\": {} documents".format(label, count))'
+		-d '{"aggs": {"execution_labels": {"terms": {"field": "execution_label", "size": 100, "missing": "__NULL__"}}}}' | \
+		$(PYTHON) -c 'import sys, json; data = json.load(sys.stdin); buckets = data.get("aggregations", {}).get("execution_labels", {}).get("buckets", []); print("No execution_label data found") if not buckets else print("Found {} unique execution label(s):\n".format(len(buckets))) or [print("  (not set): {} documents".format(b["doc_count"])) if b["key"] == "__NULL__" else print("  \"{}\": {} documents".format(b["key"], b["doc_count"])) for b in buckets]'
 
 es-delete-index: es-check
 	@$(SOURCE_ES_CONFIG); \
@@ -536,7 +522,7 @@ es-ilm-explain: es-check
 	echo ""; \
 	curl -s "$${ES_URL}$${POLICY_EXPLAIN_PREFIX}$(ES_INDEX)$${POLICY_EXPLAIN_SUFFIX}" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist or lifecycle management not enabled yet"
 
-es-bootstrap-index: es-check es-ilm-policy es-template
+es-bootstrap-index: es-check es-ilm-policy-no-delete es-template
 	@$(SOURCE_ES_CONFIG); \
 	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
 	echo "=========================================="; \
@@ -552,7 +538,7 @@ es-bootstrap-index: es-check es-ilm-policy es-template
 	echo ""; \
 	curl -X PUT "$${ES_URL}/$(BASE_NAME)-000001" \
 		-H 'Content-Type: application/json' \
-		-d '{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}}' | $(PYTHON) -m json.tool; \
+		-d '{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}, "settings": {"index.plugins.index_state_management.rollover_alias": "$(ES_WRITE_ALIAS)"}}' | $(PYTHON) -m json.tool; \
 	echo ""; \
 	echo "✓ Bootstrapped index created successfully"; \
 	echo "  Write index: $(BASE_NAME)-000001"; \
