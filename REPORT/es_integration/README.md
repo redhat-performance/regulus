@@ -59,19 +59,23 @@ python3 elasticsearch/flatten_to_es.py dashboard/test_data/ -o all_reports.ndjso
 
 ### Upload to ElasticSearch
 
+**Important:** Use the write alias for uploads, not the direct index name.
+
 ```bash
 # Direct upload (requires `pip install elasticsearch`)
 python3 elasticsearch/flatten_to_es.py report.json \
     --es-host localhost:9200 \
-    --es-index benchmark-results
+    --es-index regulus-results-write
 
 # Upload with authentication
 python3 elasticsearch/flatten_to_es.py dashboard/test_data/ \
     --es-host localhost:9200 \
-    --es-index benchmark-results \
+    --es-index regulus-results-write \
     --es-user elastic \
     --es-password changeme
 ```
+
+**Note:** Always use `regulus-results-write` (the alias) for uploads, not the direct index name like `regulus-results-000002`.
 
 ### Apply Index Template
 
@@ -92,6 +96,59 @@ with open('elasticsearch/es_mapping_template.json') as f:
     template = json.load(f)
     es.indices.put_index_template(name='benchmark-results-template', body=template)
 ```
+
+## Index Lifecycle Management (ISM)
+
+The regulus indices use OpenSearch ISM (Index State Management) for automated lifecycle policies.
+
+### Rollover Index Structure
+
+Data is stored in rollover indices:
+- **Write alias**: `regulus-results-write` (always points to current hot index)
+- **Read pattern**: `regulus-results-*` (queries all rollover indices)
+- **Index naming**: `regulus-results-000001`, `regulus-results-000002`, etc.
+
+### ISM Policy
+
+The `regulus-ism-policy` manages index lifecycle:
+
+**Rollover conditions (ANY triggers):**
+- 5,000 documents OR
+- 500 MB shard size OR
+- 30 days age (safety limit)
+
+**Lifecycle phases:**
+1. **Hot**: Active writes, monitoring rollover conditions
+2. **Warm** (1h after rollover): Force-merge, replicas=1, readable
+3. **Replicated** (7d after creation): Read-only, replicas=0, permanent retention
+
+**Applying the ISM policy:**
+```bash
+cd REPORT
+make es-ilm-policy  # Or: make es-ilm-policy-no-delete
+```
+
+### Migrating to Rollover Structure
+
+If you have an existing non-rollover index, use the migration script:
+
+```bash
+cd $REG_ROOT
+source ./bootstrap.sh
+export ES_INDEX="regulus-results"  # or your current index name
+REPORT/es_integration/reindex_to_rollover.sh
+```
+
+The script will:
+1. Create backup of current data
+2. Apply ISM policy and index template
+3. Delete old index (after backup)
+4. Create rollover index with proper configuration
+5. Reindex data from backup
+6. Set up write alias
+7. Verify and cleanup
+
+See `REPORT/es_integration/REINDEX_FIX_SUMMARY.md` for technical details and troubleshooting.
 
 ## Data Schema
 
@@ -208,6 +265,13 @@ The flattened format is also suitable for MCP (Model Context Protocol) servers. 
 - Compare configurations
 - Track performance trends
 
+**Configuration Module**: The `es_config.py` file in this directory provides centralized configuration for all ElasticSearch tools:
+- ES_URL: ElasticSearch server connection
+- ES_INDEX: Index pattern (`regulus-results-*` for rollover indices)
+- ES_WRITE_ALIAS: Alias for uploads (`regulus-results-write`)
+
+All Python tools that interact with ElasticSearch should import from `es_integration.es_config` for consistent configuration.
+
 ## Troubleshooting
 
 ### Import Error: Cannot import dashboard.data_loader
@@ -242,7 +306,7 @@ Potential improvements (pending feedback from MCP and Grafana teams):
 
 1. **Add computed fields**: CPU efficiency, performance per core, etc.
 2. **Aggregations**: Pre-compute common aggregations
-3. **Data retention policies**: ILM (Index Lifecycle Management) for old data
+3. **Data retention policies**: ✓ Implemented (see ISM Policy section above)
 4. **Additional metadata**: Git commit hash, build version, etc.
 5. **Dashboard refactoring**: If flattened format stabilizes, refactor dashboard to use it too
 

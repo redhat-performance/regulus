@@ -38,7 +38,10 @@ if [ -z "${ES_URL:-}" ]; then
     fi
 fi
 
-ES_INDEX="${ES_INDEX:-regulus-results}"
+# ES_INDEX is hardcoded in es_integration/es_config.py as 'regulus-results-*'
+# It should NOT be overridden unless you understand rollover index architecture
+# Uncomment below only if you're an expert modifying the infrastructure:
+# ES_INDEX="${ES_INDEX:-regulus-results-*}"
 
 # Check if image exists, build if not
 if ! podman image exists "$IMAGE_NAME" 2>/dev/null; then
@@ -50,7 +53,7 @@ else
 fi
 
 # Run the container with ES credentials
+# ES_INDEX comes from hardcoded default in es_config.py, not passed as env var
 podman run --rm \
     -e ES_URL="$ES_URL" \
-    -e ES_INDEX="$ES_INDEX" \
     "$IMAGE_NAME" "$@"
