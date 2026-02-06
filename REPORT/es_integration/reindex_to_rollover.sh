@@ -2,10 +2,13 @@
 # Script to migrate existing regulus-results index to rollover-enabled index
 # This enables automatic index rollover without data deletion (for CCR setup)
 #
+# The script auto-detects the current write index from the write alias,
+# so no manual configuration is needed.
+#
 # PREREQUISITE: Run from regulus root after sourcing bootstrap.sh
 #   cd $REGULUS_CHECKOUT
 #   source ./bootstrap.sh
-#   REPORT/es_integration/reindex_to_rollover_fixed.sh
+#   REPORT/es_integration/reindex_to_rollover.sh
 
 set -e
 
@@ -32,33 +35,59 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPORT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# ES_URL should be set from lab.config via bootstrap.sh
+# Source lab.config to get ES_URL
+if [ -f "$REG_ROOT/lab.config" ]; then
+    source "$REG_ROOT/lab.config"
+fi
+
+# Verify ES_URL is set
 if [ -z "${ES_URL:-}" ]; then
     echo -e "${RED}ERROR: ES_URL not set${NC}"
     echo ""
-    echo "Ensure ES_URL is defined in lab.config, then re-run:"
-    echo "  source ./bootstrap.sh"
+    echo "ES_URL must be defined in $REG_ROOT/lab.config"
     echo ""
     exit 1
 fi
 
-ES_INDEX="${ES_INDEX:-regulus-results}"
+# Auto-detect current write index from write alias (consistent with es_config.py)
+WRITE_ALIAS="regulus-results-write"
+BASE_NAME="regulus-results"
 
-# Detect if we're migrating from a rollover index (e.g., regulus-results-000001)
-# or from the original non-rollover index (e.g., regulus-results)
-if [[ "$ES_INDEX" =~ -[0-9]{6}$ ]]; then
-    # Already a rollover index, increment to next number
-    BASE_NAME=$(echo "$ES_INDEX" | sed 's/-[0-9]\{6\}$//')
-    CURRENT_NUM=$(echo "$ES_INDEX" | grep -o '[0-9]\{6\}$')
-    NEXT_NUM=$(printf "%06d" $((10#$CURRENT_NUM + 1)))
-    OLD_INDEX="$ES_INDEX"
-    NEW_INDEX="${BASE_NAME}-${NEXT_NUM}"
-    WRITE_ALIAS="${BASE_NAME}-write"
+# Try to find the current index from the write alias
+echo "Detecting current write index from alias: $WRITE_ALIAS..."
+ALIAS_RESULT=$(curl -s "$ES_URL/_cat/aliases/$WRITE_ALIAS?h=index")
+
+if [ -n "$ALIAS_RESULT" ] && [ "$ALIAS_RESULT" != "404" ]; then
+    # Alias exists, get the current index
+    OLD_INDEX="$ALIAS_RESULT"
+    echo "Found current write index: $OLD_INDEX"
+
+    # Extract index number and calculate next
+    if [[ "$OLD_INDEX" =~ -([0-9]{6})$ ]]; then
+        CURRENT_NUM="${BASH_REMATCH[1]}"
+        NEXT_NUM=$(printf "%06d" $((10#$CURRENT_NUM + 1)))
+        NEW_INDEX="${BASE_NAME}-${NEXT_NUM}"
+    else
+        echo -e "${RED}ERROR: Current index '$OLD_INDEX' doesn't match rollover pattern${NC}"
+        exit 1
+    fi
 else
-    # Original non-rollover index
-    OLD_INDEX="$ES_INDEX"
-    NEW_INDEX="${ES_INDEX}-000001"
-    WRITE_ALIAS="${ES_INDEX}-write"
+    # Alias doesn't exist, check for non-rollover index
+    echo "Write alias not found, checking for legacy index: $BASE_NAME..."
+    INDEX_CHECK=$(curl -s "$ES_URL/_cat/indices/$BASE_NAME?h=index")
+
+    if [ -n "$INDEX_CHECK" ] && [ "$INDEX_CHECK" != "404" ]; then
+        # Legacy non-rollover index exists
+        OLD_INDEX="$BASE_NAME"
+        NEW_INDEX="${BASE_NAME}-000001"
+        echo "Found legacy index: $OLD_INDEX"
+    else
+        echo -e "${RED}ERROR: No index found to migrate${NC}"
+        echo "Expected either:"
+        echo "  - Write alias: $WRITE_ALIAS"
+        echo "  - Legacy index: $BASE_NAME"
+        exit 1
+    fi
 fi
 
 TEMP_BACKUP="${OLD_INDEX}-backup-$(date +%s)"
@@ -74,8 +103,9 @@ echo "  3. Apply index template"
 echo "  4. Delete old index: $OLD_INDEX"
 echo "  5. Create new rollover index: $NEW_INDEX"
 echo "  6. Set up write alias: $WRITE_ALIAS -> $NEW_INDEX"
-echo "  7. Reindex data from backup"
-echo "  8. Verify and cleanup"
+echo "  7. Attach ISM policy to new index"
+echo "  8. Reindex data from backup"
+echo "  9. Verify and cleanup"
 echo ""
 echo -e "${YELLOW}WARNING: This is a destructive operation!${NC}"
 echo ""
@@ -190,9 +220,26 @@ fi
 
 echo -e "${GREEN}✓ Rollover index created with alias${NC}"
 
-# Step 7: Reindex data from backup to new index
+# Step 7: Attach ISM policy to new index
 echo ""
-echo "Step 7: Reindexing $COUNT documents from $TEMP_BACKUP to $NEW_INDEX..."
+echo "Step 7: Attaching ISM policy to new index..."
+POLICY_ATTACH_RESULT=$(curl -s -X POST "$ES_URL/_plugins/_ism/add/$NEW_INDEX" \
+    -H 'Content-Type: application/json' \
+    -d "{\"policy_id\": \"regulus-ism-policy\"}")
+
+POLICY_ATTACH_SUCCESS=$(echo "$POLICY_ATTACH_RESULT" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('updated_indices', 0))")
+
+if [ "$POLICY_ATTACH_SUCCESS" -eq 1 ]; then
+    echo -e "${GREEN}✓ ISM policy attached to new index${NC}"
+else
+    echo -e "${YELLOW}⚠ WARNING: Failed to attach ISM policy${NC}"
+    echo "$POLICY_ATTACH_RESULT"
+    echo "You may need to attach it manually after migration"
+fi
+
+# Step 8: Reindex data from backup to new index
+echo ""
+echo "Step 8: Reindexing $COUNT documents from $TEMP_BACKUP to $NEW_INDEX..."
 echo "This may take a while..."
 
 curl -X POST "$ES_URL/_reindex?wait_for_completion=true" \
@@ -231,9 +278,9 @@ else
     fi
 fi
 
-# Step 8: Verify ISM policy and alias setup
+# Step 9: Verify ISM policy and alias setup
 echo ""
-echo "Step 8: Verifying rollover configuration..."
+echo "Step 9: Verifying rollover configuration..."
 
 # Check alias
 ALIAS_CHECK=$(curl -s "$ES_URL/$NEW_INDEX/_alias" | python3 -c "import sys, json; d=json.load(sys.stdin); print(len(d.get('$NEW_INDEX', {}).get('aliases', {})))")
@@ -244,16 +291,29 @@ else
 fi
 
 # Check ISM policy status
-ISM_STATUS=$(curl -s "$ES_URL/_plugins/_ism/explain/$NEW_INDEX" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('$NEW_INDEX', {}).get('info', {}).get('message', 'OK'))")
-if [ "$ISM_STATUS" == "OK" ]; then
-    echo -e "${GREEN}✓ ISM policy working correctly${NC}"
+echo "Checking ISM policy attachment..."
+ISM_EXPLAIN=$(curl -s "$ES_URL/_plugins/_ism/explain/$NEW_INDEX")
+ISM_POLICY_ID=$(echo "$ISM_EXPLAIN" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('$NEW_INDEX', {}).get('policy_id', 'null'))")
+ISM_ENABLED=$(echo "$ISM_EXPLAIN" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('$NEW_INDEX', {}).get('enabled', 'null'))")
+
+if [ "$ISM_POLICY_ID" != "null" ] && [ "$ISM_POLICY_ID" != "None" ]; then
+    echo -e "${GREEN}✓ ISM policy attached: $ISM_POLICY_ID${NC}"
+
+    # Check if state is initialized (may take a few minutes)
+    ISM_STATE=$(echo "$ISM_EXPLAIN" | python3 -c "import sys, json; d=json.load(sys.stdin); state=d.get('$NEW_INDEX', {}).get('state'); print(state.get('name') if state else 'initializing')")
+    if [ "$ISM_STATE" != "initializing" ]; then
+        echo -e "${GREEN}✓ ISM state initialized: $ISM_STATE${NC}"
+    else
+        echo -e "${YELLOW}⚠ ISM state initializing (will be ready in ~5 minutes)${NC}"
+    fi
 else
-    echo -e "${YELLOW}⚠ ISM status: $ISM_STATUS${NC}"
+    echo -e "${RED}✗ ERROR: ISM policy NOT attached!${NC}"
+    echo "  You'll need to attach it manually"
 fi
 
-# Step 9: Cleanup backup
+# Step 10: Cleanup backup
 echo ""
-echo "Step 9: Cleanup backup index..."
+echo "Step 10: Cleanup backup index..."
 read -p "Delete backup index $TEMP_BACKUP? [y/N] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -264,7 +324,7 @@ else
     echo "Delete it manually when ready: curl -X DELETE '$ES_URL/$TEMP_BACKUP'"
 fi
 
-# Step 10: Final verification and summary
+# Step 11: Final verification and summary
 echo ""
 echo "=========================================="
 echo "  Migration Complete!"
@@ -276,14 +336,25 @@ echo "  Write alias: $WRITE_ALIAS -> $NEW_INDEX"
 echo "  Documents: $NEW_COUNT"
 echo ""
 echo "Lifecycle phases:"
-echo "  Hot (0-7d): Active indexing, rollover at 50GB/30d/1M docs"
-echo "  Warm (7-30d): Read-only, force-merged, optimized"
-echo "  Cold (30d+): Reduced replicas to 0"
-echo "  Delete: NONE (data retained permanently for CCR)"
+echo "  Hot: Active indexing, rollover at 500MB/30d/5k docs"
+echo "  Warm (1h after rollover): Read-only, force-merged, optimized"
+echo "  Replicated (7d): Reduced replicas to 0"
+echo "  Delete: NONE (data retained permanently)"
 echo ""
 echo -e "${GREEN}✓ Future uploads should use: $WRITE_ALIAS${NC}"
 echo ""
-echo "Next rollover will create: ${ES_INDEX}-000002"
+# Calculate next rollover index number
+NEXT_ROLLOVER_NUM=$(printf "%06d" $((10#$NEXT_NUM + 1)))
+echo "Next rollover will create: ${BASE_NAME}-${NEXT_ROLLOVER_NUM}"
+echo ""
+echo "ISM Policy Status:"
+echo "  Policy: regulus-ism-policy (attached)"
+if [ "$ISM_STATE" != "initializing" ]; then
+    echo "  State: $ISM_STATE (active)"
+else
+    echo "  State: Initializing (~5 min wait)"
+    echo "  NOTE: ISM will activate on next manager cycle"
+fi
 echo ""
 echo "Verify with:"
 echo "  curl '$ES_URL/_cat/indices/regulus*?v'"
