@@ -18,7 +18,14 @@ ES_INTEGRATION_DIR := es_integration
 REPORT_DIR := $(shell pwd)
 GENERATED_DIR := $(REPORT_DIR)/generated
 REG_ROOT ?= $(shell cd .. && pwd)
-ES_INDEX ?= regulus-results
+
+# ElasticSearch index configuration (matches es_config.py)
+# BASE_NAME: Infrastructure constant for rollover index names (regulus-results-000001, 000002, etc.)
+# ES_INDEX: Query pattern for reading data across all rollover indices
+# ES_WRITE_ALIAS: Write alias pointing to current hot index for uploads
+BASE_NAME ?= regulus-results
+ES_INDEX ?= regulus-results-*
+ES_WRITE_ALIAS ?= regulus-results-write
 
 # Helper to sanitize ES_URL for display (removes credentials)
 # Usage: echo $$(echo "$$ES_URL" | $(SANITIZE_URL))
@@ -101,9 +108,11 @@ help:
 	@echo "  make es-list-execution-labels            - List all execution_label values"
 	@echo ""
 	@echo "Configuration:"
-	@echo "  REG_ROOT    = $(REG_ROOT)"
-	@echo "  ES_URL      = Set by caller (from lab.config or environment)"
-	@echo "  ES_INDEX    = $(ES_INDEX)"
+	@echo "  REG_ROOT        = $(REG_ROOT)"
+	@echo "  ES_URL          = Set by caller (from lab.config or environment)"
+	@echo "  BASE_NAME       = $(BASE_NAME)"
+	@echo "  ES_INDEX        = $(ES_INDEX) (query pattern)"
+	@echo "  ES_WRITE_ALIAS  = $(ES_WRITE_ALIAS) (upload target)"
 	@echo "====================================================================="
 
 # =============================================================================
@@ -122,7 +131,7 @@ summary:
 	@cd $(REG_ROOT) && REG_ROOT=$(REG_ROOT) bash REPORT/$(BUILD_REPORT_DIR)/build_report --formats html csv --output REPORT/generated/report
 	@echo ""
 	@echo "Flattening report.json to NDJSON for ElasticSearch..."
-	@$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $${ES_INDEX:-regulus-results}
+	@$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_WRITE_ALIAS)
 	@echo ""
 	@echo "✓ Report generation complete:"
 	@echo "  - Unflatten: $(GENERATED_DIR)/report.json"
@@ -142,7 +151,7 @@ summary-with-testbed-info:
 	@cd $(REG_ROOT) && REG_ROOT=$(REG_ROOT) bash REPORT/assembly/assemble_report.sh
 	@echo ""
 	@echo "Flattening report-with-testbed-info.json to NDJSON for ElasticSearch..."
-	@$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report-with-testbed-info.json -o $(GENERATED_DIR)/reports-with-testbed-info.ndjson --es-index $${ES_INDEX:-regulus-results}
+	@$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report-with-testbed-info.json -o $(GENERATED_DIR)/reports-with-testbed-info.ndjson --es-index $(ES_WRITE_ALIAS)
 	@echo ""
 	@echo "✓ Report with testbed info generation complete:"
 	@echo "  - Unflatten: $(GENERATED_DIR)/report-with-testbed-info.json"
@@ -184,7 +193,7 @@ flatten:
 		$(MAKE) summary; \
 	else \
 		echo "Flattening existing report.json..."; \
-		$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_INDEX); \
+		$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_WRITE_ALIAS); \
 		echo "✓ Flatten complete: $(GENERATED_DIR)/reports.ndjson"; \
 	fi
 
@@ -240,10 +249,10 @@ es-upload:
 	echo "Uploading reports to ElasticSearch..."; \
 	echo "  Source: $(GENERATED_DIR)/reports.ndjson"; \
 	echo "  ES URL: $$SAFE_URL"; \
-	echo "  ES Index: $(ES_INDEX)"; \
+	echo "  Write Alias: $(ES_WRITE_ALIAS)"; \
 	echo "Uploading $$(grep -c '{"index"' $(GENERATED_DIR)/reports.ndjson 2>/dev/null || echo 0) documents..."; \
 	curl -s -H "Content-Type: application/x-ndjson" \
-		-XPOST "$${ES_URL}/$(ES_INDEX)/_bulk" \
+		-XPOST "$${ES_URL}/$(ES_WRITE_ALIAS)/_bulk" \
 		--data-binary @$(GENERATED_DIR)/reports.ndjson | \
 		$(PYTHON) $(ES_INTEGRATION_DIR)/debug_upload_errors.py
 
@@ -253,7 +262,7 @@ es-full: summary es-template es-upload
 	@echo "✓ Complete ElasticSearch workflow finished:"
 	@echo "  - Report generated: $(GENERATED_DIR)/report.json"
 	@echo "  - Flattened to: $(GENERATED_DIR)/reports.ndjson"
-	@echo "  - Uploaded to ES index: $(ES_INDEX)"
+	@echo "  - Uploaded to ES write alias: $(ES_WRITE_ALIAS)"
 	@echo ""
 	@echo "NOTE: To enable automatic data retention (90-day lifecycle):"
 	@echo "      Run 'make es-ilm-policy' to apply ILM/ISM policy"
@@ -537,19 +546,19 @@ es-bootstrap-index: es-check es-ilm-policy es-template
 	PLATFORM_VARS=$$(export ES_URL="$${ES_URL}"; bash $(ES_INTEGRATION_DIR)/detect_platform.sh 2>&1); \
 	eval "$$PLATFORM_VARS"; \
 	echo "Platform: $$PLATFORM"; \
-	echo "Creating initial write index: $(ES_INDEX)-000001"; \
-	echo "Write alias: $(ES_INDEX)"; \
+	echo "Creating initial write index: $(BASE_NAME)-000001"; \
+	echo "Write alias: $(ES_WRITE_ALIAS)"; \
 	echo "URL: $$SAFE_URL"; \
 	echo ""; \
-	curl -X PUT "$${ES_URL}/$(ES_INDEX)-000001" \
+	curl -X PUT "$${ES_URL}/$(BASE_NAME)-000001" \
 		-H 'Content-Type: application/json' \
-		-d '{"aliases": {"$(ES_INDEX)": {"is_write_index": true}}}' | $(PYTHON) -m json.tool; \
+		-d '{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}}' | $(PYTHON) -m json.tool; \
 	echo ""; \
 	echo "✓ Bootstrapped index created successfully"; \
-	echo "  Write index: $(ES_INDEX)-000001"; \
-	echo "  Write alias: $(ES_INDEX)"; \
+	echo "  Write index: $(BASE_NAME)-000001"; \
+	echo "  Write alias: $(ES_WRITE_ALIAS)"; \
 	echo ""; \
-	echo "NOTE: Upload to '$(ES_INDEX)' alias, not directly to $(ES_INDEX)-000001"
+	echo "NOTE: Upload to '$(ES_WRITE_ALIAS)' alias, not directly to $(BASE_NAME)-000001"
 
 # =============================================================================
 # Advanced Targets
