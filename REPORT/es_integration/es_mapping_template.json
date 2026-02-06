@@ -9,6 +9,23 @@
       "index.lifecycle.rollover_alias": "regulus-results"
     },
     "mappings": {
+      "_meta": {
+        "description": "Regulus benchmark results schema",
+        "version": "1.0",
+        "field_descriptions": {
+          "cpu": "Number of CPUs allocated to one pod in Kubernetes resource (count, not percentage). Suffix '(Gu)' indicates guaranteed CPUs",
+          "busy_cpu": "Sum of busy CPU count from both client and server worker nodes involved in the test (count, not percentage)",
+          "execution_label": "Test execution label (e.g., dpu-accelerated, non-accelerated)",
+          "regulus_data": "Source file path for the test result",
+          "run_id": "Unique identifier for the test run",
+          "iteration_id": "Unique identifier for the test iteration",
+          "batch_id": "Upload batch identifier for grouping results",
+          "mean": "Mean throughput value",
+          "stddev": "Standard deviation of throughput",
+          "stddev_pct": "Standard deviation as percentage",
+          "unit": "Unit of measurement for throughput (e.g., Gbps, transactions-sec)"
+        }
+      },
       "properties": {
         "@timestamp": {
           "type": "date"
