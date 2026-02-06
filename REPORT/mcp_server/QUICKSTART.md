@@ -82,13 +82,15 @@ cd $REG_ROOT/REPORT/build_report/mcp_server
 
 ## Configuration
 
-By default, uses ES credentials from `lab.config`. Override if needed:
+By default, uses ES credentials from `lab.config`:
 
 ```bash
+# Only ES_URL needs to be configured
 export ES_URL='https://admin:password@other-es-host.com'
-export ES_INDEX='other-index'
 ./build_and_run.sh list-batches
 ```
+
+**Note**: ES_INDEX is hardcoded as `regulus-results-*` to query across all rollover indices. It cannot be overridden without modifying `es_integration/es_config.py` (expert-level only).
 
 ## How It Works
 

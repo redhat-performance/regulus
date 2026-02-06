@@ -61,7 +61,9 @@ See `SEARCH_EXAMPLES.md` for detailed metric interpretation and analysis example
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- **Python 3.11 or higher** (Required for fastmcp package compatibility)
+  - Python 3.6-3.10 are **not supported** due to dependency requirements
+  - If `python3.11` is not available, install it first or use the containerized approach
 - Access to your ElasticSearch instance
 
 ### Setup
@@ -71,9 +73,10 @@ See `SEARCH_EXAMPLES.md` for detailed metric interpretation and analysis example
 ```bash
 cd $REG_ROOT/REPORT/mcp_server
 
-# Use Python 3.10+ (3.11 recommended if available)
+# IMPORTANT: Use Python 3.11 or higher
 python3.11 -m venv .venv
-# Or if python3.11 is not available: python3.10 -m venv .venv
+# If python3.11 is not in PATH, use the full path:
+# /usr/bin/python3.11 -m venv .venv
 
 source .venv/bin/activate
 ```
@@ -84,18 +87,36 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-3. **Test the server:**
+**Note:** The requirements.txt has been fixed to remove the non-existent `mcp>=1.0.0` package. Only `fastmcp` and `httpx` are needed.
+
+3. **Configure ElasticSearch index pattern:**
 
 ```bash
 # Set your ES connection (or source from lab.config)
 export ES_URL='https://admin:password@your-es-host.com'
-export ES_INDEX='regulus-results'
 
-# Test run
+# Test run (ES_INDEX is hardcoded in es_integration/es_config.py)
 python regulus_es_mcp.py
 ```
 
 The server should start without errors (it will wait for stdio input from an MCP client).
+
+### Understanding Index Rollover
+
+The Regulus ElasticSearch index uses **ISM (Index State Management) with rollover**:
+
+- **Write alias**: `regulus-results-write` (always points to the current active index for uploads)
+- **Actual indices**: `regulus-results-000001`, `regulus-results-000002`, etc. (created on rollover)
+- **Query pattern**: `regulus-results-*` (hardcoded in `REPORT/es_integration/es_config.py`)
+
+**Why hardcoded?**
+- ES_INDEX is tied to the ISM policy and rollover infrastructure
+- Changing it would break queries and uploads
+- Users should not modify it unless they're infrastructure experts
+- Automatically queries across all rollover indices for complete historical data
+
+**Configuration Location:**
+The index pattern is defined in `REPORT/es_integration/es_config.py` with sensible defaults that work out-of-the-box.
 
 ## Configuration for MCP Clients
 
@@ -120,8 +141,7 @@ Add the MCP server to your Claude Desktop configuration file:
         "/path/to/regulus/REPORT/mcp_server/regulus_es_mcp.py"
       ],
       "env": {
-        "ES_URL": "https://username:password@your-es-host.amazonaws.com",
-        "ES_INDEX": "regulus-results"
+        "ES_URL": "https://username:password@your-es-host.amazonaws.com"
       }
     }
   }
@@ -131,6 +151,7 @@ Add the MCP server to your Claude Desktop configuration file:
 **Important:**
 - Use absolute paths for both the Python interpreter and the script
 - Include your ES credentials in the `ES_URL`
+- ES_INDEX is hardcoded as `regulus-results-*` (no need to configure)
 - Restart Claude Desktop after editing the config
 
 ---
@@ -157,13 +178,14 @@ Add the MCP server to your Claude Desktop configuration file:
            "/path/to/regulus/REPORT/mcp_server/regulus_es_mcp.py"
          ],
          "env": {
-           "ES_URL": "https://username:password@your-es-host.amazonaws.com",
-           "ES_INDEX": "regulus-results"
+           "ES_URL": "https://username:password@your-es-host.amazonaws.com"
          }
        }
      }
    }
    ```
+
+   Note: ES_INDEX is hardcoded as `regulus-results-*` - no need to configure it.
 
 3. **Use with Cline**
 
@@ -192,12 +214,13 @@ npm install -g @modelcontextprotocol/inspector
 cd $REG_ROOT/REPORT/mcp_server
 source .venv/bin/activate
 export ES_URL='https://username:password@your-es-host.com'
-export ES_INDEX='regulus-results'
 
 mcp-inspector regulus_es_mcp.py
 ```
 
 Opens an interactive web interface for testing all MCP tools.
+
+Note: ES_INDEX is automatically set to `regulus-results-*` from `es_config.py`.
 
 ---
 
@@ -205,7 +228,53 @@ Opens an interactive web interface for testing all MCP tools.
 
 If you're on Linux or prefer command-line tools, you can use the standalone CLI wrapper without Claude Desktop.
 
-### Option 1: Containerized (Recommended)
+### Option 1: Published Container Image (Easiest)
+
+Use the pre-built container image without cloning the repository:
+
+```bash
+# List all batches
+docker run --rm \
+  -e ES_URL='https://username:password@your-es-host.com' \
+  ghcr.io/regulus/es-cli:latest \
+  list-batches
+
+# Search benchmarks
+docker run --rm \
+  -e ES_URL='https://username:password@your-es-host.com' \
+  ghcr.io/regulus/es-cli:latest \
+  search --benchmark uperf --size 10
+
+# Get batch details
+docker run --rm \
+  -e ES_URL='https://username:password@your-es-host.com' \
+  ghcr.io/regulus/es-cli:latest \
+  batch-info <batch-id>
+
+# Show statistics
+docker run --rm \
+  -e ES_URL='https://username:password@your-es-host.com' \
+  ghcr.io/regulus/es-cli:latest \
+  stats
+```
+
+**Create a shell alias for convenience:**
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+alias regulus='docker run --rm -e ES_URL="https://user:pass@host.com" ghcr.io/regulus/es-cli:latest'
+
+# Then use it simply:
+regulus list-batches
+regulus search --benchmark uperf
+```
+
+**Notes:**
+- Container image includes all dependencies
+- ES_INDEX is hardcoded as `regulus-results-*` (no configuration needed)
+- Only ES_URL credentials are required
+- Works on Linux, macOS, Windows with Docker/Podman
+
+### Option 2: Build Locally (Recommended for Development)
 
 The easiest way to use the CLI is through the containerized version (requires podman or docker):
 
@@ -242,25 +311,25 @@ cd $REG_ROOT/REPORT/build_report/mcp_server
 **Override ES connection:**
 ```bash
 export ES_URL='https://admin:password@other-es-host.com'
-export ES_INDEX='other-index'
 ./build_and_run.sh list-batches
 ```
 
-### Option 2: Direct Python (Requires Python 3.10+)
+Note: ES_INDEX cannot be overridden - it's hardcoded as `regulus-results-*` in `es_config.py`.
+
+### Option 3: Direct Python (Requires Python 3.10+)
 
 If you prefer to run directly with Python:
 
 ```bash
 cd $REG_ROOT/REPORT/mcp_server
 
-# Create venv with Python 3.10+ (3.11 recommended)
+# Create venv with Python 3.11+ (REQUIRED)
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Set environment variables
+# Set environment variable (ES_INDEX is hardcoded)
 export ES_URL='https://admin:password@your-es-host.com'
-export ES_INDEX='regulus-results'
 
 # Run commands
 ./es_cli.py list-batches
@@ -331,20 +400,54 @@ Once configured with Claude Desktop, you can interact with Claude naturally:
 
 1. Check the config file syntax (valid JSON)
 2. Ensure absolute paths are correct
-3. Verify Python virtual environment exists
+3. Verify Python virtual environment exists and uses Python 3.11+
 4. Restart Claude Desktop
 5. Check Claude Desktop logs:
    - macOS: `~/Library/Logs/Claude/`
    - Linux: `~/.config/Claude/logs/`
 
+### Python Version Errors
+
+**Error**: `Could not find a version that satisfies the requirement fastmcp`
+
+**Solution**: You're using Python 3.6-3.10. You **must** use Python 3.11 or higher.
+
+```bash
+# Check your Python version
+python3 --version
+
+# If it's < 3.11, use python3.11 explicitly
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Error**: `ERROR: Could not find a version that satisfies the requirement mcp>=1.0.0`
+
+**Solution**: Your requirements.txt is outdated. The `mcp>=1.0.0` package doesn't exist. Update requirements.txt to only contain:
+```
+httpx>=0.27.0
+fastmcp>=0.1.0
+```
+
 ### Connection Errors
 
 1. Verify `ES_URL` is correct and accessible
-2. Test with curl:
+2. ES_INDEX is hardcoded as `regulus-results-*` in `es_config.py` (no need to configure)
+3. Test with curl:
    ```bash
-   curl "$ES_URL/regulus-results/_count"
+   # Test with wildcard pattern
+   curl "$ES_URL/regulus-results-*/_count"
+
+   # List all regulus indices
+   curl "$ES_URL/_cat/indices/regulus*?v"
    ```
-3. Check network connectivity and credentials
+4. Check network connectivity and credentials
+
+**Common Index Issues:**
+- **404 errors**: If you get 404 errors, the index may have rolled over. Always use `regulus-results-*` pattern.
+- **Old index name**: If using `regulus-results` (no wildcard), update to `regulus-results-*`
+- **No data found**: Check that indices exist with `curl "$ES_URL/_cat/indices/regulus*"`
 
 ### Tool Execution Errors
 

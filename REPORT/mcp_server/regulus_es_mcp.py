@@ -21,15 +21,17 @@ from urllib.parse import urlparse
 from mcp.server.fastmcp import FastMCP
 import httpx
 
+# Import centralized ES configuration
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from es_integration.es_config import ES_URL, ES_INDEX, ES_WRITE_ALIAS
+
 # Disable httpx logging to prevent credential leakage in URLs
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Initialize FastMCP server
 mcp = FastMCP("regulus-elasticsearch")
 
-# Configuration
-ES_URL = os.getenv("ES_URL", "http://localhost:9200")
-ES_INDEX = os.getenv("ES_INDEX", "regulus-results")
+# MCP-specific configuration
 DEFAULT_SIZE = 10
 
 

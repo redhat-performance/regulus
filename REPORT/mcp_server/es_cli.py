@@ -46,7 +46,7 @@ Examples:
 
 Environment Variables:
   ES_URL    - ElasticSearch URL (required)
-  ES_INDEX  - ElasticSearch index name (default: regulus-results)
+  ES_INDEX  - ElasticSearch index name (default: regulus-results-* to query all rollover indices)
         """
     )
 
