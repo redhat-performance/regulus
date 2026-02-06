@@ -1,6 +1,6 @@
 {
   "policy": {
-    "description": "OpenSearch ISM policy for regulus benchmark data with rollover - NO DELETION (for CCR setup)",
+    "description": "Regulus ISM policy: data-driven rollover (5k docs/500MB/30d max) with event-based transitions - NO DELETION",
     "default_state": "hot",
     "states": [
       {
@@ -8,9 +8,9 @@
         "actions": [
           {
             "rollover": {
-              "min_primary_shard_size": "50gb",
-              "min_index_age": "30d",
-              "min_doc_count": 1000000
+              "min_doc_count": 5000,
+              "min_primary_shard_size": "500mb",
+              "min_index_age": "30d"
             }
           }
         ],
@@ -18,7 +18,7 @@
           {
             "state_name": "warm",
             "conditions": {
-              "min_index_age": "7d"
+              "min_rollover_age": "1h"
             }
           }
         ]
@@ -35,23 +35,23 @@
             "force_merge": {
               "max_num_segments": 1
             }
-          },
-          {
-            "read_only": {}
           }
         ],
         "transitions": [
           {
-            "state_name": "cold",
+            "state_name": "replicated",
             "conditions": {
-              "min_index_age": "30d"
+              "min_index_age": "7d"
             }
           }
         ]
       },
       {
-        "name": "cold",
+        "name": "replicated",
         "actions": [
+          {
+            "read_only": {}
+          },
           {
             "replica_count": {
               "number_of_replicas": 0
