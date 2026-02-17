@@ -390,6 +390,17 @@ def parse_remotehosts(endpoint_str):
     remotes_entry = {"engines": [], "config": config}
     tokens = endpoint_str.split(",")
     for pair in tokens[1:]:
+        pair = pair.strip()
+        # Check if this is a new remotehosts entry (delimiter for multiple hosts)
+        if pair == "remotehosts":
+            # Save the current remotes_entry if it has a host
+            if "host" in config:
+                endpoint_data["remotes"].append(remotes_entry)
+            # Start a new remotes_entry
+            config = {"settings": {"osruntime": "chroot"}}
+            remotes_entry = {"engines": [], "config": config}
+            continue
+
         if ":" not in pair:
             continue
         key, value = pair.split(":", 1)
