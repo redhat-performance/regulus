@@ -56,10 +56,12 @@ k8susr=$REG_KNI_USER # Might be "root" or "kni" for some installations
 
 
 # Start a clean project with privilege 
-do_ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
-do_ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT && \
+if [ "$topo" != "interhost" ]; then
+  do_ssh $k8susr@$ocphost "kubectl delete ns $OCP_PROJECT" &> /dev/null
+  do_ssh $k8susr@$ocphost "kubectl create ns $OCP_PROJECT && \
                  kubectl label ns $OCP_PROJECT pod-security.kubernetes.io/enforce=privileged \
                       pod-security.kubernetes.io/enforce-version=v1.27 --overwrite" 
+fi
 
 if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ] || [ "$TPL_HWOL" == 1 ] ||  [ "$TPL_HWOL_SRIOV" == 1 ] ; then
     securityContext_file="`/bin/pwd`/securityContext.json"
@@ -342,7 +344,7 @@ for num_pods in $scale_up_factor; do
         network_type=flat
         network_mtu=8900 # TODO: get actual mtu
         rcos=na
-        kernel=`do_ssh $bmlhosta uname -r`
+        kernel=`do_ssh root@$bmlhosta uname -r`
     fi
 
     if [ "$topo" == "internode" -o "$topo" == "intranode" ]; then
@@ -366,7 +368,7 @@ for num_pods in $scale_up_factor; do
     elif [ "$topo" == "interhost" ]; then
         # TODO: make work for $scale_out_factor > 1
         endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhosta,client:1-$num_pods,userenv:$userenv,osruntime:chroot"
-        endpoint_opt+=" --endpoint remotehosts,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:chroot"
+        endpoint_opt+=",remotehosts,user:root,host:$bmlhostb,server:1-$num_pods,userenv:$userenv,osruntime:chroot"
     fi
 
     tags="mtu:$network_mtu,rcos:$rcos,kernel:$kernel,irq:$irq,userenv:$userenv"
