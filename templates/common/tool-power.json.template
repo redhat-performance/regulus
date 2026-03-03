@@ -1,0 +1,12 @@
+{
+  "tool": "power",
+  "deployment": "opt-in",
+  "opt-tag": "power-monitoring",
+  "params": [
+    {  "arg": "interval", "val": "1" },
+    {  "arg": "plugin", "val": "bf3-sensor" },
+    {  "arg": "endpoints", "val": "bluefield3-bmc.xxx.yyy,zzz,<next-fqdn>,<or-next-ip>" },
+    {  "arg": "user", "val": "admin" },
+    {  "arg": "password", "val": "your-password-here" }
+  ]
+}
