@@ -388,6 +388,7 @@ def parse_remotehosts(endpoint_str):
     endpoint_data = {"type": "remotehosts", "remotes": []}
     config = {"settings": {"osruntime": "chroot"}}
     remotes_entry = {"engines": [], "config": config}
+
     tokens = endpoint_str.split(",")
     for pair in tokens[1:]:
         pair = pair.strip()
@@ -413,6 +414,23 @@ def parse_remotehosts(endpoint_str):
             config["settings"]["userenv"] = value
         elif key in ["cpu-partitioning"]:
             config["settings"]["cpu-partitioning"] = value.lower() == "true"
+        elif key in ["tool-opt-in-tags", "tool-opt-out-tags"]:
+            # Parse array format [tag1,tag2] or [tag1]
+            import re
+            match = re.match(r'\[(.*)\]', value)
+            if match:
+                tags = [t.strip() for t in match.group(1).split(',') if t.strip()]
+                config["settings"][key] = tags
+            else:
+                config["settings"][key] = [value]
+        elif key == "host-mounts":
+            # Load host-mounts from JSON file
+            if os.path.isfile(value):
+                mount_data = load_json_file(value)
+                if mount_data:
+                    config["settings"]["host-mounts"] = mount_data
+            else:
+                print(f"Warning: host-mounts file not found: {value}", file=sys.stderr)
         elif key == "client":
             remotes_entry["engines"].append({"role": "client", "ids": simplify_id_range(value)})
         elif key == "server":
@@ -423,6 +441,7 @@ def parse_remotehosts(endpoint_str):
             config["settings"]["osruntime"] = value
         else:
             config[key] = value
+
     if "host" in config:
         endpoint_data["remotes"].append(remotes_entry)
     return endpoint_data
