@@ -6,29 +6,40 @@ function do_ssh() {
     shift
     local ssh_opts="-o StrictHostKeyChecking=no -o PasswordAuthentication=no"
     local user host ssh_cmd
+    local env_exports=""
+
+    # Parse optional -e KEY=VALUE env var flags before the command
+    while [[ "$1" == "-e" ]]; do
+        env_exports="${env_exports}export $2; "
+        shift 2
+    done
+
+    # Auto-inject local KUBECONFIG if set and not already provided via -e
+    if [[ -n "$KUBECONFIG" && "$env_exports" != *"KUBECONFIG"* ]]; then
+        env_exports="export KUBECONFIG=$KUBECONFIG; ${env_exports}"
+    fi
 
     # Parse user and host from user_host
     user=$(echo "$user_host" | awk -F@ '{print $1}')
     host=$(echo "$user_host" | awk -F@ '{print $2}')
 
     # Check if user and host are valid
-    if [ -z "$user" ] || [ -z "$host" ]; then
+    if [[ -z "$user" || -z "$host" ]]; then
         echo "Error: Invalid user/host: $user_host" >&2
         return 1
     fi
 
-    # Create the ssh command with the given commands
-    ssh_cmd="ssh $ssh_opts $user_host \"bash -c '$@'\""
+    # Build the remote command: env setup + user commands, all under one bash -c
+    local remote_cmd="${env_exports}$*"
+    ssh_cmd="ssh $ssh_opts $user_host \"bash -c '${remote_cmd}'\""
 
     # Echo the command for debugging
     echo "CMD: $ssh_cmd" >&2
 
     # Execute the command
     eval $ssh_cmd
-    local rc=$?
-    return $rc
+    return $?
 }
-
 
 # function to merge 2 resource files
 merge_resources() {
