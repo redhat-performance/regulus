@@ -22,6 +22,7 @@
       "include": "common-params",
       "params": [
         { "arg": "test-type", "vals": ["rr"] },
+        { "arg": "nthreads", "vals": ["32"] },
         { "arg": "wsize", "vals": ["1024"] },
         { "arg": "rsize", "vals": ["1024"] }
       ]
