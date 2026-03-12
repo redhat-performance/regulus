@@ -71,17 +71,14 @@ function do_ssh() {
     user_host=$1; shift
     user=`echo $user_host | awk -F@ '{print $1}'`
     host=`echo $user_host | awk -F@ '{print $2}'`
-
     if [ -z "$user" ]; then
         exit_error "do_ssh: user was blank: $user_host"
     fi
     if [ -z "$host" ]; then
         exit_error "do_ssh: host was blank: $user_host"
     fi
-
-    # Use here-document to send the script
     ssh $SSH_OPTS $user_host bash << EOFCMD
-export KUBECONFIG='${KUBECONFIG}'
+${KUBECONFIG:+export KUBECONFIG='${KUBECONFIG}'}
 $*
 EOFCMD
     return $?
