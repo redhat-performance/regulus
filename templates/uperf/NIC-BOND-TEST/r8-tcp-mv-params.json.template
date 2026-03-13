@@ -14,15 +14,23 @@
       "include": "common-params",
       "params": [
         { "arg": "test-type", "vals": ["stream"] },
+        { "arg": "nthreads", "vals": ["1"] },
+        { "arg": "wsize", "vals": ["32768","134144"] }
+      ]
+    },
+    {
+      "include": "common-params",
+      "params": [
+        { "arg": "test-type", "vals": ["stream"] },
         { "arg": "nthreads", "vals": ["32"] },
-        { "arg": "wsize", "vals": ["512","32768","134144"] }
+        { "arg": "wsize", "vals": ["134144"] }
       ]
     },
     {
       "include": "common-params",
       "params": [
         { "arg": "test-type", "vals": ["rr"] },
-        { "arg": "nthreads", "vals": ["32"] },
+        { "arg": "nthreads", "vals": ["1","32"] },
         { "arg": "wsize", "vals": ["1024"] },
         { "arg": "rsize", "vals": ["1024"] }
       ]
