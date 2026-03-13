@@ -341,8 +341,10 @@ class ReportLoader:
                         scale_out_factor=key_tags.get('scale_out_factor'),
 
                         # Test parameters
-                        test_type=unique_params.get('test-type'),
-                        protocol=common_params.get('protocol'),
+                        # test-type (traffic profile: stream, rr, crr, rtpe) can be in either unique_params or common_params
+                        test_type=unique_params.get('test-type') or common_params.get('test-type'),
+                        # protocol can be in either common_params or unique_params
+                        protocol=common_params.get('protocol') or unique_params.get('protocol'),
                         # nthreads can be in either unique_params or common_params
                         threads=self._parse_int(unique_params.get('nthreads') or common_params.get('nthreads')),
                         # wsize and rsize can be in either unique_params or common_params

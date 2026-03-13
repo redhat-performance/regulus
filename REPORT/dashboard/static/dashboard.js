@@ -7,6 +7,7 @@ let allResults = [];
 let filteredResults = [];
 let filterOptions = {};
 let charts = {};
+let applyFiltersTimeout = null;
 
 // Initialize dashboard on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -130,9 +131,26 @@ async function updateDynamicFilters() {
         populateSelect('filterScaleUp', dynamicOptions.pods_per_worker || []);
         populateSelect('filterScaleOut', dynamicOptions.scale_out_factor || []);
         populateSelect('filterWsize', dynamicOptions.wsize || []);
+
+        // After updating filter options, apply the filters with debouncing
+        // This prevents multiple rapid filter applications
+        debouncedApplyFilters();
     } catch (error) {
         console.error('Error updating dynamic filters:', error);
     }
+}
+
+// Debounced version of applyFilters to prevent too many rapid calls
+function debouncedApplyFilters() {
+    // Clear any pending timeout
+    if (applyFiltersTimeout) {
+        clearTimeout(applyFiltersTimeout);
+    }
+
+    // Set a new timeout to apply filters after a short delay
+    applyFiltersTimeout = setTimeout(() => {
+        applyFilters();
+    }, 300); // 300ms debounce delay
 }
 
 // Populate select dropdown
@@ -147,25 +165,49 @@ function populateSelect(selectId, options) {
     select.innerHTML = '';
 
     // Add "All" option for both single and multi-select
-    select.innerHTML = '<option value="">All</option>';
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = 'All';
+    select.appendChild(allOption);
 
+    // Create a map for quick lookup and add all options
+    const optionElements = new Map();
     options.forEach(opt => {
         const option = document.createElement('option');
         option.value = opt;
         option.textContent = opt;
         select.appendChild(option);
+        optionElements.set(opt, option);
     });
 
     // Restore previous selection if still valid
     if (isMultiple) {
+        // For multi-select, restore all valid selections
+        let hasValidSelection = false;
         currentValues.forEach(val => {
-            if (val === '' || options.includes(val)) {
-                const option = select.querySelector(`option[value="${val}"]`);
-                if (option) option.selected = true;
+            if (val === '') {
+                // Restore "All" selection
+                allOption.selected = true;
+                hasValidSelection = true;
+            } else if (optionElements.has(val)) {
+                // Restore specific value using the element from our map
+                optionElements.get(val).selected = true;
+                hasValidSelection = true;
             }
         });
-    } else if (currentValues[0] && options.includes(currentValues[0])) {
-        select.value = currentValues[0];
+
+        // If no valid selections were restored, select "All" by default
+        if (!hasValidSelection) {
+            allOption.selected = true;
+        }
+    } else {
+        // For single-select, restore if value is still valid
+        if (currentValues[0] && options.includes(currentValues[0])) {
+            select.value = currentValues[0];
+        } else {
+            // Default to "All" if previous value no longer valid
+            select.value = '';
+        }
     }
 }
 
@@ -173,12 +215,15 @@ function populateSelect(selectId, options) {
 function getSelectValue(selectId) {
     const select = document.getElementById(selectId);
     if (select.hasAttribute('multiple')) {
-        // Multi-select: return array of selected values (excluding empty "All")
+        // Multi-select: return array of selected values
         const values = Array.from(select.selectedOptions).map(opt => opt.value);
-        // If "All" is selected, return empty array (meaning show all)
-        if (values.includes('')) {
+
+        // If "All" is selected or nothing is selected, return empty array (meaning show all)
+        if (values.length === 0 || values.includes('')) {
             return [];
         }
+
+        // Otherwise return the specific selected values
         return values;
     } else {
         // Single-select: return value or empty string
