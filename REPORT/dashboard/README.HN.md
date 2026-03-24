@@ -6,7 +6,7 @@
 
   I'm continuing work on the Performance Benchmark Dashboard project.
 
-  Project location: /home/hnhan/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report/dashboard
+  Project location: REPORT/dashboard
 
   Please read these files first to understand the project:
   1. dashboard/TECHNICAL_NOTES.md (technical implementation details)
@@ -37,7 +37,7 @@
   Example Return Message:
 
   I'm continuing the Performance Benchmark Dashboard project at:
-  /home/hnhan/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report/dashboard
+  REPORT/dashboard
 
   Please read dashboard/TECHNICAL_NOTES.md to understand the recent changes.
 

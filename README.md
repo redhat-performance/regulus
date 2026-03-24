@@ -336,7 +336,7 @@ Assuming you have pulled this repo on your crucible controller and have invoked 
 ### ./lab.config
 You describe your lab details in this file.
 ```
-export REG_KNI_USER=hnhan
+export REG_KNI_USER=myuser
 export REG_OCPHOST="192.168.94.11"
 export OCP_WORKER_0=appworker-0.blueprint-cwl.<>.lab
 export OCP_WORKER_1=appworker-1.blueprint-cwl.<>.lab
@@ -351,7 +351,7 @@ export REG_SRIOV_NIC_MODEL=CX6
 ### ./jobs.config
 You describe your job details in this file
 ```
-export OCP_PROJECT=crucible-hnhan
+export OCP_PROJECT=crucible-myproject
 export NODE_IP=
 export IPSEC_EP=
 export REMOTE_HOST_INTF=

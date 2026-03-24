@@ -93,8 +93,8 @@ g_sut_name=""
 # Scenario 1-3 - globally defined HOSTNAMES and CPUS
 # Hostnames to sum. Leave empty if you want to sum ALL nodes that have workload pods instantiated in the test.
 HOSTNAMES=(
-        #"e23-h12-b03-fc640.rdu2.scalelab.redhat.com"
-        #"e23-h12-b04-fc640.rdu2.scalelab.redhat.com"
+        #"worker1.example.com"
+        #"worker2.example.com"
         # Add more names as needed
  )
  

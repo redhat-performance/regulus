@@ -6,9 +6,9 @@ Extracts and correlates information from env.json and testbed.json files
 Usage:
     # Show combined summary
     ./lab_extractor.py --env env.json --testbed testbed.json --summary
-    
+
     # Get host details
-    ./lab_extractor.py --env env.json --testbed testbed.json --host nvd-srv-24.nvidia.eng.rdu2.dc.redhat.com
+    ./lab_extractor.py --env env.json --testbed testbed.json --host worker1.example.com
     
     # List all NICs with their models
     ./lab_extractor.py --env env.json --testbed testbed.json --list-nics
@@ -419,19 +419,19 @@ Examples:
   %(prog)s --env env.json --search SRIOV
   
   # Get details for specific host
-  %(prog)s --env env.json --testbed testbed.json --host nvd-srv-24.nvidia.eng.rdu2.dc.redhat.com
-  
+  %(prog)s --env env.json --testbed testbed.json --host worker1.example.com
+
   # List all hosts
   %(prog)s --env env.json --list-hosts
-  
+
   # List all NICs with models
   %(prog)s --env env.json --testbed testbed.json --list-nics
-  
+
   # Export to bash
   %(prog)s --env env.json --export-bash env_vars.sh
-  
+
   # JSON output
-  %(prog)s --env env.json --testbed testbed.json --host nvd-srv-24.nvidia.eng.rdu2.dc.redhat.com --json
+  %(prog)s --env env.json --testbed testbed.json --host worker1.example.com --json
         """
     )
     

@@ -88,7 +88,7 @@ The `lab_extractor.py` is the most powerful tool, combining environment configur
 ```bash
 # Show complete configuration and hardware for a specific host
 ./lab_extractor.py --env env.json --testbed testbed.json \
-    --host nvd-srv-24.nvidia.eng.rdu2.dc.redhat.com
+    --host worker1.example.com
 ```
 
 **6. Show Network Configuration**
@@ -117,7 +117,7 @@ Add `--json` flag to any command for JSON output:
 ```bash
 # Get host details as JSON
 ./lab_extractor.py --env env.json --testbed testbed.json \
-    --host nvd-srv-24.nvidia.eng.rdu2.dc.redhat.com --json
+    --host worker1.example.com --json
 
 # Search and output as JSON
 ./lab_extractor.py --env env.json --search DPDK --json
@@ -212,7 +212,7 @@ Lightweight alternative using `jq`:
 ```bash
 # Check specific worker hardware
 ./lab_extractor.py --env env.json --testbed testbed.json \
-    --host nvd-srv-24.nvidia.eng.rdu2.dc.redhat.com
+    --host worker1.example.com
 
 # List all NICs across all hosts
 ./lab_extractor.py --env env.json --testbed testbed.json --list-nics
@@ -380,9 +380,9 @@ All tools support `--help`:
    ```bash
    # Create an alias
    alias labhost='./lab_extractor.py --env env.json --testbed testbed.json --host'
-   
+
    # Use it
-   labhost nvd-srv-24.nvidia.eng.rdu2.dc.redhat.com
+   labhost worker1.example.com
    ```
 
 ## Troubleshooting
