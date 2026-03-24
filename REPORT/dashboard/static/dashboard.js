@@ -1498,15 +1498,17 @@ async function reloadReports() {
 
         const result = await response.json();
 
-        if (result.status === 'success') {
-            alert('Reports reloaded successfully: ' + result.message);
+        if (result.success) {
+            const message = `Loaded ${result.total_reports} report(s) with ${result.total_results} result(s)`;
+            alert('Reports reloaded successfully!\n' + message);
             location.reload();
         } else {
-            alert('Error reloading reports: ' + result.message);
+            const errorMsg = result.error || 'Unknown error';
+            alert('Error reloading reports:\n' + errorMsg);
         }
     } catch (error) {
         console.error('Error reloading reports:', error);
-        alert('Error reloading reports');
+        alert('Error reloading reports: ' + error.message);
     } finally {
         hideLoading();
     }
