@@ -12,7 +12,13 @@ from pathlib import Path
 # Add parent directory to path to import from build_report modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from dashboard import create_app
+# Try to import from dashboard package (when run from parent dir)
+# or directly from app module (when run from dashboard dir)
+try:
+    from dashboard import create_app
+except ModuleNotFoundError:
+    # Running from dashboard directory itself
+    from app import create_app
 
 
 def main():
@@ -85,20 +91,23 @@ Examples:
     if not json_files:
         print(f"Warning: No JSON report files found in {args.reports}")
         print("The dashboard will start, but no data will be displayed.")
-        response = input("Continue anyway? [y/N]: ")
-        if response.lower() != 'y':
-            sys.exit(0)
+
+        # Skip interactive prompt if not in a TTY (e.g., running in container)
+        if sys.stdin.isatty():
+            response = input("Continue anyway? [y/N]: ")
+            if response.lower() != 'y':
+                sys.exit(0)
+        else:
+            print("No TTY detected - starting dashboard anyway (container mode)")
+            print("Add JSON files to the data directory and reload via API.")
 
     # Create and run the dashboard app
     print("\n" + "="*70)
     print("Performance Benchmark Dashboard")
     print("="*70)
 
-    app = create_app(
-        reports_dir=str(reports_path.absolute()),
-        host=args.host,
-        port=args.port
-    )
+    # Create Flask app using new modular architecture
+    app = create_app(reports_dir=str(reports_path.absolute()))
 
     print("\nStarting dashboard server...")
     print(f"Access the dashboard at: http://{args.host}:{args.port}")
@@ -106,7 +115,8 @@ Examples:
     print("="*70 + "\n")
 
     try:
-        app.run(debug=args.debug)
+        # Flask app.run() takes host, port, and debug parameters
+        app.run(host=args.host, port=args.port, debug=args.debug)
     except KeyboardInterrupt:
         print("\n\nShutting down dashboard...")
         sys.exit(0)

@@ -1,93 +1,51 @@
 #!/bin/bash
+#
+# build.sh - Build the Regulus Dashboard container image
+#
+# Usage:
+#   ./build.sh              # Build with default tag
+#   ./build.sh mytag        # Build with custom tag
+#
+
 set -e
 
+# Change to dashboard directory (parent of docker/)
+cd "$(dirname "$0")/.."
+
+# Determine image tag
+TAG="${1:-latest}"
 IMAGE_NAME="regulus-dashboard"
-VERSION="${1:-latest}"
-REGISTRY="${CONTAINER_REGISTRY:-}"
+FULL_TAG="${IMAGE_NAME}:${TAG}"
 
 echo "================================================"
-echo "  Building Regulus Dashboard Image"
+echo "  Building Regulus Dashboard Container"
 echo "================================================"
 echo ""
-
-# Check if podman is installed
-if ! command -v podman &> /dev/null; then
-    echo "Error: podman not found"
-    echo "Please install podman: sudo dnf install podman"
-    exit 1
-fi
-
-# Check if we're in the docker directory
-if [ ! -f "Dockerfile" ]; then
-    echo "Error: Dockerfile not found in current directory"
-    echo "Please run this script from regulus/REPORT/dashboard/docker/"
-    exit 1
-fi
-
-# Check if dashboard code exists (in parent directory)
-if [ ! -f "../run_dashboard.py" ]; then
-    echo "Error: Dashboard code not found at ../"
-    echo "Please ensure dashboard code exists"
-    exit 1
-fi
-
-# Check if sample data exists
-if [ ! -d "sample_data" ] || [ -z "$(ls -A sample_data/*.json 2>/dev/null)" ]; then
-    echo "Warning: No JSON files found in sample_data/"
-    echo ""
-    echo "The image will start with no initial sample data."
-    echo "Users will need to add their own JSON files to /tmp/regulus-data/"
-    echo ""
-    echo "To include sample data:"
-    echo "  cp ../test_data/*.json sample_data/"
-    echo ""
-    read -p "Continue without sample data? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
-fi
-
-if [ -d "sample_data" ] && [ -n "$(ls -A sample_data/*.json 2>/dev/null)" ]; then
-    echo "Sample JSON files to include in image:"
-    ls -lh sample_data/*.json
-    echo ""
-fi
-
-echo "Building image..."
-echo "Build context: $(pwd)/.."
-echo "Dockerfile: $(pwd)/Dockerfile"
+echo "Image: ${FULL_TAG}"
+echo "Build context: $(pwd)"
+echo "Dockerfile: docker/Dockerfile"
 echo ""
 
-# Build from parent directory so we can access both docker/ and build_report/
+# Build the image using podman (system default)
+echo "→ Building container image..."
 podman build \
-    --file Dockerfile \
-    --tag ${IMAGE_NAME}:${VERSION} \
-    --tag ${IMAGE_NAME}:latest \
-    --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-    --build-arg VCS_REF=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") \
-    ..
+    -f docker/Dockerfile \
+    -t "${FULL_TAG}" \
+    .
 
 echo ""
 echo "================================================"
 echo "✓ Build complete!"
 echo "================================================"
 echo ""
-echo "Image: ${IMAGE_NAME}:${VERSION}"
+echo "Image: ${FULL_TAG}"
 echo ""
-echo "Test locally:"
-echo "  ./run-dashboard.sh"
-echo ""
-echo "Or manually:"
-echo "  podman run --rm -p 5000:5000 -v /tmp/regulus-data:/app/data:Z ${IMAGE_NAME}:${VERSION}"
-echo ""
-echo "Or use compose:"
+echo "To run the dashboard:"
+echo "  cd docker"
 echo "  podman-compose up"
 echo ""
-
-if [ -n "$REGISTRY" ]; then
-    echo "Push to registry:"
-    echo "  podman tag ${IMAGE_NAME}:${VERSION} ${REGISTRY}/${IMAGE_NAME}:${VERSION}"
-    echo "  podman push ${REGISTRY}/${IMAGE_NAME}:${VERSION}"
-    echo ""
-fi
+echo "Or run manually:"
+echo "  podman run -p 5000:5000 -v /tmp/regulus-data:/app/data:Z ${FULL_TAG}"
+echo ""
+echo "Then open: http://localhost:5000"
+echo "================================================"
