@@ -541,3 +541,32 @@ class ReportFilter:
                     continue
 
         return filtered
+
+    @staticmethod
+    def filter_by_report_files(results: List[BenchmarkResult], selected_files: List[str]) -> List[BenchmarkResult]:
+        """
+        Filter results to only include data from selected report files.
+
+        Args:
+            results: List of benchmark results
+            selected_files: List of filenames or paths to include
+
+        Returns:
+            Filtered list of benchmark results
+        """
+        import os
+        if not selected_files:
+            return results
+
+        # Normalize selected files to just filenames for comparison
+        selected_basenames = {os.path.basename(f) for f in selected_files}
+
+        filtered = []
+        for r in results:
+            if r.report_source:
+                # Compare basename of report_source with selected files
+                source_basename = os.path.basename(r.report_source)
+                if source_basename in selected_basenames:
+                    filtered.append(r)
+
+        return filtered

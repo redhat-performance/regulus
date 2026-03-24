@@ -20,22 +20,28 @@ class DataService:
         self,
         results: List[BenchmarkResult],
         filter_params: Dict[str, Any],
-        date_range_days: Optional[str] = None
+        date_range_days: Optional[str] = None,
+        selected_files: Optional[List[str]] = None
     ) -> List[BenchmarkResult]:
         """
-        Apply filters to results including date range filtering.
+        Apply filters to results including date range and file filtering.
 
         Args:
             results: List of benchmark results to filter
             filter_params: Dictionary of field->value filters
             date_range_days: Optional days to filter by (e.g., '7', '30')
+            selected_files: Optional list of report filenames to include
 
         Returns:
             Filtered list of benchmark results
         """
         filtered = results
 
-        # Apply date range filter first if specified
+        # Apply report file filter first if specified
+        if selected_files:
+            filtered = ReportFilter.filter_by_report_files(filtered, selected_files)
+
+        # Apply date range filter if specified
         if date_range_days:
             try:
                 days = int(date_range_days)

@@ -3,6 +3,12 @@
 # Web framework
 Flask>=2.3.0
 
+# HTTP client for remote file browsing
+requests>=2.31.0
+
+# HTML parsing for HTTP directory listings
+beautifulsoup4>=4.12.0
+
 # Optional: For production deployment
 # gunicorn>=21.0.0
 # uWSGI>=2.0.22

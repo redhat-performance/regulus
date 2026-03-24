@@ -24,6 +24,7 @@ from api.comparison_routes import init_comparison_routes
 from api.filter_routes import init_filter_routes
 from api.admin_routes import init_admin_routes
 from api.drill_down_routes import init_drill_down_routes
+from api.file_browser_routes import init_file_browser_routes
 
 
 def create_app(reports_dir=None):
@@ -84,6 +85,7 @@ def create_app(reports_dir=None):
     filter_bp = init_filter_routes(data_service)
     admin_bp = init_admin_routes(loader, recreate_aggregator)
     drill_down_bp = init_drill_down_routes(drill_down_service)
+    file_browser_bp = init_file_browser_routes()
 
     app.register_blueprint(summary_bp)
     app.register_blueprint(results_bp)
@@ -92,6 +94,7 @@ def create_app(reports_dir=None):
     app.register_blueprint(filter_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(drill_down_bp)
+    app.register_blueprint(file_browser_bp)
 
     return app
 
