@@ -64,9 +64,9 @@ EOF
 
 # We are on the true bastion, Set it up so that it can ssh to itself.
 if ! ssh -o ConnectTimeout=5 -o BatchMode=yes $REG_KNI_USER@$REG_OCPHOST "pwd" 2>/dev/null; then
-    echo "SSH key authentication failed, copying SSH key..."
-    echo CMD: do_ssh_copy_id "$REG_OCPHOST" "100yard-" "$REG_KNI_USER"
-    do_ssh_copy_id "$REG_OCPHOST" "100yard-" "$REG_KNI_USER"
+    echo "SSH key authentication failed, setting up..."
+    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+    chmod 600 ~/.ssh/authorized_keys
 fi
 
 #### Now do the Regulus work.
