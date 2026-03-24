@@ -7,7 +7,7 @@ export KUBECONFIG=
 
 # Bastion login username i.e root or kni
 export REG_KNI_USER=
-# Bastion hostname. i.e "e16-h12-b02-fc640.rdu2.scalelab.redhat.com"
+# Bastion hostname. 
 export REG_OCPHOST="" 
 
 # Optional. Just a user defined tag. that label your run artifacts.
@@ -40,7 +40,7 @@ export REG_DPDK_NIC_1=ens2f0
 export REG_DPDK_NIC_2=ens2f1
 export REG_DPDK_NIC_MODEL=X710  # all intel 710 derivatives use X710 as model within regulus
 
-# The remotehost to host TREX. Example e16-h12-b02-fc640.rdu2.scalelab.redhat.com
+# The remotehost to host TREX. 
 export TREX_HOSTS=""
 
 # For TREX, choose NICs. 
