@@ -20,11 +20,16 @@ def init_results_routes(data_service, aggregation_service):
         # Get filter parameters
         filter_params = data_service.get_filter_params_from_request(request)
 
+        # Get selected files filter
+        selected_files_param = request.args.get('selected_files')
+        selected_files = selected_files_param.split(',') if selected_files_param else None
+
         # Apply filters
         filtered = data_service.apply_filters(
             all_results,
             filter_params,
-            request.args.get('date_range_days')
+            request.args.get('date_range_days'),
+            selected_files
         )
 
         # Convert to JSON-serializable format
@@ -77,12 +82,17 @@ def init_results_routes(data_service, aggregation_service):
         limit = int(request.args.get('limit', 10))
         benchmark_filter = request.args.get('benchmark')
 
+        # Get selected files filter
+        selected_files_param = request.args.get('selected_files')
+        selected_files = selected_files_param.split(',') if selected_files_param else None
+
         # Apply filters
         all_results = data_service.loader.extract_all_results()
         filtered = data_service.apply_filters(
             all_results,
             filter_params,
-            request.args.get('date_range_days')
+            request.args.get('date_range_days'),
+            selected_files
         )
 
         # Create aggregator with filtered results

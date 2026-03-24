@@ -12,12 +12,37 @@ let applyFiltersTimeout = null;
 // Initialize dashboard on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard initializing...');
+    loadReportFiles();  // Load available report files
     loadSummary();
     loadFilters();
     loadOverviewData();
 
     // Setup comparison field change handler
     document.getElementById('compareField').addEventListener('change', updateComparisonOptions);
+
+    // Setup collapse toggle icon rotation for Report Files
+    const reportFilesCollapse = document.getElementById('reportFilesCollapse');
+    const reportFilesToggle = document.getElementById('reportFilesToggle');
+
+    reportFilesCollapse.addEventListener('shown.bs.collapse', function() {
+        reportFilesToggle.setAttribute('aria-expanded', 'true');
+    });
+
+    reportFilesCollapse.addEventListener('hidden.bs.collapse', function() {
+        reportFilesToggle.setAttribute('aria-expanded', 'false');
+    });
+
+    // Setup collapse toggle icon rotation for Date Range
+    const dateRangeCollapse = document.getElementById('dateRangeCollapse');
+    const dateRangeToggle = document.getElementById('dateRangeToggle');
+
+    dateRangeCollapse.addEventListener('shown.bs.collapse', function() {
+        dateRangeToggle.setAttribute('aria-expanded', 'true');
+    });
+
+    dateRangeCollapse.addEventListener('hidden.bs.collapse', function() {
+        dateRangeToggle.setAttribute('aria-expanded', 'false');
+    });
 });
 
 // Show/hide loading overlay
@@ -52,6 +77,34 @@ async function loadSummary() {
         }
     } catch (error) {
         console.error('Error loading summary:', error);
+    }
+}
+
+// Load available report files
+async function loadReportFiles() {
+    try {
+        const response = await fetch('/api/list_files');
+        const data = await response.json();
+
+        if (data.success && data.files) {
+            const select = document.getElementById('filterReportFiles');
+            select.innerHTML = '';  // Clear loading message
+
+            // Add options for each file
+            data.files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.filename;
+                option.textContent = file.filename;
+                option.title = `${file.total_iterations} iterations, ${file.benchmarks.join(', ')}`;
+                select.appendChild(option);
+            });
+
+            console.log(`Loaded ${data.files.length} report files`);
+        }
+    } catch (error) {
+        console.error('Error loading report files:', error);
+        const select = document.getElementById('filterReportFiles');
+        select.innerHTML = '<option value="">Error loading files</option>';
     }
 }
 
@@ -250,7 +303,8 @@ function getCurrentFilters() {
         pods_per_worker: getSelectValue('filterScaleUp'),
         scale_out_factor: getSelectValue('filterScaleOut'),
         wsize: getSelectValue('filterWsize'),
-        date_range_days: getSelectValue('filterDateRange')
+        date_range_days: getSelectValue('filterDateRange'),
+        selected_files: getSelectValue('filterReportFiles')
     };
 }
 
@@ -305,7 +359,8 @@ function buildChartTitleWithFilters(baseTitle) {
         pods_per_worker: 'Scale Up',
         scale_out_factor: 'Scale Out',
         wsize: 'Wsize',
-        date_range_days: 'Date Range'
+        date_range_days: 'Date Range',
+        selected_files: 'Report Files'
     };
 
     // Build list of active filters
@@ -374,7 +429,7 @@ async function clearFilters() {
         'filterProtocol', 'filterTestType', 'filterCpu', 'filterKernel',
         'filterRcos', 'filterTopo', 'filterPerf', 'filterOffload',
         'filterThreads', 'filterScaleUp', 'filterScaleOut', 'filterWsize',
-        'filterDateRange'
+        'filterDateRange', 'filterReportFiles'
     ];
 
     filterIds.forEach(id => {
@@ -1452,9 +1507,9 @@ function renderResultsTable(results) {
             <td>${index + 1}</td>
             <td>
                 <span class="badge bg-primary badge-benchmark clickable-file"
-                      title="${filePath}"
+                      title="Click to browse: ${filePath}"
                       style="cursor: pointer;"
-                      onclick="copyToClipboard('${filePath.replace(/'/g, "\\'")}', this)">
+                      onclick="openFileBrowser('${filePath.replace(/'/g, "\\'")}')">
                     ${result.benchmark || '-'}
                 </span>
             </td>
@@ -1564,3 +1619,255 @@ document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
         }
     });
 });
+
+// ============================================================================
+// File Browser Functions
+// ============================================================================
+
+let currentBrowserPath = '';
+let currentFileContent = '';
+let drawerWidth = localStorage.getItem('drawer_width') || '40%';
+let isResizing = false;
+
+// Open settings modal
+function openSettings() {
+    // Load saved regulus root from localStorage
+    const savedRoot = localStorage.getItem('regulus_root') || '';
+    document.getElementById('regulusRootPath').value = savedRoot;
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
+    modal.show();
+}
+
+// Save regulus root path on input change
+document.addEventListener('DOMContentLoaded', function() {
+    const rootInput = document.getElementById('regulusRootPath');
+    if (rootInput) {
+        rootInput.addEventListener('input', function() {
+            localStorage.setItem('regulus_root', this.value);
+        });
+    }
+});
+
+// Open file browser at a specific path
+async function openFileBrowser(relativePath) {
+    const regulusRoot = localStorage.getItem('regulus_root');
+
+    if (!regulusRoot) {
+        alert('Please configure Regulus Root Path in Settings first!');
+        openSettings();
+        return;
+    }
+
+    // Extract directory path from full path
+    const dirPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
+
+    currentBrowserPath = dirPath;
+    await loadDirectoryListing(dirPath);
+
+    // Show drawer and push main content
+    document.getElementById('fileBrowserDrawer').classList.add('open');
+    document.body.classList.add('drawer-open');
+}
+
+// Load directory listing
+async function loadDirectoryListing(path) {
+    const regulusRoot = localStorage.getItem('regulus_root');
+
+    try {
+        const response = await fetch('/api/list_directory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                regulus_root: regulusRoot,
+                path: path
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            alert('Error loading directory: ' + data.error);
+            return;
+        }
+
+        // Update current path display
+        document.getElementById('currentPath').textContent = path || '/';
+
+        // Show file list, hide file viewer
+        document.getElementById('fileList').style.display = 'block';
+        document.getElementById('fileViewer').style.display = 'none';
+
+        // Render file list
+        renderFileList(data.items, path);
+
+    } catch (error) {
+        console.error('Error loading directory:', error);
+        alert('Error loading directory: ' + error.message);
+    }
+}
+
+// Render file list
+function renderFileList(items, currentPath) {
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+
+    // Add parent directory link if not at root
+    if (currentPath && currentPath !== '/') {
+        const parentDiv = document.createElement('div');
+        parentDiv.className = 'file-list-item directory';
+        parentDiv.innerHTML = '<span class="icon">📁</span><span>..</span>';
+        parentDiv.onclick = () => {
+            const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            loadDirectoryListing(parentPath);
+        };
+        fileList.appendChild(parentDiv);
+    }
+
+    // Render items
+    items.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'file-list-item ' + (item.is_directory ? 'directory' : 'file');
+
+        const icon = item.is_directory ? '📁' : '📄';
+        const sizeText = item.is_directory ? '' : ` (${formatFileSize(item.size)})`;
+
+        itemDiv.innerHTML = `<span class="icon">${icon}</span><span>${item.name}${sizeText}</span>`;
+
+        itemDiv.onclick = () => {
+            if (item.is_directory) {
+                loadDirectoryListing(item.path);
+            } else {
+                loadFile(item.path);
+            }
+        };
+
+        fileList.appendChild(itemDiv);
+    });
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// Load and display file contents
+async function loadFile(path) {
+    const regulusRoot = localStorage.getItem('regulus_root');
+
+    try {
+        showLoading();
+
+        const response = await fetch('/api/read_file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                regulus_root: regulusRoot,
+                path: path
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            alert('Error reading file: ' + data.error);
+            return;
+        }
+
+        // Update current path
+        document.getElementById('currentPath').textContent = path;
+
+        // Show file viewer, hide file list
+        document.getElementById('fileList').style.display = 'none';
+        document.getElementById('fileViewer').style.display = 'block';
+
+        // Display file content
+        currentFileContent = data.content;
+        document.getElementById('fileContent').textContent = data.content;
+
+    } catch (error) {
+        console.error('Error reading file:', error);
+        alert('Error reading file: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// Back to file list
+function backToFileList() {
+    // Simply hide file viewer and show file list (preserves scroll position)
+    document.getElementById('fileViewer').style.display = 'none';
+    document.getElementById('fileList').style.display = 'block';
+
+    // Update path display back to directory
+    document.getElementById('currentPath').textContent = currentBrowserPath || '/';
+}
+
+// Copy file content to clipboard
+function copyFileContent() {
+    navigator.clipboard.writeText(currentFileContent).then(() => {
+        alert('File content copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy file content');
+    });
+}
+
+// Close file browser drawer
+function closeFileBrowser() {
+    document.getElementById('fileBrowserDrawer').classList.remove('open');
+    document.body.classList.remove('drawer-open');
+}
+
+// Initialize drawer resize functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const drawer = document.getElementById('fileBrowserDrawer');
+    const handle = document.getElementById('drawerResizeHandle');
+
+    // Set initial drawer width
+    setDrawerWidth(drawerWidth);
+
+    // Mouse down on resize handle
+    handle.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    // Mouse move - resize drawer
+    document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+
+        // Calculate new width based on mouse position
+        const newWidth = window.innerWidth - e.clientX;
+        const minWidth = 300; // Minimum 300px
+        const maxWidth = window.innerWidth * 0.8; // Maximum 80% of screen
+
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
+            const widthPx = newWidth + 'px';
+            setDrawerWidth(widthPx);
+            drawerWidth = widthPx;
+        }
+    });
+
+    // Mouse up - stop resizing
+    document.addEventListener('mouseup', function() {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+
+            // Save to localStorage
+            localStorage.setItem('drawer_width', drawerWidth);
+        }
+    });
+});
+
+// Set drawer width using CSS variable
+function setDrawerWidth(width) {
+    document.documentElement.style.setProperty('--drawer-width', width);
+}

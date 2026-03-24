@@ -48,11 +48,16 @@ def init_filter_routes(data_service):
         # Exclude the comparison field from filtering
         filter_params[field] = None
 
+        # Get selected files filter
+        selected_files_param = request.args.get('selected_files')
+        selected_files = selected_files_param.split(',') if selected_files_param else None
+
         # Apply filters including date range
         filtered = data_service.apply_filters(
             all_results,
             filter_params,
-            request.args.get('date_range_days')
+            request.args.get('date_range_days'),
+            selected_files
         )
 
         # Get unique values for the comparison field from filtered results
@@ -69,6 +74,10 @@ def init_filter_routes(data_service):
 
         # Get all filter parameters
         filter_params = data_service.get_filter_params_from_request(request)
+
+        # Get selected files filter
+        selected_files_param = request.args.get('selected_files')
+        selected_files = selected_files_param.split(',') if selected_files_param else None
 
         # Get unique values for each filter field from filtered results
         # IMPORTANT: For each field, exclude that field from filtering so users can change their selection
@@ -87,7 +96,8 @@ def init_filter_routes(data_service):
             filtered = data_service.apply_filters(
                 all_results,
                 field_filter_params,
-                request.args.get('date_range_days')
+                request.args.get('date_range_days'),
+                selected_files
             )
 
             # Get unique values for this field from the filtered results

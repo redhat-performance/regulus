@@ -119,6 +119,149 @@
             width: 50px;
             text-align: center;
         }
+
+        /* Main content wrapper for sliding */
+        body {
+            transition: margin-right 0.3s ease-in-out;
+            overflow-x: auto;
+        }
+
+        body.drawer-open {
+            margin-right: var(--drawer-width, 40%);
+        }
+
+        /* File Browser Drawer */
+        .file-browser-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: var(--drawer-width, 40%);
+            height: 100%;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+            z-index: 1050;
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-browser-drawer.open {
+            transform: translateX(0);
+        }
+
+        /* Resize handle */
+        .drawer-resize-handle {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 10px;
+            height: 100%;
+            cursor: ew-resize;
+            background: linear-gradient(to right, rgba(102, 126, 234, 0.1), transparent);
+            z-index: 10;
+        }
+
+        .drawer-resize-handle:hover {
+            background: linear-gradient(to right, rgba(102, 126, 234, 0.3), transparent);
+        }
+
+        .drawer-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawer-header h5 {
+            margin: 0;
+        }
+
+        .drawer-toolbar {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .current-path {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #495057;
+            word-break: break-all;
+        }
+
+        .drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .file-list-item {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .file-list-item:hover {
+            background: #f8f9fa;
+        }
+
+        .file-list-item .icon {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .file-list-item.directory {
+            font-weight: 500;
+            color: #667eea;
+        }
+
+        .file-list-item.file {
+            color: #495057;
+        }
+
+        .file-viewer-header {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        #fileContent {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin: 0;
+        }
+
+        .regulus-data-link {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .regulus-data-link:hover {
+            color: #764ba2;
+        }
+
+        /* Collapsible toggle icon */
+        .toggle-icon {
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        button[aria-expanded="true"] .toggle-icon {
+            transform: rotate(-180deg);
+        }
     </style>
 </head>
 <body>
@@ -126,9 +269,14 @@
     <nav class="navbar navbar-dark">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">Performance Benchmark Dashboard</span>
-            <button class="btn btn-light btn-sm" onclick="reloadReports()">
-                <i>↻</i> Reload Reports
-            </button>
+            <div>
+                <button class="btn btn-light btn-sm me-2" onclick="openSettings()">
+                    ⚙️ Settings
+                </button>
+                <button class="btn btn-light btn-sm" onclick="reloadReports()">
+                    <i>↻</i> Reload Reports
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -156,14 +304,46 @@
             <div class="col-md-3">
                 <div class="card stat-card">
                     <div class="stat-value date-range" id="dateRange">-</div>
-                    <div class="stat-label">Available Data Range</div>
+                    <div class="stat-label">Available Data</div>
                     <div class="mt-2">
-                        <select class="form-select form-select-sm" id="filterDateRange" onchange="applyFilters()">
-                            <option value="">All Time</option>
-                            <option value="7">Last 7 Days</option>
-                            <option value="30">Last 30 Days</option>
-                            <option value="90">Last 90 Days</option>
-                        </select>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="form-label small mb-1">Report Files:</label>
+                            <button class="btn btn-sm btn-link p-0 text-decoration-none"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#reportFilesCollapse"
+                                    aria-expanded="false"
+                                    id="reportFilesToggle"
+                                    style="font-size: 0.7rem;">
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                        </div>
+                        <div class="collapse" id="reportFilesCollapse">
+                            <select class="form-select form-select-sm" id="filterReportFiles" multiple size="5" onchange="applyFilters()">
+                                <option value="">Loading...</option>
+                            </select>
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">Ctrl+Click to select</small>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="form-label small mb-1">Date Range:</label>
+                            <button class="btn btn-sm btn-link p-0 text-decoration-none"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#dateRangeCollapse"
+                                    aria-expanded="false"
+                                    id="dateRangeToggle"
+                                    style="font-size: 0.7rem;">
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                        </div>
+                        <div class="collapse" id="dateRangeCollapse">
+                            <select class="form-select form-select-sm" id="filterDateRange" onchange="applyFilters()">
+                                <option value="">All Time</option>
+                                <option value="7">Last 7 Days</option>
+                                <option value="30">Last 30 Days</option>
+                                <option value="90">Last 90 Days</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -484,6 +664,47 @@
             <span class="visually-hidden">Loading...</span>
         </div>
         <p class="mt-3">Loading data...</p>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Dashboard Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="regulusRootPath" class="form-label">Regulus Root:</label>
+                    <input type="text" class="form-control" id="regulusRootPath"
+                           placeholder="/home/user/NVD-DPU/nic-mode-regulus">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Browser Drawer -->
+    <div id="fileBrowserDrawer" class="file-browser-drawer">
+        <div class="drawer-resize-handle" id="drawerResizeHandle"></div>
+        <div class="drawer-header">
+            <h5>File Browser</h5>
+            <button class="btn btn-sm btn-light" onclick="closeFileBrowser()">✕</button>
+        </div>
+        <div class="drawer-toolbar">
+            <div class="current-path" id="currentPath">/</div>
+        </div>
+        <div class="drawer-content">
+            <!-- File list will be populated here -->
+            <div id="fileList"></div>
+            <!-- File viewer will be shown here -->
+            <div id="fileViewer" style="display: none;">
+                <div class="file-viewer-header">
+                    <button class="btn btn-sm btn-secondary" onclick="backToFileList()">← Back</button>
+                    <button class="btn btn-sm btn-secondary" onclick="copyFileContent()">📋 Copy</button>
+                </div>
+                <pre id="fileContent"></pre>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS -->
