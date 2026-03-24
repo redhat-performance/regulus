@@ -236,7 +236,7 @@ Configure ElasticSearch connection in `$REG_ROOT/lab.config`:
 
 ```bash
 # ElasticSearch/OpenSearch Configuration
-export ES_URL="https://username:password@your-es-host.amazonaws.com"
+export ES_URL="https://your-es-host.example.com"
 export ES_INDEX="regulus-results"
 ```
 

@@ -13,7 +13,7 @@ export REG_OCPHOST=""
 # Optional. Just a user defined tag. that label your run artifacts.
 export REG_DP=rds
 
-# Three workers that Regulus will run tests on. Example below i.e e23-h24-b02-fc640.rdu2.scalelab.redhat.com
+# Three workers that Regulus will run tests on. Example below i.e worker-1.company.com
 export OCP_WORKER_0=""
 export OCP_WORKER_1=""
 export OCP_WORKER_2=""

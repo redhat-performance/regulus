@@ -48,7 +48,7 @@ cd /path/to/build_report
 python3 dashboard/run_dashboard.py --reports /path/to/reports
 
 # Example:
-cd /home/user/CLAUDE-PROJOECTS/report-proj/regulus/REPORT/build_report
+cd /path/to/regulus/REPORT
 python3 dashboard/run_dashboard.py --reports /tmp/reports
 ```
 
@@ -85,7 +85,6 @@ Total results: 15
 **Access the dashboard at:**
 - **http://localhost:5000** (from the same machine)
 - **http://YOUR_SERVER_IP:5000** (from another machine on the network)
-- Example: http://10.26.9.237:5000
 
 **What You'll See:**
 - Summary statistics cards at the top (Reports, Results, Benchmarks, Date Range)

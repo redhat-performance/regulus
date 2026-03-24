@@ -20,10 +20,10 @@ init:
 	./reg_expand.sh
 
 dry-run:
-	DRY_RUN=true NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label DRY
+	DRY_RUN=true NUM_SAMPLES=1 OCP_PROJECT=crucible-myproject ${RUN} --label DRY
 
 wet-run:
-	NUM_SAMPLES=1 OCP_PROJECT=crucible-hnhan ${RUN} --label ${TAG}
+	NUM_SAMPLES=1 OCP_PROJECT=crucible-myproject ${RUN} --label ${TAG}
 
 reindex:
 	reindex --labels ${TAG}
