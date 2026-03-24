@@ -15,43 +15,77 @@ sudo dnf install podman
 podman --version
 ```
 
-### 2. Extract and Setup
+### 2. Build Container Image
 
+**Using Make (Recommended)**:
 ```bash
-# Extract tarball
-tar -xzf regulus-dashboard-podman.tar.gz
+cd /path/to/regulus/REPORT
 
-# Copy to your repository
-cd ~/path/to/regulus/REPORT
-cp -r /path/to/docker ./
+# Build with latest tag (reports: "Found N built-in report(s)")
+make build-container
+
+# Build with custom tag
+make build-container-tag TAG=v1.0
 ```
 
-### 3. Add Sample Data (Optional)
-
+**Using Build Script**:
 ```bash
-cd docker
-cp ../test_data/*.json sample_data/
-```
-
-### 4. Build
-
-```bash
+cd /path/to/regulus/REPORT/dashboard/docker
 ./build.sh
 ```
 
-### 5. Run
+The build process automatically detects and reports how many `.json` files are in `sample_data/`:
+```
+================================================
+  Building Dashboard Container Image
+================================================
 
-```bash
-./run-dashboard.sh
+Built-in sample data: dashboard/docker/sample_data
+Found 3 built-in report(s)
+
+Building image with tag: latest
+...
 ```
 
-### 6. Open Browser
+### 3. Add Built-in Sample Data (Optional)
+
+To include sample reports **inside the container image**, add them to `sample_data/` **before building**:
+
+```bash
+cd /path/to/regulus/REPORT
+
+# Copy reports to sample_data directory
+cp generated/*.json dashboard/docker/sample_data/
+
+# Build container (will show "Found 3 built-in report(s)")
+make build-container
+```
+
+When the container starts with an empty `/tmp/regulus-data`, it automatically copies built-in reports from `sample_data/` to the mounted directory. This allows users to start the dashboard with sample data immediately.
+
+### 4. Run Container
+
+```bash
+# Using the run script
+cd dashboard/docker
+./run-dashboard.sh
+
+# Or using podman-compose
+podman-compose up -d
+
+# Or manually
+podman run -d -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+```
+
+### 5. Open Browser
 
 ```bash
 firefox http://localhost:5000
 ```
 
 **That's it!** Dashboard starts with or without data.
+
+If you included built-in reports in step 3, they will be automatically available when the container starts with an empty data directory.
 
 ---
 
@@ -71,6 +105,64 @@ rm /tmp/regulus-data/old-report.json
 
 # Click "Reload" button in browser - no restart needed!
 ```
+
+---
+
+## Built-in Sample Data
+
+The container supports built-in sample reports that are automatically copied when starting with an empty data directory.
+
+### How It Works
+
+1. **Before Build**: Place `.json` files in `dashboard/docker/sample_data/`
+2. **During Build**: Make reports how many files were found
+3. **Container Start**: `entrypoint.sh` checks if `/app/data` is empty
+4. **Auto-Copy**: If empty, copies files from `/app/initial_data/` → `/app/data`
+5. **Result**: Built-in reports appear in `/tmp/regulus-data` on the host
+
+### Example Workflow
+
+```bash
+# Step 1: Add sample reports before building
+cd /path/to/regulus/REPORT
+cp generated/bond-report.json dashboard/docker/sample_data/
+cp generated/report-dpu.json dashboard/docker/sample_data/
+
+# Step 2: Build container
+make build-container
+# Output: Found 2 built-in report(s)
+
+# Step 3: Start container with empty directory
+rm -rf /tmp/regulus-data/*
+podman run -d -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+
+# Step 4: Verify built-in reports were copied
+ls /tmp/regulus-data/
+# Output: bond-report.json  report-dpu.json
+```
+
+### When Built-in Reports Are Copied
+
+- ✅ Container starts **AND** `/tmp/regulus-data` is empty → Reports copied
+- ❌ Container starts **AND** `/tmp/regulus-data` has files → Reports **not** copied (existing data preserved)
+
+### Using Make Targets
+
+```bash
+cd /path/to/regulus/REPORT
+
+# Build container (detects sample_data files)
+make build-container
+# Output: Found N built-in report(s)
+
+# Build with custom tag
+make build-container-tag TAG=production
+
+# Remove all container images
+make clean-container
+```
+
+See `REPORT/makefile` for complete list of targets.
 
 ---
 
@@ -295,26 +387,36 @@ regulus/REPORT/
 │   ├── static/
 │   └── docker/          # Container packaging (this directory)
 │       ├── Dockerfile
-│       ├── run_wrapper.py   # Bypasses interactive prompts
+│       ├── entrypoint.sh        # Copies built-in data if needed
+│       ├── run_wrapper.sh       # Startup wrapper
 │       ├── build.sh
-│       └── run-dashboard.sh
+│       ├── run-dashboard.sh
+│       └── sample_data/         # Built-in reports (optional)
 └── build_report/        # Core report generation (peer tool)
 ```
 
 **Data Flow:**
 ```
-Host: /tmp/regulus-data/
-   ↕ (mounted with :Z for SELinux)
-Container: /app/data/
-   ↕ (scanned by dashboard)
-Browser: http://localhost:5000
+Build Time:
+  dashboard/docker/sample_data/*.json
+    ↓ (copied during build)
+  Container: /app/initial_data/*.json
+
+Container Start:
+  /app/initial_data/*.json
+    ↓ (copied if /app/data is empty)
+  Container: /app/data/
+    ↕ (mounted with :Z for SELinux)
+  Host: /tmp/regulus-data/
+    ↓ (scanned by dashboard)
+  Browser: http://localhost:5000
 ```
 
 **No Interactive Prompts:**
-- The `run_wrapper.py` script mocks Python's `input()` function
-- Dashboard starts automatically with or without data
+- Dashboard detects when running in container (no TTY)
+- Starts automatically with or without data
 - Shows "No data found" message when empty
-- Your original dashboard code is never modified
+- Built-in reports automatically copied on first start
 
 ---
 
@@ -339,16 +441,31 @@ docker/
 ├── Dockerfile              # Container image definition
 ├── docker-compose.yml      # Compose configuration
 ├── requirements.txt        # Python dependencies
-├── entrypoint.sh          # Container startup script
-├── run_wrapper.py         # Bypasses interactive prompts
-├── build.sh               # Build script
+├── entrypoint.sh          # Container startup script (copies built-in data)
+├── run_wrapper.sh         # Dashboard startup wrapper
+├── build.sh               # Build script (use make build-container instead)
 ├── run-dashboard.sh       # Run script
 ├── .dockerignore          # Build exclusions
 ├── README.md              # This file
-└── sample_data/           # Sample JSON files directory
-    └── README.md
+├── sample_data/           # Built-in sample reports (copied to /app/initial_data)
+│   └── README.md
+├── CONTAINER_BUILD.md     # Complete container build documentation
+├── RELOAD_FIX.md          # Dashboard reload functionality docs
+└── MAKEFILE_CONTAINER_BUILD.md  # Make targets documentation
 ```
+
+## Make Targets (REPORT/makefile)
+
+```bash
+# Available targets from REPORT directory
+make help                           # Show all targets
+make build-container                # Build with latest tag
+make build-container-tag TAG=v1.0   # Build with custom tag
+make clean-container                # Remove all images
+```
+
+See `../makefile` (REPORT/makefile) for implementation details.
 
 ---
 
-**Ready to use!** Extract, build, run. 🚀
+**Ready to use!** Build with make, run with podman. 🚀

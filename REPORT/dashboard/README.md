@@ -54,6 +54,48 @@ python3 /full/path/to/REPORT/dashboard/run_dashboard.py --reports /path/to/repor
 
 The dashboard will be available at: `http://0.0.0.0:5000` or `http://localhost:5000`
 
+### Container Deployment
+
+**Build Container Image**:
+```bash
+cd /path/to/regulus/REPORT
+make build-container
+# Builds regulus-dashboard:latest with podman
+```
+
+**Run Container**:
+```bash
+# Start container with data from host
+podman run -d -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+
+# Or using docker-compose
+cd dashboard/docker
+podman-compose up -d
+```
+
+**Add Reports to Running Container**:
+```bash
+# Copy report files to the mounted directory
+cp report.json /tmp/regulus-data/
+
+# Reload dashboard (click Reload button or use API)
+curl -X POST -H "Content-Type: application/json" -d '{}' http://localhost:5000/api/reload
+```
+
+**Built-in Sample Data**:
+The container can include built-in sample reports by placing `.json` files in `dashboard/docker/sample_data/` before building:
+```bash
+# Add sample reports
+cp generated/*.json dashboard/docker/sample_data/
+
+# Build container (will report: "Found 3 built-in report(s)")
+make build-container
+```
+
+When the container starts with an empty `/tmp/regulus-data`, it automatically copies built-in reports from `sample_data/` to the mounted directory.
+
+See `dashboard/docker/CONTAINER_BUILD.md` for complete documentation.
+
 **You'll see output like this:**
 ```
 ============================================================

@@ -8,6 +8,7 @@
         es-ilm-policy es-ilm-policy-no-delete es-ilm-info es-ilm-explain es-bootstrap-index \
         es-list-batches es-batch-count es-batch-info es-delete-batch es-show-last-batch es-list-execution-labels \
         es-delete-index \
+        build-container build-container-latest build-container-tag clean-container \
         clean
 
 # Configuration
@@ -79,6 +80,11 @@ help:
 	@echo "  make dashboard            - Start interactive web dashboard"
 	@echo "  make dashboard-stop       - Stop dashboard instances"
 	@echo "  make dashboard-restart    - Restart dashboard"
+	@echo ""
+	@echo "Container Build:"
+	@echo "  make build-container                - Build dashboard container (latest tag)"
+	@echo "  make build-container-tag TAG=<name> - Build with custom tag"
+	@echo "  make clean-container                - Remove container images"
 	@echo ""
 	@echo "ElasticSearch Integration:"
 	@echo "  make flatten              - Flatten existing report.json (or run summary)"
@@ -545,6 +551,125 @@ es-bootstrap-index: es-check es-ilm-policy-no-delete es-template
 	echo "  Write alias: $(ES_WRITE_ALIAS)"; \
 	echo ""; \
 	echo "NOTE: Upload to '$(ES_WRITE_ALIAS)' alias, not directly to $(BASE_NAME)-000001"
+
+# =============================================================================
+# Container Build Targets
+# =============================================================================
+
+# Build container with latest tag
+build-container: build-container-latest
+
+build-container-latest:
+	@echo "================================================"
+	@echo "  Building Dashboard Container Image"
+	@echo "================================================"
+	@echo ""
+	@# Check for built-in sample data and list files
+	@if [ -d "$(DASHBOARD_DIR)/docker/sample_data" ]; then \
+		echo "Built-in sample data: $(DASHBOARD_DIR)/docker/sample_data"; \
+		SAMPLE_FILES=$$(find $(DASHBOARD_DIR)/docker/sample_data -name '*.json' 2>/dev/null); \
+		if [ -n "$$SAMPLE_FILES" ]; then \
+			SAMPLE_COUNT=$$(echo "$$SAMPLE_FILES" | wc -l); \
+			echo "Found $$SAMPLE_COUNT built-in report(s):"; \
+			echo "$$SAMPLE_FILES" | while read file; do \
+				basename "$$file"; \
+			done | sed 's/^/  - /'; \
+		else \
+			echo "Found 0 built-in report(s)"; \
+		fi; \
+	else \
+		echo "No sample_data directory found"; \
+		echo "Found 0 built-in report(s)"; \
+	fi
+	@echo ""
+	@echo "Building image with tag: latest"
+	@echo "Build context: $(DASHBOARD_DIR)/"
+	@echo ""
+	@cd $(DASHBOARD_DIR) && podman build -f docker/Dockerfile -t regulus-dashboard:latest .
+	@echo ""
+	@echo "================================================"
+	@echo "✓ Build complete!"
+	@echo "================================================"
+	@echo ""
+	@echo "Image: regulus-dashboard:latest"
+	@echo ""
+	@# List built-in reports in the final image
+	@if [ -d "$(DASHBOARD_DIR)/docker/sample_data" ]; then \
+		SAMPLE_FILES=$$(find $(DASHBOARD_DIR)/docker/sample_data -name '*.json' 2>/dev/null); \
+		if [ -n "$$SAMPLE_FILES" ]; then \
+			SAMPLE_COUNT=$$(echo "$$SAMPLE_FILES" | wc -l); \
+			echo "Built-in reports included from sample_data/ ($$SAMPLE_COUNT):"; \
+			echo "$$SAMPLE_FILES" | while read file; do \
+				basename "$$file"; \
+			done | sed 's/^/  - /'; \
+			echo ""; \
+		fi; \
+	fi
+	@echo "To run:"
+	@echo "  cd $(DASHBOARD_DIR)/docker && podman-compose up"
+	@echo ""
+	@echo "Or manually:"
+	@echo "  podman run -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest"
+	@echo ""
+
+# Build container with custom tag
+build-container-tag:
+	@if [ -z "$(TAG)" ]; then \
+		echo "Error: TAG not specified"; \
+		echo "Usage: make build-container-tag TAG=v1.0"; \
+		exit 1; \
+	fi
+	@echo "================================================"
+	@echo "  Building Dashboard Container Image"
+	@echo "================================================"
+	@echo ""
+	@# Check for built-in sample data and list files
+	@if [ -d "$(DASHBOARD_DIR)/docker/sample_data" ]; then \
+		echo "Built-in sample data: $(DASHBOARD_DIR)/docker/sample_data"; \
+		SAMPLE_FILES=$$(find $(DASHBOARD_DIR)/docker/sample_data -name '*.json' 2>/dev/null); \
+		if [ -n "$$SAMPLE_FILES" ]; then \
+			SAMPLE_COUNT=$$(echo "$$SAMPLE_FILES" | wc -l); \
+			echo "Found $$SAMPLE_COUNT built-in report(s):"; \
+			echo "$$SAMPLE_FILES" | while read file; do \
+				basename "$$file"; \
+			done | sed 's/^/  - /'; \
+		else \
+			echo "Found 0 built-in report(s)"; \
+		fi; \
+	else \
+		echo "No sample_data directory found"; \
+		echo "Found 0 built-in report(s)"; \
+	fi
+	@echo ""
+	@echo "Building image with tag: $(TAG)"
+	@echo "Build context: $(DASHBOARD_DIR)/"
+	@echo ""
+	@cd $(DASHBOARD_DIR) && podman build -f docker/Dockerfile -t regulus-dashboard:$(TAG) .
+	@echo ""
+	@echo "================================================"
+	@echo "✓ Build complete!"
+	@echo "================================================"
+	@echo ""
+	@echo "Image: regulus-dashboard:$(TAG)"
+	@echo ""
+	@# List built-in reports in the final image
+	@if [ -d "$(DASHBOARD_DIR)/docker/sample_data" ]; then \
+		SAMPLE_FILES=$$(find $(DASHBOARD_DIR)/docker/sample_data -name '*.json' 2>/dev/null); \
+		if [ -n "$$SAMPLE_FILES" ]; then \
+			SAMPLE_COUNT=$$(echo "$$SAMPLE_FILES" | wc -l); \
+			echo "Built-in reports included from sample_data/ ($$SAMPLE_COUNT):"; \
+			echo "$$SAMPLE_FILES" | while read file; do \
+				basename "$$file"; \
+			done | sed 's/^/  - /'; \
+			echo ""; \
+		fi; \
+	fi
+
+# Clean up container images
+clean-container:
+	@echo "Removing regulus-dashboard container images..."
+	@podman images | grep regulus-dashboard | awk '{print $$1":"$$2}' | xargs -r podman rmi || echo "No images to remove"
+	@echo "Done"
 
 # =============================================================================
 # Advanced Targets
