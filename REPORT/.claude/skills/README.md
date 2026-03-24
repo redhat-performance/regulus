@@ -75,6 +75,6 @@ Skills are invoked automatically by Claude Code when relevant to your request. Y
 
 ## Related Documentation
 
-- `/home/hnhan/NVD-DPU/nic-mode-regulus/REPORT/MCP_API_USAGE_GUIDE.md` - MCP API reference
-- `/home/hnhan/NVD-DPU/nic-mode-regulus/REPORT/QUICK_REFERENCE.md` - Query patterns
-- `/home/hnhan/NVD-DPU/nic-mode-regulus/REPORT/es_integration/` - OpenSearch integration code
+- `MCP_API_USAGE_GUIDE.md` - MCP API reference
+- `QUICK_REFERENCE.md` - Query patterns
+- `es_integration/` - OpenSearch integration code

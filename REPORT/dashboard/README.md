@@ -129,6 +129,37 @@ When the container starts with an empty `/tmp/regulus-data`, it automatically co
 
 See `dashboard/docker/CONTAINER_BUILD.md` for complete documentation.
 
+**Accessing Artifacts in Containers**:
+
+When running in a container, the file browser cannot access the host filesystem directly. You have two options:
+
+**Option 1: HTTP URL (Recommended)**
+```bash
+# Serve artifacts via HTTP on host machine
+python3 -m http.server 8000 --directory /path/to/artifacts
+
+# In dashboard Settings, set Regulus Root to:
+http://<host-ip>:8000/
+```
+
+**Option 2: Mount Artifacts Directory**
+```bash
+# Mount both report JSONs AND artifacts directory
+podman run -d -p 5000:5000 \
+  -v /tmp/regulus-data:/app/data:Z \
+  -v /path/to/artifacts:/artifacts:ro \
+  regulus-dashboard:latest
+
+# In dashboard Settings, set Regulus Root to:
+/artifacts
+```
+
+**Note**: HTTP is recommended for production as it:
+- Works with artifacts on remote machines
+- Doesn't require mounting large directories
+- Supports read-only HTTP servers
+- Simplifies container orchestration
+
 **You'll see output like this:**
 ```
 ============================================================
@@ -509,7 +540,7 @@ chmod +x dashboard/run_dashboard.py
 ### Can't Access from Another Machine
 - Dashboard binds to `0.0.0.0` by default (accessible from network)
 - Check firewall rules allow port 5000
-- Use the server's IP address: `http://10.26.9.237:5000`
+- Use the server's IP address: `http://<server-ip>:5000`
 - If behind a firewall, use SSH tunnel:
   ```bash
   ssh -L 5000:localhost:5000 user@server

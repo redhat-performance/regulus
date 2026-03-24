@@ -12,7 +12,7 @@ When processing report.json files, fields can be located in TWO places:
 
 ## Source Code Reference
 
-See `/home/hnhan/NVD-DPU/nic-mode-regulus/REPORT/dashboard/data_loader.py` lines 344-352:
+See `dashboard/data_loader.py` lines 344-352:
 
 ```python
 # test-type (traffic profile: stream, rr, crr, rtpe) can be in either unique_params or common_params
