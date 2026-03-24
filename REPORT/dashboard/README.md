@@ -4,6 +4,7 @@ A web-based interactive dashboard for visualizing and analyzing performance benc
 
 ## Features
 
+### Core Analysis
 - **Multi-Report Aggregation**: Load and analyze multiple JSON reports simultaneously
 - **Interactive Charts**: Visualize trends, comparisons, and statistics with Chart.js
 - **Advanced Filtering**: Filter results by benchmark, model, kernel, topology, and more
@@ -12,6 +13,25 @@ A web-based interactive dashboard for visualizing and analyzing performance benc
 - **Top Performers**: Identify best performing configurations
 - **Detailed Results Table**: Browse all test results with sorting and pagination
 - **Real-time Updates**: Reload reports without restarting the server
+
+### New in v1.1.0
+
+#### File Browser & Source Viewer
+- **Browse Artifact Directories**: Click any benchmark badge to explore the full artifact directory
+- **View Source Files**: Read result-summary.txt, logs, metrics, and other artifact files directly in browser
+- **Resizable Drawer**: Drag to resize file browser (300px to 80% of screen width)
+- **Smart Navigation**: Navigate folders, view files, copy contents, with preserved scroll position
+- **HTTP Support**: Browse artifacts on remote HTTP/HTTPS servers (optional, requires `requests` + `beautifulsoup4`)
+
+#### Enhanced Filtering
+- **Multi-select Report Files**: Filter by selecting one or more specific report files (Ctrl+Click)
+- **Collapsible Sections**: Report Files and Date Range sections collapse to save space
+- **Scalable UI**: Handles dozens of report files efficiently
+
+#### Settings & Configuration
+- **Regulus Root Path**: Configure local path or HTTP URL to access artifact directories
+- **Persistent Settings**: Root path and drawer width saved to browser localStorage
+- **⚙️ Settings Button**: Easy access via navbar
 
 ## Quick Start
 
@@ -28,6 +48,19 @@ pip install flask
 # Verify installation
 python3 -c "import flask; print('Flask', flask.__version__, 'installed!')"
 ```
+
+**Optional: HTTP Artifact Browsing**
+
+To enable browsing artifacts on remote HTTP/HTTPS servers, install additional dependencies:
+
+```bash
+pip install requests beautifulsoup4
+
+# Or install all optional dependencies
+pip install -r dashboard/requirements.txt
+```
+
+Without these libraries, the file browser works only with local filesystem paths. The dashboard will start normally either way.
 
 ### Launch the Dashboard
 
@@ -216,18 +249,65 @@ Shows:
 - Search across all fields
 - Sort by any column
 - Filterable by benchmark, model, kernel, etc.
+- **Click benchmark badges** to open file browser and view source artifacts
+
+## File Browser & Source Viewer
+
+### Configuring Regulus Root Path
+
+Before browsing artifacts, configure the root path:
+
+1. Click **⚙️ Settings** button in the navbar
+2. Enter the Regulus Root Path:
+   - **Local path**: `/home/user/NVD-DPU/nic-mode-regulus`
+   - **HTTP URL**: `http://server.example.com:8000/artifacts/`
+3. Path is automatically saved to browser localStorage
+
+### Browsing Artifacts
+
+1. Navigate to **Results Table** tab
+2. Click any **blue benchmark badge** (e.g., "uperf")
+3. File browser drawer slides in from the right showing the artifact directory
+4. Browse folders and files:
+   - Click **📁 folders** to navigate into directories
+   - Click **📄 files** to view contents
+   - Click **..** to go up one level
+   - Use **← Back** button to return to directory listing
+   - Use **📋 Copy** button to copy file contents
+   - Click **✕** to close the drawer
+
+### Resizing the File Browser
+
+- **Hover** over the left edge of the drawer to see the resize cursor
+- **Click and drag** left or right to adjust width
+- Width is saved automatically and persists across sessions
+
+### Remote HTTP Artifacts
+
+If your artifacts are on a remote HTTP server:
+
+1. Ensure `requests` and `beautifulsoup4` are installed (see Prerequisites)
+2. Set Regulus Root to HTTP URL: `http://server:port/path/`
+3. The file browser will parse HTML directory listings automatically
+
+**Note**: HTTP server must have directory listing enabled.
 
 ## Filters
 
 All views support filtering by:
 
+- **Report Files** (collapsible): Select one or more specific report files to display (Ctrl+Click for multiple)
+- **Date Range** (collapsible): Filter by Last 7/30/90 Days or All Time
 - **Benchmark**: uperf, iperf, trafficgen
 - **Model**: Network adapter model (e.g., e810, e910)
 - **Kernel**: Kernel version (e.g., 5.14, 5.15)
 - **Topology**: Network topology (e.g., linear, mesh)
 - **Performance**: Performance baseline (e.g., baseline, tuned)
 
-Filters persist across tab changes and can be cleared with the "Clear Filters" button.
+**Tips**:
+- Click **▼** next to Report Files or Date Range to expand/collapse
+- Filters persist across tab changes
+- Use **Clear Filters** button to reset all filters at once
 
 ## API Endpoints
 
