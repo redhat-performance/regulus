@@ -2,6 +2,93 @@
 
 All notable changes to the Performance Benchmark Dashboard.
 
+## [1.1.0] - 2025-03-24
+
+### Added
+
+#### File Browser & Source Viewer
+- **File Browser Drawer**: Browse artifact directories and view source files
+  - Slides in from right side (resizable, 300px-80% width)
+  - Click benchmark badge in Results Table to open
+  - Navigate directories with breadcrumbs and parent (..) links
+  - View text files directly in browser
+  - Copy file contents to clipboard
+  - Preserves scroll position when navigating back from file view
+
+- **HTTP URL Support** (optional):
+  - Browse artifacts on remote HTTP/HTTPS servers
+  - Parses HTML directory listings
+  - Requires optional dependencies: `requests`, `beautifulsoup4`
+  - Gracefully falls back to local-only if libraries not installed
+
+- **Settings Configuration**:
+  - Configure Regulus Root Path for artifact access
+  - Supports both local filesystem paths and HTTP URLs
+  - Persists to browser localStorage
+  - Accessible via ⚙️ Settings button in navbar
+
+#### Enhanced Filtering
+- **Multi-select Report Files**:
+  - Select one or more report files to display
+  - Ctrl+Click to select multiple files
+  - Collapsible section to save space
+  - Handles dozens of report files efficiently
+
+- **Collapsible Filter Sections**:
+  - Report Files section is collapsible (starts collapsed)
+  - Date Range section is collapsible (starts collapsed)
+  - Toggle icons (▼/▲) rotate on expand/collapse
+  - Consistent look and feel for both sections
+
+#### UI Improvements
+- **Resizable File Browser**:
+  - Drag left edge to resize drawer
+  - Min width: 300px, Max width: 80% of screen
+  - Width preference saved to localStorage
+  - Subtle hover effect on resize handle
+
+- **Main Content Sliding**:
+  - Dashboard slides left when drawer opens (no overlap)
+  - Horizontal scrollbar appears if content is too wide
+  - Smooth CSS transitions
+
+- **Clickable Benchmark Badges**:
+  - Blue benchmark badges now clickable to open file browser
+  - Tooltip shows full artifact path
+  - Clean, single-button UI (no extra links)
+
+### Changed
+- Report Files filter increased from 3 to 4-5 visible items
+- Date Range filter now matches Report Files styling
+- File browser shows 5 files when expanded (up from 3)
+
+### Fixed
+- Fixed broken import in `__init__.py` (removed reference to deleted `dashboard_app.py`)
+- File browser "Back" button now preserves scroll position instead of reloading
+- HTTP URL path joining no longer mangles `http://` → `http:/`
+
+### Technical Details
+
+#### New Dependencies (Optional)
+- `requests>=2.31.0` - For HTTP artifact browsing
+- `beautifulsoup4>=4.12.0` - For parsing HTML directory listings
+
+#### New API Endpoints
+- `POST /api/list_directory` - List directory contents (local or HTTP)
+- `POST /api/read_file` - Read file contents (local or HTTP)
+- `GET /api/list_files` - List all available report files with metadata
+
+#### New Files
+- `api/file_browser_routes.py` - File browser backend routes
+- CSS for drawer, resize handle, collapsible sections
+- JavaScript for file navigation, resizing, localStorage
+
+#### Architecture Updates
+- Modular file browser with local/HTTP abstraction
+- Security: Path validation prevents directory traversal
+- File size limit: 10MB max for viewing
+- Browser localStorage for user preferences (regulus root, drawer width)
+
 ## [1.0.0] - 2025-11-17
 
 ### Added - Initial Release
