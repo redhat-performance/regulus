@@ -28,6 +28,18 @@ A web-based interactive dashboard for visualizing and analyzing performance benc
 - **Collapsible Sections**: Report Files and Date Range sections collapse to save space
 - **Scalable UI**: Handles dozens of report files efficiently
 
+#### Row Selection & Filter Bookmarking
+- **Quick Test Selection**: Click any test number in Results table to instantly filter to that specific test
+- **Filter Bookmarking**: Selection saves your current filter state - click again to restore it
+- **Visual Feedback**: Selected row highlighted with yellow background
+- **Expand Selection**: While a test is selected, Ctrl+click filters to add more tests for comparison
+- **Single Selection**: Only one test can be selected at a time - deselect first before selecting another
+
+**How to use:**
+1. In Results table, click a test number (e.g., #5) → Filters set to match that test
+2. Manually Ctrl+click filters to expand selection → Add related tests for comparison
+3. Click the highlighted test number again → Restores your original filter state
+
 #### Settings & Configuration
 - **Regulus Root Path**: Configure local path or HTTP URL to access artifact directories
 - **Persistent Settings**: Root path and drawer width saved to browser localStorage
