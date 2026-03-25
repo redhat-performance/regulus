@@ -610,11 +610,18 @@ build-container-latest:
 			echo ""; \
 		fi; \
 	fi
-	@echo "To run:"
-	@echo "  cd $(DASHBOARD_DIR)/docker && podman-compose up"
+	@echo "To run (recommended - interactive with auto-cleanup):"
+	@echo "  podman run --rm -it -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest"
 	@echo ""
-	@echo "Or manually:"
-	@echo "  podman run -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest"
+	@echo "Flags explained:"
+	@echo "  --rm  = Auto-remove container when stopped (prevents accumulation)"
+	@echo "  -it   = Interactive terminal with signal handling (Ctrl+C works)"
+	@echo ""
+	@echo "Or run in background:"
+	@echo "  podman run -d --name dashboard -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest"
+	@echo ""
+	@echo "Or using podman-compose:"
+	@echo "  cd $(DASHBOARD_DIR)/docker && podman-compose up"
 	@echo ""
 
 # Build container with custom tag
@@ -669,6 +676,19 @@ build-container-tag:
 			echo ""; \
 		fi; \
 	fi
+	@echo "To run (recommended - interactive with auto-cleanup):"
+	@echo "  podman run --rm -it -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:$(TAG)"
+	@echo ""
+	@echo "Flags explained:"
+	@echo "  --rm  = Auto-remove container when stopped (prevents accumulation)"
+	@echo "  -it   = Interactive terminal with signal handling (Ctrl+C works)"
+	@echo ""
+	@echo "Or run in background:"
+	@echo "  podman run -d --name dashboard -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:$(TAG)"
+	@echo ""
+	@echo "Or using podman-compose:"
+	@echo "  cd $(DASHBOARD_DIR)/docker && podman-compose up"
+	@echo ""
 
 # Clean up container images
 clean-container:
