@@ -9,6 +9,11 @@ let filterOptions = {};
 let charts = {};
 let applyFiltersTimeout = null;
 
+// Row selection state (for filter bookmarking)
+let selectedRow = null;
+let savedFilterState = null;
+let currentResults = [];  // Store current results for row selection
+
 // Initialize dashboard on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard initializing...');
@@ -306,6 +311,136 @@ function getCurrentFilters() {
         date_range_days: getSelectValue('filterDateRange'),
         selected_files: getSelectValue('filterReportFiles')
     };
+}
+
+// Save current filter state (for row selection bookmark)
+function saveFilterState() {
+    return getCurrentFilters();
+}
+
+// Restore filter state from saved snapshot
+function restoreFilterState(filterState) {
+    if (!filterState) return;
+
+    // Map of filter keys to select element IDs
+    const filterMap = {
+        benchmark: 'filterBenchmark',
+        model: 'filterModel',
+        nic: 'filterNic',
+        arch: 'filterArch',
+        protocol: 'filterProtocol',
+        test_type: 'filterTestType',
+        cpu: 'filterCpu',
+        kernel: 'filterKernel',
+        rcos: 'filterRcos',
+        topo: 'filterTopo',
+        perf: 'filterPerf',
+        offload: 'filterOffload',
+        threads: 'filterThreads',
+        pods_per_worker: 'filterScaleUp',
+        scale_out_factor: 'filterScaleOut',
+        wsize: 'filterWsize',
+        date_range_days: 'filterDateRange',
+        selected_files: 'filterReportFiles'
+    };
+
+    // Restore each filter value
+    for (const [key, selectId] of Object.entries(filterMap)) {
+        const select = document.getElementById(selectId);
+        if (!select) continue;
+
+        const value = filterState[key];
+        const isMultiple = select.hasAttribute('multiple');
+
+        if (isMultiple) {
+            // Multi-select: set selected options
+            Array.from(select.options).forEach(option => {
+                option.selected = Array.isArray(value) && value.includes(option.value);
+            });
+        } else {
+            // Single-select: set value
+            select.value = value || '';
+        }
+    }
+
+    // Apply the restored filters
+    applyFilters();
+}
+
+// Apply filters from a result row (set all filters to match the row)
+function applyRowFilters(result) {
+    const filterMap = {
+        benchmark: 'filterBenchmark',
+        model: 'filterModel',
+        nic: 'filterNic',
+        arch: 'filterArch',
+        protocol: 'filterProtocol',
+        test_type: 'filterTestType',
+        cpu: 'filterCpu',
+        kernel: 'filterKernel',
+        rcos: 'filterRcos',
+        topo: 'filterTopo',
+        perf: 'filterPerf',
+        offload: 'filterOffload',
+        threads: 'filterThreads',
+        pods_per_worker: 'filterScaleUp',
+        scale_out_factor: 'filterScaleOut',
+        wsize: 'filterWsize'
+    };
+
+    // Set each filter to match the row's value
+    for (const [key, selectId] of Object.entries(filterMap)) {
+        const select = document.getElementById(selectId);
+        if (!select) continue;
+
+        const value = result[key];
+        const isMultiple = select.hasAttribute('multiple');
+
+        if (isMultiple) {
+            // Multi-select: select only this value
+            Array.from(select.options).forEach(option => {
+                option.selected = (option.value === value || option.value === String(value));
+            });
+        } else {
+            // Single-select: set value
+            select.value = value || '';
+        }
+    }
+
+    // Apply the row filters
+    applyFilters();
+}
+
+// Handle row selection/deselection
+function handleRowSelection(rowIndex, result) {
+    const rowElement = document.querySelector(`#resultsTable tbody tr[data-row-index="${rowIndex}"]`);
+    if (!rowElement) return;
+
+    console.log('handleRowSelection called:', { rowIndex, selectedRow, hasSavedState: !!savedFilterState });
+
+    // Check if clicking a different row while one is selected
+    if (selectedRow !== null && selectedRow !== rowIndex) {
+        console.log('Different row clicked while one is selected - ignoring');
+        // Do nothing - must deselect current row first
+        return;
+    }
+
+    // Check if deselecting current row
+    if (selectedRow === rowIndex) {
+        // Deselect: restore saved filter state
+        console.log('Deselecting row, restoring filters');
+        restoreFilterState(savedFilterState);
+        selectedRow = null;
+        savedFilterState = null;
+        rowElement.classList.remove('row-selected');
+    } else {
+        // Select: save current filters and apply row filters
+        console.log('Selecting row, saving filters and applying row filters');
+        savedFilterState = saveFilterState();
+        selectedRow = 0;  // After filtering, selected row will be at index 0
+        rowElement.classList.add('row-selected');
+        applyRowFilters(result);
+    }
 }
 
 // Build URL params from filters
@@ -1484,6 +1619,12 @@ function renderResultsTable(results) {
         $('#resultsTable').DataTable().clear().destroy();
     }
 
+    // Store results globally for row selection
+    currentResults = results;
+
+    // Note: We DON'T clear selectedRow/savedFilterState here anymore
+    // They need to persist across re-renders to allow deselection
+
     // Now clear and repopulate the tbody
     const tbody = document.querySelector('#resultsTable tbody');
     tbody.innerHTML = '';
@@ -1491,6 +1632,9 @@ function renderResultsTable(results) {
     results.forEach((result, index) => {
         const row = tbody.insertRow();
         const filePath = result.regulus_data || '';
+
+        // Add row index for selection tracking
+        row.setAttribute('data-row-index', index);
 
         // Config column: pods-per-worker,scale_out_factor,topo
         const ppw = result.pods_per_worker || '?';
@@ -1504,7 +1648,14 @@ function renderResultsTable(results) {
         const testTypeComposite = `${protocol},${testType}`;
 
         row.innerHTML = `
-            <td>${index + 1}</td>
+            <td>
+                <span class="test-number-select"
+                      style="cursor: pointer; text-decoration: underline; color: #0d6efd;"
+                      title="Click to filter to this test"
+                      onclick="handleRowSelection(${index}, currentResults[${index}])">
+                    ${index + 1}
+                </span>
+            </td>
             <td>
                 <span class="badge bg-primary badge-benchmark clickable-file"
                       title="Click to browse: ${filePath}"
@@ -1536,6 +1687,14 @@ function renderResultsTable(results) {
             search: "Search results:"
         }
     });
+
+    // Re-apply row highlighting if a row is selected
+    if (selectedRow !== null) {
+        const selectedRowElement = document.querySelector(`#resultsTable tbody tr[data-row-index="${selectedRow}"]`);
+        if (selectedRowElement) {
+            selectedRowElement.classList.add('row-selected');
+        }
+    }
 }
 
 // Reload reports
