@@ -70,16 +70,23 @@ When the container starts with an empty `/tmp/regulus-data`, it automatically co
 ### 4. Run Container
 
 ```bash
-# Using the run script
+# Recommended: Interactive mode with auto-cleanup (Ctrl+C works!)
+podman run --rm -it -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+
+# Or using the run script
 cd dashboard/docker
 ./run-dashboard.sh
 
 # Or using podman-compose
 podman-compose up -d
 
-# Or manually
-podman run -d -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+# Or run in background (for long-running deployments)
+podman run -d --name dashboard -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
 ```
+
+**Flag explanation:**
+- `--rm` = Auto-remove container when stopped (prevents accumulation of stopped containers)
+- `-it` = Interactive terminal with signal handling (Ctrl+C works properly)
 
 ### 5. Open Browser
 
@@ -318,6 +325,46 @@ sudo ss -tlnp | grep :5000
 
 # Use different port
 PORT=8080 ./run-dashboard.sh
+```
+
+### Ctrl+C doesn't stop container
+
+**Cause:** Container started without `-it` flags.
+
+**Solution:** Use `--rm -it` flags for interactive mode:
+```bash
+podman run --rm -it -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+```
+
+**To stop stuck container:**
+```bash
+# Find container ID
+podman ps
+
+# Stop it
+podman stop <container_id>
+
+# Force kill if needed
+podman kill <container_id>
+```
+
+### Too many stopped containers accumulating
+
+**Cause:** Running without `--rm` flag leaves stopped containers.
+
+**Solution:** Always use `--rm` flag, or clean up periodically:
+```bash
+# List all containers (including stopped)
+podman ps -a
+
+# Remove specific stopped container
+podman rm <container_id>
+
+# Remove ALL stopped containers
+podman container prune
+
+# Remove all exited containers
+podman ps -a --filter "status=exited" -q | xargs podman rm
 ```
 
 ### Permission denied (SELinux)

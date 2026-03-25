@@ -104,10 +104,15 @@ make build-container
 
 **Run Container**:
 ```bash
-# Start container with data from host
-podman run -d -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+# Recommended: Interactive mode with auto-cleanup
+podman run --rm -it -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+# --rm = Auto-remove container when stopped (prevents accumulation)
+# -it  = Interactive terminal with signal handling (Ctrl+C works)
 
-# Or using docker-compose
+# Or run in background (for long-running deployments)
+podman run -d --name dashboard -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:latest
+
+# Or using podman-compose
 cd dashboard/docker
 podman-compose up -d
 
