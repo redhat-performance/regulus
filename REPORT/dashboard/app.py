@@ -32,21 +32,21 @@ def create_app(reports_dir=None):
     Create and configure the Flask application.
 
     Args:
-        reports_dir: Directory containing benchmark reports (optional)
+        reports_dir: Directory containing benchmark reports (default: /tmp/regulus-data)
 
     Returns:
         Configured Flask application instance
     """
     app = Flask(__name__)
 
-    # Determine reports directory
+    # Determine reports directory (defaults to /tmp/regulus-data)
     if not reports_dir:
-        reports_dir = os.environ.get('REPORTS_DIR', './test_data')
+        reports_dir = os.environ.get('REPORTS_DIR', '/tmp/regulus-data')
 
     # Initialize data loader and load reports
     print(f"Loading reports from: {reports_dir}")
     loader = ReportLoader()
-    loader.reports_dir = reports_dir  # Save for reload functionality
+    loader.reports_dir = reports_dir  # Load and reload from same directory
     loader.load_from_directory(reports_dir)
     results = loader.extract_all_results()
     print(f"Loaded {len(results)} benchmark results from {len(loader.loaded_reports)} reports")
