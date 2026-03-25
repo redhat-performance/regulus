@@ -169,12 +169,17 @@ summary-with-testbed-info:
 # =============================================================================
 
 dashboard:
-	@echo "Starting dashboard with reports from: $(GENERATED_DIR)"
-	@$(PYTHON) $(DASHBOARD_DIR)/run_dashboard.py --reports $(GENERATED_DIR)
+	@echo "Starting dashboard with built-in reports from: $(GENERATED_DIR)"
+	@echo "Reports will be copied to /tmp/regulus-data and loaded from there"
+	@if [ -n "$(PORT)" ]; then \
+		PORT=$(PORT) $(DASHBOARD_DIR)/start_dashboard.sh; \
+	else \
+		$(DASHBOARD_DIR)/start_dashboard.sh; \
+	fi
 
 dashboard-stop:
 	@echo "Stopping dashboard instances..."
-	@ps aux | grep "$(DASHBOARD_DIR)/run_dashboard.py" | grep -v grep | awk '{print $$2}' | xargs kill 2>/dev/null || echo "No dashboard instances running"
+	@ps aux | grep "run_dashboard.py" | grep -v grep | awk '{print $$2}' | xargs kill 2>/dev/null || echo "No dashboard instances running"
 
 dashboard-restart: dashboard-stop
 	@sleep 2
@@ -564,28 +569,28 @@ build-container-latest:
 	@echo "  Building Dashboard Container Image"
 	@echo "================================================"
 	@echo ""
-	@# Check for built-in sample data and list files
-	@if [ -d "$(DASHBOARD_DIR)/docker/sample_data" ]; then \
-		echo "Built-in sample data: $(DASHBOARD_DIR)/docker/sample_data"; \
-		SAMPLE_FILES=$$(find $(DASHBOARD_DIR)/docker/sample_data -name '*.json' 2>/dev/null); \
-		if [ -n "$$SAMPLE_FILES" ]; then \
-			SAMPLE_COUNT=$$(echo "$$SAMPLE_FILES" | wc -l); \
-			echo "Found $$SAMPLE_COUNT built-in report(s):"; \
-			echo "$$SAMPLE_FILES" | while read file; do \
+	@# Check for built-in reports from generated/ directory
+	@if [ -d "generated" ]; then \
+		echo "Built-in reports source: generated/"; \
+		GENERATED_FILES=$$(find generated -name '*.json' 2>/dev/null); \
+		if [ -n "$$GENERATED_FILES" ]; then \
+			GENERATED_COUNT=$$(echo "$$GENERATED_FILES" | wc -l); \
+			echo "Found $$GENERATED_COUNT built-in report(s):"; \
+			echo "$$GENERATED_FILES" | while read file; do \
 				basename "$$file"; \
 			done | sed 's/^/  - /'; \
 		else \
 			echo "Found 0 built-in report(s)"; \
 		fi; \
 	else \
-		echo "No sample_data directory found"; \
+		echo "No generated/ directory found"; \
 		echo "Found 0 built-in report(s)"; \
 	fi
 	@echo ""
 	@echo "Building image with tag: latest"
-	@echo "Build context: $(DASHBOARD_DIR)/"
+	@echo "Build context: REPORT/ (includes dashboard/ and generated/)"
 	@echo ""
-	@cd $(DASHBOARD_DIR) && podman build -f docker/Dockerfile -t regulus-dashboard:latest .
+	@podman build -f $(DASHBOARD_DIR)/docker/Dockerfile -t regulus-dashboard:latest .
 	@echo ""
 	@echo "================================================"
 	@echo "✓ Build complete!"
@@ -594,12 +599,12 @@ build-container-latest:
 	@echo "Image: regulus-dashboard:latest"
 	@echo ""
 	@# List built-in reports in the final image
-	@if [ -d "$(DASHBOARD_DIR)/docker/sample_data" ]; then \
-		SAMPLE_FILES=$$(find $(DASHBOARD_DIR)/docker/sample_data -name '*.json' 2>/dev/null); \
-		if [ -n "$$SAMPLE_FILES" ]; then \
-			SAMPLE_COUNT=$$(echo "$$SAMPLE_FILES" | wc -l); \
-			echo "Built-in reports included from sample_data/ ($$SAMPLE_COUNT):"; \
-			echo "$$SAMPLE_FILES" | while read file; do \
+	@if [ -d "generated" ]; then \
+		GENERATED_FILES=$$(find generated -name '*.json' 2>/dev/null); \
+		if [ -n "$$GENERATED_FILES" ]; then \
+			GENERATED_COUNT=$$(echo "$$GENERATED_FILES" | wc -l); \
+			echo "Built-in reports included from generated/ ($$GENERATED_COUNT):"; \
+			echo "$$GENERATED_FILES" | while read file; do \
 				basename "$$file"; \
 			done | sed 's/^/  - /'; \
 			echo ""; \
@@ -623,28 +628,28 @@ build-container-tag:
 	@echo "  Building Dashboard Container Image"
 	@echo "================================================"
 	@echo ""
-	@# Check for built-in sample data and list files
-	@if [ -d "$(DASHBOARD_DIR)/docker/sample_data" ]; then \
-		echo "Built-in sample data: $(DASHBOARD_DIR)/docker/sample_data"; \
-		SAMPLE_FILES=$$(find $(DASHBOARD_DIR)/docker/sample_data -name '*.json' 2>/dev/null); \
-		if [ -n "$$SAMPLE_FILES" ]; then \
-			SAMPLE_COUNT=$$(echo "$$SAMPLE_FILES" | wc -l); \
-			echo "Found $$SAMPLE_COUNT built-in report(s):"; \
-			echo "$$SAMPLE_FILES" | while read file; do \
+	@# Check for built-in reports from generated/ directory
+	@if [ -d "generated" ]; then \
+		echo "Built-in reports source: generated/"; \
+		GENERATED_FILES=$$(find generated -name '*.json' 2>/dev/null); \
+		if [ -n "$$GENERATED_FILES" ]; then \
+			GENERATED_COUNT=$$(echo "$$GENERATED_FILES" | wc -l); \
+			echo "Found $$GENERATED_COUNT built-in report(s):"; \
+			echo "$$GENERATED_FILES" | while read file; do \
 				basename "$$file"; \
 			done | sed 's/^/  - /'; \
 		else \
 			echo "Found 0 built-in report(s)"; \
 		fi; \
 	else \
-		echo "No sample_data directory found"; \
+		echo "No generated/ directory found"; \
 		echo "Found 0 built-in report(s)"; \
 	fi
 	@echo ""
 	@echo "Building image with tag: $(TAG)"
-	@echo "Build context: $(DASHBOARD_DIR)/"
+	@echo "Build context: REPORT/ (includes dashboard/ and generated/)"
 	@echo ""
-	@cd $(DASHBOARD_DIR) && podman build -f docker/Dockerfile -t regulus-dashboard:$(TAG) .
+	@podman build -f $(DASHBOARD_DIR)/docker/Dockerfile -t regulus-dashboard:$(TAG) .
 	@echo ""
 	@echo "================================================"
 	@echo "✓ Build complete!"
@@ -653,12 +658,12 @@ build-container-tag:
 	@echo "Image: regulus-dashboard:$(TAG)"
 	@echo ""
 	@# List built-in reports in the final image
-	@if [ -d "$(DASHBOARD_DIR)/docker/sample_data" ]; then \
-		SAMPLE_FILES=$$(find $(DASHBOARD_DIR)/docker/sample_data -name '*.json' 2>/dev/null); \
-		if [ -n "$$SAMPLE_FILES" ]; then \
-			SAMPLE_COUNT=$$(echo "$$SAMPLE_FILES" | wc -l); \
-			echo "Built-in reports included from sample_data/ ($$SAMPLE_COUNT):"; \
-			echo "$$SAMPLE_FILES" | while read file; do \
+	@if [ -d "generated" ]; then \
+		GENERATED_FILES=$$(find generated -name '*.json' 2>/dev/null); \
+		if [ -n "$$GENERATED_FILES" ]; then \
+			GENERATED_COUNT=$$(echo "$$GENERATED_FILES" | wc -l); \
+			echo "Built-in reports included from generated/ ($$GENERATED_COUNT):"; \
+			echo "$$GENERATED_FILES" | while read file; do \
 				basename "$$file"; \
 			done | sed 's/^/  - /'; \
 			echo ""; \
