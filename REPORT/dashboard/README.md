@@ -67,22 +67,27 @@ Without these libraries, the file browser works only with local filesystem paths
 **Method 1: Using makefile (Recommended)**
 ```bash
 cd /path/to/regulus
-make report-dashboard
-# Dashboard loads reports from REPORT/generated/
+make dashboard
+# Built-in reports from REPORT/generated/ are copied to /tmp/regulus-data/
+# Dashboard loads from /tmp/regulus-data/
+# Access at: http://localhost:5000
 ```
 
-**Method 2: From REPORT directory**
+**Method 2: Using startup script**
 ```bash
 cd /path/to/regulus/REPORT
-python3 dashboard/run_dashboard.py --reports generated
+./dashboard/start_dashboard.sh
+# Copies built-in reports from generated/ to /tmp/regulus-data/ and starts dashboard
+# Access at: http://localhost:5000
+```
+
+**Method 3: Direct run (loads from /tmp/regulus-data by default)**
+```bash
+cd /path/to/regulus/REPORT
+python3 dashboard/run_dashboard.py
 
 # Or with custom reports directory:
 python3 dashboard/run_dashboard.py --reports /path/to/reports
-```
-
-**Method 3: From any directory (absolute path)**
-```bash
-python3 /full/path/to/REPORT/dashboard/run_dashboard.py --reports /path/to/reports
 ```
 
 The dashboard will be available at: `http://0.0.0.0:5000` or `http://localhost:5000`
@@ -94,6 +99,7 @@ The dashboard will be available at: `http://0.0.0.0:5000` or `http://localhost:5
 cd /path/to/regulus/REPORT
 make build-container
 # Builds regulus-dashboard:latest with podman
+# Build context is REPORT/ to include both dashboard/ and generated/
 ```
 
 **Run Container**:
@@ -104,6 +110,8 @@ podman run -d -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:la
 # Or using docker-compose
 cd dashboard/docker
 podman-compose up -d
+
+# Access at: http://localhost:5000
 ```
 
 **Add Reports to Running Container**:
@@ -115,19 +123,19 @@ cp report.json /tmp/regulus-data/
 curl -X POST -H "Content-Type: application/json" -d '{}' http://localhost:5000/api/reload
 ```
 
-**Built-in Sample Data**:
-The container can include built-in sample reports by placing `.json` files in `dashboard/docker/sample_data/` before building:
+**Built-in Reports**:
+The container automatically includes built-in reports from `REPORT/generated/` when building:
 ```bash
-# Add sample reports
-cp generated/*.json dashboard/docker/sample_data/
+# Generate reports first
+make report
 
-# Build container (will report: "Found 3 built-in report(s)")
+# Build container (will report: "Found N built-in report(s)")
 make build-container
 ```
 
-When the container starts with an empty `/tmp/regulus-data`, it automatically copies built-in reports from `sample_data/` to the mounted directory.
+When the container starts with an empty `/tmp/regulus-data`, it automatically copies built-in reports from `generated/` to the mounted directory.
 
-See `dashboard/docker/CONTAINER_BUILD.md` for complete documentation.
+See `dashboard/docker/README.md` for complete container documentation.
 
 **Accessing Artifacts in Containers**:
 
@@ -183,23 +191,36 @@ Total results: 25
 python3 dashboard/run_dashboard.py [OPTIONS]
 
 Options:
-  --reports DIR    Directory containing JSON report files (default: current directory)
-  --host HOST      Host to bind to (default: 0.0.0.0)
-  --port PORT      Port to listen on (default: 5000)
-  --debug          Enable debug mode (auto-reload on code changes)
-  -h, --help       Show help message and exit
+  --reports DIR      Directory containing JSON report files (default: /tmp/regulus-data)
+  --host HOST        Host to bind to (default: 0.0.0.0)
+  --port PORT        Port to listen on (default: 5000)
+  --debug            Enable debug mode (auto-reload on code changes)
+  -h, --help         Show help message and exit
 ```
 
 ### Examples
 
+**Basic Usage (Default Port 5000):**
 ```bash
-# Launch with default settings (current directory, port 5000)
+# Launch with makefile (recommended)
+make dashboard
+
+# Or launch directly
 python3 dashboard/run_dashboard.py
 
 # Specify custom reports directory
 python3 dashboard/run_dashboard.py --reports /data/performance-reports
+```
 
-# Use custom port
+**Advanced Options:**
+```bash
+# Use custom port (makefile)
+make dashboard PORT=8080
+
+# Use custom port (startup script)
+PORT=8080 ./dashboard/start_dashboard.sh
+
+# Use custom port (direct Python)
 python3 dashboard/run_dashboard.py --port 8080
 
 # Bind to localhost only (not accessible from network)
@@ -210,9 +231,6 @@ python3 dashboard/run_dashboard.py --debug
 
 # Combine multiple options
 python3 dashboard/run_dashboard.py --reports /data/reports --host 0.0.0.0 --port 8000
-
-# Test with sample data
-python3 dashboard/run_dashboard.py --reports . --debug
 ```
 
 ### Testing the Dashboard
@@ -395,9 +413,21 @@ Query parameters: `field_x`, `field_y`, `metric`, `benchmark`
 ### Reload Reports
 ```
 POST /api/reload
-Body: {"reports_dir": "/path/to/reports"}
+Body: {}
 ```
-Reload reports from disk without restarting the server.
+Reload reports from `/tmp/regulus-data` without restarting the server.
+
+**Reload Workflow:**
+1. On startup, built-in reports from `generated/` are copied to `/tmp/regulus-data/` (if directory is empty)
+2. Dashboard loads all reports from `/tmp/regulus-data/`
+3. Users can add new JSON reports to `/tmp/regulus-data/`
+4. Click "Reload Reports" button to reload all reports from `/tmp/regulus-data/` without restart
+
+**Optional:** Override reports directory in API request:
+```bash
+POST /api/reload
+Body: {"reports_dir": "/custom/path"}
+```
 
 ## Architecture
 

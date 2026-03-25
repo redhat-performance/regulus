@@ -9,24 +9,24 @@ echo "================================================"
 if [ ! "$(ls -A /app/data 2>/dev/null)" ]; then
     echo "→ Data directory is empty"
     if [ -d "/app/initial_data" ] && [ "$(ls -A /app/initial_data/*.json 2>/dev/null)" ]; then
-        echo "→ Copying initial sample JSON files to /app/data..."
+        echo "→ Copying built-in reports from generated/ to /app/data..."
         cp /app/initial_data/*.json /app/data/ 2>/dev/null || true
-        
+
         # Verify files were copied
         FILE_COUNT=$(ls /app/data/*.json 2>/dev/null | wc -l)
         if [ "$FILE_COUNT" -gt 0 ]; then
-            echo "✓ Copied $FILE_COUNT sample file(s)"
+            echo "✓ Copied $FILE_COUNT built-in report(s)"
             echo ""
-            echo "Sample files are now in your host directory:"
+            echo "Built-in reports are now in your host directory:"
             echo "  /tmp/regulus-data/"
             echo ""
-            echo "To remove sample files:"
+            echo "To clear built-in reports:"
             echo "  rm /tmp/regulus-data/*.json"
         else
             echo "⚠ No files were copied"
         fi
     else
-        echo "→ No initial sample data found"
+        echo "→ No built-in reports found"
         echo "→ Add JSON files to /tmp/regulus-data/ to get started"
     fi
 else
@@ -39,7 +39,7 @@ echo "Available JSON reports:"
 ls -lh /app/data/*.json 2>/dev/null || echo "  (none found)"
 
 echo ""
-echo "Dashboard starting on port 5000..."
+echo "Dashboard starting on port ${PORT:-5000}..."
 echo "Data directory: /app/data (mounted from host)"
 echo "================================================"
 echo ""
