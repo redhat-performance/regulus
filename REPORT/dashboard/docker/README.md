@@ -34,34 +34,38 @@ cd /path/to/regulus/REPORT/dashboard/docker
 ./build.sh
 ```
 
-The build process automatically detects and reports how many `.json` files are in `sample_data/`:
+The build process automatically detects and reports how many `.json` files are in `generated/`:
 ```
 ================================================
   Building Dashboard Container Image
 ================================================
 
-Built-in sample data: dashboard/docker/sample_data
-Found 3 built-in report(s)
+Built-in reports source: generated/
+Found 3 built-in report(s):
+  - bond-report.json
+  - report-dpu.json
+  - report.json
 
 Building image with tag: latest
+Build context: REPORT/ (includes dashboard/ and generated/)
 ...
 ```
 
-### 3. Add Built-in Sample Data (Optional)
+### 3. Built-in Reports (Automatic)
 
-To include sample reports **inside the container image**, add them to `sample_data/` **before building**:
+The container automatically includes reports from `REPORT/generated/` when building:
 
 ```bash
 cd /path/to/regulus/REPORT
 
-# Copy reports to sample_data directory
-cp generated/*.json dashboard/docker/sample_data/
+# Generate reports first (creates REPORT/generated/*.json)
+make report
 
-# Build container (will show "Found 3 built-in report(s)")
+# Build container (will show "Found N built-in report(s)")
 make build-container
 ```
 
-When the container starts with an empty `/tmp/regulus-data`, it automatically copies built-in reports from `sample_data/` to the mounted directory. This allows users to start the dashboard with sample data immediately.
+When the container starts with an empty `/tmp/regulus-data`, it automatically copies built-in reports from `generated/` to the mounted directory. This allows users to start the dashboard with generated data immediately.
 
 ### 4. Run Container
 
@@ -83,7 +87,7 @@ podman run -d -p 5000:5000 -v /tmp/regulus-data:/app/data:Z regulus-dashboard:la
 firefox http://localhost:5000
 ```
 
-**That's it!** Dashboard starts with or without data.
+**That's it!** Dashboard runs on port 5000 by default and starts with or without data.
 
 If you included built-in reports in step 3, they will be automatically available when the container starts with an empty data directory.
 
@@ -108,14 +112,14 @@ rm /tmp/regulus-data/old-report.json
 
 ---
 
-## Built-in Sample Data
+## Built-in Reports
 
-The container supports built-in sample reports that are automatically copied when starting with an empty data directory.
+The container automatically includes reports from `REPORT/generated/` and copies them when starting with an empty data directory.
 
 ### How It Works
 
-1. **Before Build**: Place `.json` files in `dashboard/docker/sample_data/`
-2. **During Build**: Make reports how many files were found
+1. **Generate Reports**: Run `make report` to create reports in `REPORT/generated/`
+2. **During Build**: Makefile reports how many files were found in `generated/`
 3. **Container Start**: `entrypoint.sh` checks if `/app/data` is empty
 4. **Auto-Copy**: If empty, copies files from `/app/initial_data/` → `/app/data`
 5. **Result**: Built-in reports appear in `/tmp/regulus-data` on the host
@@ -123,14 +127,13 @@ The container supports built-in sample reports that are automatically copied whe
 ### Example Workflow
 
 ```bash
-# Step 1: Add sample reports before building
+# Step 1: Generate reports (creates REPORT/generated/*.json)
 cd /path/to/regulus/REPORT
-cp generated/bond-report.json dashboard/docker/sample_data/
-cp generated/report-dpu.json dashboard/docker/sample_data/
+make report
 
-# Step 2: Build container
+# Step 2: Build container (automatically includes generated/ reports)
 make build-container
-# Output: Found 2 built-in report(s)
+# Output: Found 2 built-in report(s): bond-report.json, report-dpu.json
 
 # Step 3: Start container with empty directory
 rm -rf /tmp/regulus-data/*
@@ -151,7 +154,7 @@ ls /tmp/regulus-data/
 ```bash
 cd /path/to/regulus/REPORT
 
-# Build container (detects sample_data files)
+# Build container (detects generated/ reports)
 make build-container
 # Output: Found N built-in report(s)
 
@@ -193,14 +196,33 @@ rm -rf /tmp/regulus-data/*
 
 ### Custom Port
 
+**Default:** Dashboard runs on port 5000 (defined in `run_dashboard.py`)
+
+**To use a different port:**
+
 ```bash
+# With run script
 PORT=8080 ./run-dashboard.sh
+
+# Or manually - both environment variable AND port mapping must match
+podman run -d \
+  -e PORT=8080 \
+  -p 8080:8080 \
+  -v /tmp/regulus-data:/app/data:Z \
+  regulus-dashboard:latest
+
+# Explanation:
+#   -e PORT=8080        → Tells Flask to listen on port 8080 inside container
+#   -p 8080:8080        → Maps host port 8080 to container port 8080
+#   Both must match the same port number!
 ```
 
-Or edit `docker-compose.yml`:
+**Or edit `docker-compose.yml`**:
 ```yaml
+environment:
+  - PORT=8080
 ports:
-  - "8080:5000"
+  - "8080:8080"
 ```
 
 ### Custom Data Location
@@ -390,15 +412,15 @@ regulus/REPORT/
 │       ├── entrypoint.sh        # Copies built-in data if needed
 │       ├── run_wrapper.sh       # Startup wrapper
 │       ├── build.sh
-│       ├── run-dashboard.sh
-│       └── sample_data/         # Built-in reports (optional)
+│       └── run-dashboard.sh
+├── generated/           # Generated reports (source for built-in reports)
 └── build_report/        # Core report generation (peer tool)
 ```
 
 **Data Flow:**
 ```
 Build Time:
-  dashboard/docker/sample_data/*.json
+  REPORT/generated/*.json
     ↓ (copied during build)
   Container: /app/initial_data/*.json
 
@@ -438,7 +460,7 @@ Container Start:
 
 ```
 docker/
-├── Dockerfile              # Container image definition
+├── Dockerfile              # Container image definition (build context: REPORT/)
 ├── docker-compose.yml      # Compose configuration
 ├── requirements.txt        # Python dependencies
 ├── entrypoint.sh          # Container startup script (copies built-in data)
@@ -446,12 +468,9 @@ docker/
 ├── build.sh               # Build script (use make build-container instead)
 ├── run-dashboard.sh       # Run script
 ├── .dockerignore          # Build exclusions
-├── README.md              # This file
-├── sample_data/           # Built-in sample reports (copied to /app/initial_data)
-│   └── README.md
-├── CONTAINER_BUILD.md     # Complete container build documentation
-├── RELOAD_FIX.md          # Dashboard reload functionality docs
-└── MAKEFILE_CONTAINER_BUILD.md  # Make targets documentation
+└── README.md              # This file
+
+Note: Built-in reports come from ../generated/ (REPORT/generated/)
 ```
 
 ## Make Targets (REPORT/makefile)

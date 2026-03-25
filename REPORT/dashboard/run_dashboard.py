@@ -48,8 +48,8 @@ Examples:
     parser.add_argument(
         '--reports',
         type=str,
-        default='.',
-        help='Directory containing JSON report files (default: current directory)'
+        default='/tmp/regulus-data',
+        help='Directory containing JSON report files (default: /tmp/regulus-data)'
     )
 
     parser.add_argument(
@@ -62,7 +62,7 @@ Examples:
     parser.add_argument(
         '--port',
         type=int,
-        default=5000,
+        default=5000,  # SINGLE SOURCE OF TRUTH: Default port defined here only
         help='Port to listen on (default: 5000)'
     )
 
@@ -107,7 +107,9 @@ Examples:
     print("="*70)
 
     # Create Flask app using new modular architecture
-    app = create_app(reports_dir=str(reports_path.absolute()))
+    app = create_app(
+        reports_dir=str(reports_path.absolute())
+    )
 
     print("\nStarting dashboard server...")
     print(f"Access the dashboard at: http://{args.host}:{args.port}")
