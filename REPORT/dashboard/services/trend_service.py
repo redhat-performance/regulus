@@ -5,7 +5,7 @@ Pure business logic with no Flask dependencies.
 """
 
 from typing import Dict, Any, Optional, List
-from aggregator import BenchmarkAggregator
+from ..aggregator import BenchmarkAggregator
 
 
 class TrendService:

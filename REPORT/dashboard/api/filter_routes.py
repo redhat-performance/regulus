@@ -3,7 +3,7 @@ Filter routes - Filter options and dynamic cascading filters.
 """
 
 from flask import Blueprint, request, jsonify
-from data_loader import ReportFilter
+from ..data_loader import ReportFilter
 
 filter_bp = Blueprint('filter', __name__, url_prefix='/api')
 
