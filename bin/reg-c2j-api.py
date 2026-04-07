@@ -158,13 +158,14 @@ def transform_securityContext(k8s_securityContext):
     return kube_securityContext
 
 
-def transform_k8s_to_kube(k8s_endpoint):
+def transform_k8s_to_kube(k8s_endpoint, pod_groups=None):
     """
     Transform a k8s endpoint configuration to the new kube endpoint format
-    
+
     Args:
         k8s_endpoint (dict): The k8s endpoint configuration (already parsed)
-        
+        pod_groups (list): Optional list of pod group configurations
+
     Returns:
         dict: The transformed kube endpoint configuration
     """
@@ -335,11 +336,19 @@ def transform_k8s_to_kube(k8s_endpoint):
     
     if config:
         kube_endpoint["config"] = config
-    
+
+    # Add pod groups if provided
+    if pod_groups:
+        kube_endpoint["pods"] = pod_groups
+
     return kube_endpoint
 
-def parse_endpoint(endpoint_str):
+def parse_endpoint(endpoint_str, pod_groups=None):
     """ parse endpoints. k8s will be transformed to kube. remotehost to remotehosts
+
+    Args:
+        endpoint_str (str): The endpoint string from CLI
+        pod_groups (list): Optional list of pod group configurations
     """
     tokens = endpoint_str.split(",")
     if not tokens:
@@ -378,7 +387,7 @@ def parse_endpoint(endpoint_str):
     # Transform k8s to kube format
     if endpoint_type == "k8s":
         HN_debug(f"Transforming k8s endpoint to kube format for host: {endpoint_data.get('host')}")
-        endpoint_data = transform_k8s_to_kube(endpoint_data)
+        endpoint_data = transform_k8s_to_kube(endpoint_data, pod_groups=pod_groups)
 
     return endpoint_data
 
@@ -466,12 +475,98 @@ def parse_tags(tag_str):
         tags[key.strip()] = value.strip()
     return tags
 
+def parse_pod_groups(pod_groups_list):
+    """
+    Parse pod groups from CLI format to JSON structure.
+
+    Input format (per entry):
+        [name:]engine+engine+...
+        where engine is role-id (e.g., "client-1", "server-2")
+
+    Examples:
+        "client-1+server-1" -> auto-named pod with client-1 and server-1
+        "my-pod:client-1+server-1" -> named pod "my-pod"
+
+    Returns:
+        List of pod group dicts in the format:
+        [
+            {
+                "name": "pod-name",  # optional
+                "engines": [
+                    {"role": "client", "ids": "1"},
+                    {"role": "server", "ids": "1"}
+                ]
+            }
+        ]
+    """
+    if not pod_groups_list:
+        return None
+
+    pods = []
+
+    for pod_group_str in pod_groups_list:
+        # Handle comma-separated groups within a single argument
+        for group in pod_group_str.split(","):
+            group = group.strip()
+            if not group:
+                continue
+
+            # Parse optional name
+            pod_entry = {}
+            if ":" in group and not group.startswith("client:") and not group.startswith("server:"):
+                # Has a name prefix
+                parts = group.split(":", 1)
+                pod_entry["name"] = parts[0].strip()
+                engines_str = parts[1].strip()
+            else:
+                # No name, will be auto-generated
+                engines_str = group
+
+            # Parse engines: client-1+server-1+client-2
+            engines_dict = {}  # role -> list of IDs
+            for engine_spec in engines_str.split("+"):
+                engine_spec = engine_spec.strip()
+                if "-" not in engine_spec:
+                    print(f"Warning: Invalid engine spec '{engine_spec}', expected format 'role-id'", file=sys.stderr)
+                    continue
+
+                # Split role and id
+                parts = engine_spec.rsplit("-", 1)
+                role = parts[0].strip()
+                id_str = parts[1].strip()
+
+                if role not in ["client", "server"]:
+                    print(f"Warning: Invalid role '{role}' in '{engine_spec}', must be 'client' or 'server'", file=sys.stderr)
+                    continue
+
+                # Accumulate IDs for each role
+                if role not in engines_dict:
+                    engines_dict[role] = []
+                engines_dict[role].append(id_str)
+
+            # Convert to engines array format
+            engines_array = []
+            for role in sorted(engines_dict.keys()):  # Sort for consistent output
+                # Combine multiple IDs with + for the same role
+                combined_ids = "+".join(engines_dict[role])
+                engines_array.append({
+                    "role": role,
+                    "ids": combined_ids
+                })
+
+            if engines_array:
+                pod_entry["engines"] = engines_array
+                pods.append(pod_entry)
+
+    return pods if pods else None
+
 def main():
     parser = argparse.ArgumentParser(description="Parse multiple --endpoint values into JSON")
     parser.add_argument("--name", type=str, required=True, help="Comma-separated list of benchmark names i.e uperf,iperf")
     parser.add_argument('--mv-params', help='Comma-separated list of mv params files', type=str, required=True)
     parser.add_argument("--bench-ids", type=str, help="Comma-separated list of benchmark IDs in format name:ids")
     parser.add_argument("--endpoint", action="append", required=True, help="Comma-separated key-value pairs (multiple allowed)")
+    parser.add_argument("--pod-groups", action="append", help="Optional pod grouping (multiple allowed). Format: [name:]engine+engine+... where engine is role-id (e.g., 'client-1+server-1' or 'my-pod:client-1+server-1')")
     parser.add_argument("--num-samples", type=int, default=1, help="Number of samples for run-params")
     parser.add_argument("--tags", default="", help="Comma-separated key-value pairs for tags")
     parser.add_argument("--tool-params", help="JSON file for tool-params")
@@ -510,8 +605,12 @@ def main():
             "mv-params": loaded_mv_params[i]
         })
 
+    # Parse pod groups if provided
+    pod_groups = parse_pod_groups(args.pod_groups) if args.pod_groups else None
+
     # Parse all endpoints - remotehosts logic unchanged, k8s gets transformed to kube
-    endpoints = [parse_endpoint(ep) for ep in args.endpoint]
+    # Pass pod_groups to all endpoints (only kube endpoints will use it)
+    endpoints = [parse_endpoint(ep, pod_groups=pod_groups) for ep in args.endpoint]
     
     tags = parse_tags(args.tags) if args.tags else {}
     tool_params = load_json_file(args.tool_params) if args.tool_params else {}
