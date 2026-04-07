@@ -33,6 +33,11 @@ rm_factor=1      # Determines the number of external hosts that will get used fo
 userenv=fedora-latest # can be centos7, centos8, stream, rhubi8, debian, opensuse
 osruntime=pod # can be pod or kata for OCP (not yet verified for SRIOV), chroot for remotehost
 
+# Multi-engine pod support (optional)
+# TPL_MULTI_ENGINE_POD=0: Each engine gets its own pod (legacy behavior)
+# TPL_MULTI_ENGINE_POD=1: All clients in 1 pod, all servers in 1 pod
+# TPL_MULTI_ENGINE_POD=2: Split into 2 pods (clients split across 2 pods, servers split across 2 pods)
+TPL_MULTI_ENGINE_POD=${TPL_MULTI_ENGINE_POD:-0}
 
 max_failures=1 # After this many failed samples=$NUM_SAMPLE the run will quit
 user_tags="topo:$TPL_TOPO" # Comma-separated list of something=value, these help you identify this run as different
@@ -163,6 +168,102 @@ collect_more_tags() {
     fi
     other_tags+=",nic:$nic"
     other_tags+=",arch:$arch"
+}
+
+# Generate pod groups for multi-engine pods
+#
+# Description:
+#   Creates --pod-groups arguments for reg-c2j-api.py to control how benchmark
+#   engines (clients/servers) are grouped into Kubernetes pods.
+#
+# Parameters:
+#   $1: num_clients - Total number of client engines
+#   $2: num_servers - Total number of server engines
+#
+# Behavior controlled by TPL_MULTI_ENGINE_POD:
+#
+#   TPL_MULTI_ENGINE_POD=0 (default):
+#     - No pod grouping, each engine runs in its own pod (legacy behavior)
+#     - Example: 4 clients + 4 servers = 8 separate pods
+#     - Output: (empty string)
+#
+#   TPL_MULTI_ENGINE_POD=1:
+#     - All clients grouped in 1 pod, all servers in 1 pod
+#     - Example: 4 clients + 4 servers = 2 pods total
+#     - Output: --pod-groups client-pod:client-1+client-2+client-3+client-4 \
+#               --pod-groups server-pod:server-1+server-2+server-3+server-4
+#
+#   TPL_MULTI_ENGINE_POD=2:
+#     - Clients split across 2 pods, servers split across 2 pods
+#     - Example: 4 clients + 4 servers = 4 pods total
+#     - Output: --pod-groups client-pod-1:client-1+client-2 \
+#               --pod-groups client-pod-2:client-3+client-4 \
+#               --pod-groups server-pod-1:server-1+server-2 \
+#               --pod-groups server-pod-2:server-3+server-4
+#     - For odd numbers, the first pod gets the extra engine (e.g., 5 → 3+2)
+#
+# Returns:
+#   String containing --pod-groups arguments for reg-c2j-api.py, or empty if mode=0
+#
+gen_pod_groups() {
+    local num_clients=$1
+    local num_servers=$2
+
+    # TPL_MULTI_ENGINE_POD=0: No grouping, return empty
+    [ "$TPL_MULTI_ENGINE_POD" == "0" ] && return
+
+    local opt=""
+
+    # TPL_MULTI_ENGINE_POD=1: All engines in 1 pod per role
+    if [ "$TPL_MULTI_ENGINE_POD" == "1" ]; then
+        if [ $num_clients -gt 0 ]; then
+            # Create client-1+client-2+...+client-N
+            local clients=$(seq -s "+" 1 $num_clients | sed 's/\([0-9]\+\)/client-\1/g')
+            opt="--pod-groups client-pod:$clients"
+        fi
+        if [ $num_servers -gt 0 ]; then
+            # Create server-1+server-2+...+server-N
+            local servers=$(seq -s "+" 1 $num_servers | sed 's/\([0-9]\+\)/server-\1/g')
+            [ -z "$opt" ] && opt="--pod-groups server-pod:$servers" || opt="$opt --pod-groups server-pod:$servers"
+        fi
+
+    # TPL_MULTI_ENGINE_POD=2: Split into 2 pods per role
+    elif [ "$TPL_MULTI_ENGINE_POD" == "2" ]; then
+        if [ $num_clients -gt 0 ]; then
+            # Calculate split point (round up for odd numbers)
+            # Examples: 4→2, 5→3, 8→4
+            local half_clients=$(( (num_clients + 1) / 2 ))
+
+            # First client pod: client-1 through client-N/2
+            local clients_pod1=$(seq -s "+" 1 $half_clients | sed 's/\([0-9]\+\)/client-\1/g')
+            opt="--pod-groups client-pod-1:$clients_pod1"
+
+            # Second client pod: client-(N/2+1) through client-N (only if >1 client)
+            if [ $num_clients -gt 1 ]; then
+                local start=$(( half_clients + 1 ))
+                local clients_pod2=$(seq -s "+" $start $num_clients | sed 's/\([0-9]\+\)/client-\1/g')
+                opt="$opt --pod-groups client-pod-2:$clients_pod2"
+            fi
+        fi
+
+        if [ $num_servers -gt 0 ]; then
+            # Calculate split point (round up for odd numbers)
+            local half_servers=$(( (num_servers + 1) / 2 ))
+
+            # First server pod: server-1 through server-N/2
+            local servers_pod1=$(seq -s "+" 1 $half_servers | sed 's/\([0-9]\+\)/server-\1/g')
+            [ -z "$opt" ] && opt="--pod-groups server-pod-1:$servers_pod1" || opt="$opt --pod-groups server-pod-1:$servers_pod1"
+
+            # Second server pod: server-(N/2+1) through server-N (only if >1 server)
+            if [ $num_servers -gt 1 ]; then
+                local start=$(( half_servers + 1 ))
+                local servers_pod2=$(seq -s "+" $start $num_servers | sed 's/\([0-9]\+\)/server-\1/g')
+                opt="$opt --pod-groups server-pod-2:$servers_pod2"
+            fi
+        fi
+    fi
+
+    echo "$opt"
 }
 
 # check for dependencies
@@ -391,6 +492,9 @@ for num_pods in $scale_up_factor; do
        endpoint_opt+=",hostNetwork:1"
     fi
 
+    # Generate pod groups if multi-engine pod is enabled
+    pod_groups_opt=$(gen_pod_groups $num_clients $num_servers)
+
 ARGS=" --tags $tags \
         --mv-params $mv_params_file \
         --num-samples=$NUM_SAMPLES  \
@@ -402,7 +506,7 @@ ARGS=" --tags $tags \
          PROG=reg-c2j-api.py
     fi
 
-    $PROG --name uperf --output all-in-one.json --tool-params tool-params.json  $ARGS && \
+    $PROG --name uperf --output all-in-one.json --tool-params tool-params.json  $ARGS $pod_groups_opt && \
     reg-enhance-tags.py all-in-one.json model:$REG_ROOT/bin/reg-get-model.py,cpu:$REG_ROOT/bin/reg-get-numcpu.py  &&\
     time crucible run --from-file all-in-one.json
 
