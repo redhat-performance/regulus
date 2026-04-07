@@ -7,7 +7,7 @@ from .discovery.file_discovery import StandardFileDiscovery, FilteredFileDiscove
 from .parsing.content_parser import TextFileParser, CachingParser
 from .rules.rule_engine import ConfigurableRuleEngine
 from .extraction.data_extractor import RegexDataExtractor
-from .transformation.data_transformer import StandardDataTransformer
+from .transformation.data_transformer import StandardDataTransformer, BenchmarkSpecificTransformer
 from .output.generators import SchemaAwareOutputGenerator
 from .schema.schema_manager import SchemaManager
 from .orchestration.orchestrator import (
@@ -23,7 +23,7 @@ def create_default_orchestrator():
         content_parser=TextFileParser(),
         rule_engine=ConfigurableRuleEngine(),
         data_extractor=RegexDataExtractor(),
-        data_transformer=StandardDataTransformer(),
+        data_transformer=BenchmarkSpecificTransformer(),
         output_generator=SchemaAwareOutputGenerator(schema_manager)
     )
 
@@ -58,7 +58,7 @@ def create_enhanced_orchestrator(schema_version=SchemaVersion.V2_0,
         content_parser=parser,
         rule_engine=ConfigurableRuleEngine(),
         data_extractor=RegexDataExtractor(enable_timing=True),
-        data_transformer=StandardDataTransformer(),
+        data_transformer=BenchmarkSpecificTransformer(),
         output_generator=SchemaAwareOutputGenerator(schema_manager),
         **kwargs
     )
@@ -72,41 +72,41 @@ def create_batch_orchestrator():
         content_parser=CachingParser(TextFileParser()),
         rule_engine=ConfigurableRuleEngine(),
         data_extractor=RegexDataExtractor(enable_timing=True),
-        data_transformer=StandardDataTransformer(),
+        data_transformer=BenchmarkSpecificTransformer(),
         output_generator=SchemaAwareOutputGenerator(schema_manager)
     )
 
 def create_html_orchestrator(schema_version=SchemaVersion.V2_0):
     """Create orchestrator with HTML output."""
     from .output.generators import HtmlOutputGenerator
-    
+
     schema_manager = SchemaManager(schema_version)
     return ReportOrchestrator(
         file_discovery=StandardFileDiscovery(),
         content_parser=TextFileParser(),
         rule_engine=ConfigurableRuleEngine(),
         data_extractor=RegexDataExtractor(),
-        data_transformer=StandardDataTransformer(),
+        data_transformer=BenchmarkSpecificTransformer(),
         output_generator=HtmlOutputGenerator()  # HTML instead of JSON
     )
 
 def create_multi_format_orchestrator(formats=['json', 'html'], base_url=''):
     """Create orchestrator with multiple output formats."""
     from .output.generators import EnhancedMultiFormatOutputGenerator
-    
+
     schema_manager = SchemaManager(SchemaVersion.V2_0)
     multi_generator = EnhancedMultiFormatOutputGenerator(schema_manager, base_url=base_url)
 
     # Enable specified formats
     for fmt in formats:
         multi_generator.enable_format(fmt)
-    
+
     return ReportOrchestrator(
         file_discovery=StandardFileDiscovery(),
         content_parser=TextFileParser(),
         rule_engine=ConfigurableRuleEngine(),
         data_extractor=RegexDataExtractor(),
-        data_transformer=StandardDataTransformer(),
+        data_transformer=BenchmarkSpecificTransformer(),
         output_generator=multi_generator
     )
 

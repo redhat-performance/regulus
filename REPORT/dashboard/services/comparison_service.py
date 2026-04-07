@@ -5,8 +5,8 @@ Pure business logic with no Flask dependencies.
 """
 
 from typing import Dict, Any, Optional
-from data_loader import ReportFilter
-from aggregator import BenchmarkAggregator
+from ..data_loader import ReportFilter
+from ..aggregator import BenchmarkAggregator
 
 
 class ComparisonService:

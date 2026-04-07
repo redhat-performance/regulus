@@ -156,6 +156,9 @@ class StandardDataTransformer:
             desc_parts.append(f"write={params['wsize']}B")
         if 'rsize' in params:
             desc_parts.append(f"read={params['rsize']}B")
+        # Handle iperf's 'length' parameter (buffer size)
+        if 'length' in params and 'wsize' not in params and 'rsize' not in params:
+            desc_parts.append(f"buffer={params['length']}B")
         
         # Add result summary - show primary result
         if results:
@@ -372,7 +375,7 @@ class ValidationAwareTransformer(StandardDataTransformer):
 
 class BenchmarkSpecificTransformer(StandardDataTransformer):
     """Transformer with benchmark-specific processing logic."""
-    
+
     def __init__(self):
         super().__init__()
         self.benchmark_transformers = {
@@ -380,6 +383,23 @@ class BenchmarkSpecificTransformer(StandardDataTransformer):
             'iperf': self._transform_iperf_data,
             'fio': self._transform_fio_data
         }
+
+    def transform_data(self, extracted_data) -> ProcessedResult:
+        """Transform data with benchmark-specific enhancements."""
+        # First do standard transformation
+        result = super().transform_data(extracted_data)
+
+        # Then apply benchmark-specific transformations
+        benchmark = extracted_data.benchmark if hasattr(extracted_data, 'benchmark') else None
+        if benchmark and benchmark in self.benchmark_transformers:
+            try:
+                enhancements = self.benchmark_transformers[benchmark](result.data, extracted_data)
+                if enhancements:
+                    result.data.update(enhancements)
+            except Exception as e:
+                print(f"Warning: Benchmark-specific transformation for {benchmark} failed: {e}")
+
+        return result
     
     def _transform_trafficgen_data(self, data: Dict[str, Any], extracted_data) -> Dict[str, Any]:
         """Apply trafficgen-specific transformations."""
@@ -401,7 +421,24 @@ class BenchmarkSpecificTransformer(StandardDataTransformer):
     
     def _transform_iperf_data(self, data: Dict[str, Any], extracted_data) -> Dict[str, Any]:
         """Apply iperf-specific transformations."""
-        return {'benchmark_type': 'network_performance'}
+        enhancements = {'benchmark_type': 'network_performance'}
+
+        # Map iperf's 'length' parameter to 'wsize' for consistent reporting
+        # This allows the description generator to recognize iperf's buffer size parameter
+        # Check both common_params and unique_params sections
+
+        # First, check if length is in common_params and map it there
+        if 'common_params' in data and 'length' in data['common_params']:
+            data['common_params']['wsize'] = data['common_params']['length']
+
+        # Also check each iteration's unique_params
+        if 'iterations' in data:
+            for iteration in data['iterations']:
+                if 'unique_params' in iteration and 'length' in iteration['unique_params']:
+                    # Add wsize alias so description generator picks it up
+                    iteration['unique_params']['wsize'] = iteration['unique_params']['length']
+
+        return enhancements
     
     def _transform_fio_data(self, data: Dict[str, Any], extracted_data) -> Dict[str, Any]:
         """Apply fio-specific transformations."""
