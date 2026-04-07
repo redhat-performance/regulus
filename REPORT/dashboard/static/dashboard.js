@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadReportFiles();  // Load available report files
     loadSummary();
     loadFilters();
-    loadOverviewData();
+    loadResultsTable();
 
     // Setup comparison field change handler
     document.getElementById('compareField').addEventListener('change', updateComparisonOptions);
@@ -1788,30 +1788,207 @@ let currentFileContent = '';
 let drawerWidth = localStorage.getItem('drawer_width') || '40%';
 let isResizing = false;
 
+// Temporary storage for root paths while editing
+let tempRootPaths = [];
+let tempActiveIndex = 0;
+
 // Open settings modal
 function openSettings() {
-    // Load saved regulus root from localStorage
-    const savedRoot = localStorage.getItem('regulus_root') || '';
-    document.getElementById('regulusRootPath').value = savedRoot;
+    // Load all saved paths from localStorage
+    tempRootPaths = [];
+    let index = 1;
+    while (true) {
+        const savedPath = localStorage.getItem(`regulus_root_${index}`);
+        if (savedPath) {
+            tempRootPaths.push(savedPath);
+            index++;
+        } else {
+            break;
+        }
+    }
+
+    // If no paths exist, start with one empty entry
+    if (tempRootPaths.length === 0) {
+        tempRootPaths = [''];
+    }
+
+    // Load active index (localStorage uses 1-based, convert to 0-based)
+    const savedActiveIndex = parseInt(localStorage.getItem('active_root_index') || '1');
+    tempActiveIndex = savedActiveIndex - 1; // Convert to 0-based
+    if (tempActiveIndex < 0 || tempActiveIndex >= tempRootPaths.length) {
+        tempActiveIndex = 0;
+    }
+
+    // Render the paths
+    renderRootPaths();
 
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
     modal.show();
 }
 
-// Save regulus root path on input change
-document.addEventListener('DOMContentLoaded', function() {
-    const rootInput = document.getElementById('regulusRootPath');
-    if (rootInput) {
-        rootInput.addEventListener('input', function() {
-            localStorage.setItem('regulus_root', this.value);
-        });
+// Render root paths dynamically
+function renderRootPaths() {
+    const container = document.getElementById('rootPathsList');
+    container.innerHTML = '';
+
+    tempRootPaths.forEach((path, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'root-path-item d-flex align-items-center gap-2';
+        itemDiv.onclick = (e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                selectRootPath(index);
+            }
+        };
+
+        const radioInput = document.createElement('input');
+        radioInput.className = 'form-check-input flex-shrink-0';
+        radioInput.type = 'radio';
+        radioInput.name = 'activeRoot';
+        radioInput.checked = (index === tempActiveIndex);
+        radioInput.onclick = (e) => {
+            e.stopPropagation();
+            selectRootPath(index);
+        };
+
+        const pathInput = document.createElement('input');
+        pathInput.type = 'text';
+        pathInput.className = 'form-control form-control-sm';
+        pathInput.value = path;
+        pathInput.placeholder = '/home/user/regulus-project';
+        pathInput.onclick = (e) => e.stopPropagation();
+        pathInput.oninput = (e) => {
+            tempRootPaths[index] = e.target.value;
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'btn btn-sm btn-outline-danger flex-shrink-0';
+        deleteBtn.innerHTML = '−';
+        deleteBtn.title = 'Remove this path';
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            removeRootPath(index);
+        };
+
+        itemDiv.appendChild(radioInput);
+        itemDiv.appendChild(pathInput);
+        itemDiv.appendChild(deleteBtn);
+        container.appendChild(itemDiv);
+    });
+}
+
+// Select a root path as active
+function selectRootPath(index) {
+    tempActiveIndex = index;
+    renderRootPaths();
+}
+
+// Add a new root path
+function addRootPath() {
+    tempRootPaths.push('');
+    renderRootPaths();
+}
+
+// Remove a root path
+function removeRootPath(index) {
+    if (tempRootPaths.length <= 1) {
+        alert('You must have at least one path entry.');
+        return;
     }
-});
+
+    tempRootPaths.splice(index, 1);
+
+    // Adjust active index if needed
+    if (tempActiveIndex >= tempRootPaths.length) {
+        tempActiveIndex = tempRootPaths.length - 1;
+    }
+
+    renderRootPaths();
+}
+
+// Save all settings
+function saveSettings() {
+    // Clear all existing root paths from localStorage
+    let i = 1;
+    while (localStorage.getItem(`regulus_root_${i}`)) {
+        localStorage.removeItem(`regulus_root_${i}`);
+        i++;
+    }
+
+    // Save only non-empty paths
+    let saveIndex = 1;
+    const nonEmptyPaths = [];
+    tempRootPaths.forEach((path, index) => {
+        const trimmedPath = path.trim();
+        if (trimmedPath) {
+            localStorage.setItem(`regulus_root_${saveIndex}`, trimmedPath);
+            nonEmptyPaths.push({ index: saveIndex, originalIndex: index });
+            saveIndex++;
+        }
+    });
+
+    // Adjust and save active index (map old index to new index)
+    let newActiveIndex = 1;
+    for (let i = 0; i < nonEmptyPaths.length; i++) {
+        if (nonEmptyPaths[i].originalIndex === tempActiveIndex) {
+            newActiveIndex = nonEmptyPaths[i].index;
+            break;
+        }
+    }
+    localStorage.setItem('active_root_index', newActiveIndex.toString());
+
+    // Save the active path as 'regulus_root' for backward compatibility
+    const activePath = localStorage.getItem(`regulus_root_${newActiveIndex}`) || '';
+    if (activePath) {
+        localStorage.setItem('regulus_root', activePath);
+    }
+
+    // Close the modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
+    modal.hide();
+
+    // Show confirmation
+    alert('Settings saved successfully!');
+}
+
+// Get the active Regulus Root path
+function getFirstRegulusRoot() {
+    // Get the active root index (which path is selected)
+    const activeIndex = parseInt(localStorage.getItem('active_root_index') || '1');
+    const activePath = localStorage.getItem(`regulus_root_${activeIndex}`);
+
+    if (activePath && activePath.trim()) {
+        return activePath.trim();
+    }
+
+    // Fallback: find first non-empty path
+    for (let i = 1; i <= 5; i++) {
+        const path = localStorage.getItem(`regulus_root_${i}`);
+        if (path && path.trim()) {
+            return path.trim();
+        }
+    }
+
+    // Final fallback to old single regulus_root
+    return localStorage.getItem('regulus_root') || '';
+}
+
+// Get all non-empty Regulus Root paths
+function getAllRegulusRoots() {
+    const roots = [];
+    for (let i = 1; i <= 5; i++) {
+        const path = localStorage.getItem(`regulus_root_${i}`);
+        if (path && path.trim()) {
+            roots.push({ id: i, path: path.trim() });
+        }
+    }
+    return roots;
+}
 
 // Open file browser at a specific path
 async function openFileBrowser(relativePath) {
-    const regulusRoot = localStorage.getItem('regulus_root');
+    const regulusRoot = getFirstRegulusRoot();
 
     if (!regulusRoot) {
         alert('Please configure Regulus Root Path in Settings first!');
@@ -1823,16 +2000,18 @@ async function openFileBrowser(relativePath) {
     const dirPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
 
     currentBrowserPath = dirPath;
-    await loadDirectoryListing(dirPath);
+    const success = await loadDirectoryListing(dirPath);
 
-    // Show drawer and push main content
-    document.getElementById('fileBrowserDrawer').classList.add('open');
-    document.body.classList.add('drawer-open');
+    // Only show drawer if loading succeeded
+    if (success) {
+        document.getElementById('fileBrowserDrawer').classList.add('open');
+        document.body.classList.add('drawer-open');
+    }
 }
 
 // Load directory listing
 async function loadDirectoryListing(path) {
-    const regulusRoot = localStorage.getItem('regulus_root');
+    const regulusRoot = getFirstRegulusRoot();
 
     try {
         const response = await fetch('/api/list_directory', {
@@ -1848,7 +2027,9 @@ async function loadDirectoryListing(path) {
 
         if (!data.success) {
             alert('Error loading directory: ' + data.error);
-            return;
+            // Clear any previous file list content
+            document.getElementById('fileList').innerHTML = '';
+            return false;
         }
 
         // Update current path display
@@ -1861,9 +2042,14 @@ async function loadDirectoryListing(path) {
         // Render file list
         renderFileList(data.items, path);
 
+        return true;
+
     } catch (error) {
         console.error('Error loading directory:', error);
         alert('Error loading directory: ' + error.message);
+        // Clear any previous file list content
+        document.getElementById('fileList').innerHTML = '';
+        return false;
     }
 }
 
@@ -1915,7 +2101,7 @@ function formatFileSize(bytes) {
 
 // Load and display file contents
 async function loadFile(path) {
-    const regulusRoot = localStorage.getItem('regulus_root');
+    const regulusRoot = getFirstRegulusRoot();
 
     try {
         showLoading();

@@ -6,7 +6,7 @@ Pure business logic with no Flask dependencies.
 
 from typing import List, Dict, Any, Optional
 from flask import Request
-from data_loader import BenchmarkResult, ReportFilter
+from ..data_loader import BenchmarkResult, ReportFilter
 
 
 class DataService:
