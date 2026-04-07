@@ -28,9 +28,10 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     from dashboard.data_loader import ReportLoader, BenchmarkResult
-except ImportError:
+except ImportError as e:
     print("Error: Could not import dashboard.data_loader", file=sys.stderr)
-    print("Make sure you're running from the build_report directory", file=sys.stderr)
+    print("Make sure you're running from the REPORT directory", file=sys.stderr)
+    print(f"Import error: {e}", file=sys.stderr)
     sys.exit(1)
 
 

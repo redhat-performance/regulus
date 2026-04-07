@@ -474,7 +474,7 @@
         <!-- Tabs for different views -->
         <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview</button>
+                <button class="nav-link" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="scale-tab" data-bs-toggle="tab" data-bs-target="#scale" type="button">Scale</button>
@@ -486,13 +486,13 @@
                 <button class="nav-link" id="comparison-tab" data-bs-toggle="tab" data-bs-target="#comparison" type="button">Comparison</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button">Results Table</button>
+                <button class="nav-link active" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button">Results Table</button>
             </li>
         </ul>
 
         <div class="tab-content" id="dashboardTabContent">
             <!-- Overview Tab -->
-            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+            <div class="tab-pane fade" id="overview" role="tabpanel">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card">
@@ -640,7 +640,7 @@
             </div>
 
             <!-- Results Table Tab -->
-            <div class="tab-pane fade" id="results" role="tabpanel">
+            <div class="tab-pane fade show active" id="results" role="tabpanel">
                 <div class="card">
                     <div class="card-header">All Results</div>
                     <div class="card-body">
@@ -686,13 +686,48 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Dashboard Settings</h5>
+                    <h5 class="modal-title">Regulus root paths:</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label for="regulusRootPath" class="form-label">Regulus Root:</label>
-                    <input type="text" class="form-control" id="regulusRootPath"
-                           placeholder="/home/user/NVD-DPU/nic-mode-regulus">
+                    <p class="text-muted small mb-3">Click a path to set it as active. Use + to add new paths and - to remove.</p>
+
+                    <style>
+                        .root-path-item:has(input[type="radio"]:checked) {
+                            background-color: #e7f3ff;
+                            border-color: #0d6efd;
+                        }
+                        .root-path-item {
+                            cursor: pointer;
+                            padding: 8px;
+                            border: 1px solid #dee2e6;
+                            border-radius: 4px;
+                            margin-bottom: 8px;
+                        }
+                        .root-path-item:hover {
+                            background-color: #f8f9fa;
+                        }
+                        .btn-add-path {
+                            width: 100%;
+                            border: 2px dashed #0d6efd;
+                            background-color: #f8f9fa;
+                        }
+                        .btn-add-path:hover {
+                            background-color: #e7f3ff;
+                        }
+                    </style>
+
+                    <div id="rootPathsList">
+                        <!-- Dynamic path entries will be rendered here -->
+                    </div>
+
+                    <button type="button" class="btn btn-add-path mt-2" onclick="addRootPath()">
+                        + Add Path
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
                 </div>
             </div>
         </div>

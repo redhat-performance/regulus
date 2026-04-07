@@ -137,7 +137,7 @@ summary:
 	@cd $(REG_ROOT) && REG_ROOT=$(REG_ROOT) bash REPORT/$(BUILD_REPORT_DIR)/build_report --formats html csv --output REPORT/generated/report
 	@echo ""
 	@echo "Flattening report.json to NDJSON for ElasticSearch..."
-	@$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_WRITE_ALIAS)
+	@cd $(REPORT_DIR) && $(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_WRITE_ALIAS)
 	@echo ""
 	@echo "✓ Report generation complete:"
 	@echo "  - Unflatten: $(GENERATED_DIR)/report.json"
@@ -157,7 +157,7 @@ summary-with-testbed-info:
 	@cd $(REG_ROOT) && REG_ROOT=$(REG_ROOT) bash REPORT/assembly/assemble_report.sh
 	@echo ""
 	@echo "Flattening report-with-testbed-info.json to NDJSON for ElasticSearch..."
-	@$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report-with-testbed-info.json -o $(GENERATED_DIR)/reports-with-testbed-info.ndjson --es-index $(ES_WRITE_ALIAS)
+	@cd $(REPORT_DIR) && $(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report-with-testbed-info.json -o $(GENERATED_DIR)/reports-with-testbed-info.ndjson --es-index $(ES_WRITE_ALIAS)
 	@echo ""
 	@echo "✓ Report with testbed info generation complete:"
 	@echo "  - Unflatten: $(GENERATED_DIR)/report-with-testbed-info.json"
@@ -204,7 +204,7 @@ flatten:
 		$(MAKE) summary; \
 	else \
 		echo "Flattening existing report.json..."; \
-		$(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_WRITE_ALIAS); \
+		cd $(REPORT_DIR) && $(PYTHON) $(ES_INTEGRATION_DIR)/flatten_to_es.py $(GENERATED_DIR)/report.json -o $(GENERATED_DIR)/reports.ndjson --es-index $(ES_WRITE_ALIAS); \
 		echo "✓ Flatten complete: $(GENERATED_DIR)/reports.ndjson"; \
 	fi
 

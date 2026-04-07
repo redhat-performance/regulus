@@ -6,25 +6,25 @@ This module creates and configures the Flask app with all blueprints and service
 
 import os
 from flask import Flask, render_template
-from data_loader import ReportLoader
-from aggregator import BenchmarkAggregator
+from .data_loader import ReportLoader
+from .aggregator import BenchmarkAggregator
 
 # Import services
-from services.data_service import DataService
-from services.aggregation_service import AggregationService
-from services.comparison_service import ComparisonService
-from services.trend_service import TrendService
-from services.drill_down_service import DrillDownService
+from .services.data_service import DataService
+from .services.aggregation_service import AggregationService
+from .services.comparison_service import ComparisonService
+from .services.trend_service import TrendService
+from .services.drill_down_service import DrillDownService
 
 # Import blueprint initializers
-from api.summary_routes import init_summary_routes
-from api.results_routes import init_results_routes
-from api.trend_routes import init_trend_routes
-from api.comparison_routes import init_comparison_routes
-from api.filter_routes import init_filter_routes
-from api.admin_routes import init_admin_routes
-from api.drill_down_routes import init_drill_down_routes
-from api.file_browser_routes import init_file_browser_routes
+from .api.summary_routes import init_summary_routes
+from .api.results_routes import init_results_routes
+from .api.trend_routes import init_trend_routes
+from .api.comparison_routes import init_comparison_routes
+from .api.filter_routes import init_filter_routes
+from .api.admin_routes import init_admin_routes
+from .api.drill_down_routes import init_drill_down_routes
+from .api.file_browser_routes import init_file_browser_routes
 
 
 def create_app(reports_dir=None):

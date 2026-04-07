@@ -10,15 +10,13 @@ import sys
 from pathlib import Path
 
 # Add parent directory to path to import from build_report modules
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Resolve to absolute path to avoid issues when run from different directories
+dashboard_dir = Path(__file__).parent.resolve()
+report_dir = dashboard_dir.parent
+sys.path.insert(0, str(report_dir))
 
-# Try to import from dashboard package (when run from parent dir)
-# or directly from app module (when run from dashboard dir)
-try:
-    from dashboard import create_app
-except ModuleNotFoundError:
-    # Running from dashboard directory itself
-    from app import create_app
+# Import from dashboard package
+from dashboard import create_app
 
 
 def main():
