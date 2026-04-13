@@ -9,8 +9,8 @@
 
 set -e
 
-# Change to dashboard directory (parent of docker/)
-cd "$(dirname "$0")/.."
+# Change to REPORT directory (build context must be REPORT/)
+cd "$(dirname "$0")/../.."
 
 # Determine image tag
 TAG="${1:-latest}"
@@ -23,13 +23,13 @@ echo "================================================"
 echo ""
 echo "Image: ${FULL_TAG}"
 echo "Build context: $(pwd)"
-echo "Dockerfile: docker/Dockerfile"
+echo "Dockerfile: dashboard/docker/Dockerfile"
 echo ""
 
 # Build the image using podman (system default)
 echo "→ Building container image..."
 podman build \
-    -f docker/Dockerfile \
+    -f dashboard/docker/Dockerfile \
     -t "${FULL_TAG}" \
     .
 
@@ -41,7 +41,7 @@ echo ""
 echo "Image: ${FULL_TAG}"
 echo ""
 echo "To run the dashboard:"
-echo "  cd docker"
+echo "  cd dashboard/docker"
 echo "  podman-compose up"
 echo ""
 echo "Or run manually:"

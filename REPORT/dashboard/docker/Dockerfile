@@ -9,20 +9,9 @@ WORKDIR /app
 COPY dashboard/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy dashboard application with new modular structure
-COPY dashboard/__init__.py ./
-COPY dashboard/app.py ./
-COPY dashboard/data_loader.py ./
-COPY dashboard/aggregator.py ./
-COPY dashboard/run_dashboard.py ./
-
-# Copy new modular structure
-COPY dashboard/services/ ./services/
-COPY dashboard/api/ ./api/
-
-# Copy frontend files
-COPY dashboard/templates/ ./templates/
-COPY dashboard/static/ ./static/
+# Copy dashboard application with directory structure preserved
+# run_dashboard.py expects to import from 'dashboard' package
+COPY dashboard/ ./dashboard/
 
 # Create directories for data
 RUN mkdir -p /app/data /app/initial_data
@@ -45,4 +34,4 @@ RUN chmod +x entrypoint.sh
 EXPOSE 5000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["sh", "-c", "python run_dashboard.py --reports /app/data --host 0.0.0.0 ${PORT:+--port $PORT}"]
+CMD ["sh", "-c", "python dashboard/run_dashboard.py --reports /app/data --host 0.0.0.0 ${PORT:+--port $PORT}"]
