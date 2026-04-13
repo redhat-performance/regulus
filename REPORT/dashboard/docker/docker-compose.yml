@@ -3,8 +3,8 @@ version: '3.8'
 services:
   dashboard:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: ../..
+      dockerfile: dashboard/docker/Dockerfile
     image: regulus-dashboard:latest
     container_name: regulus-dashboard
     ports:
