@@ -28,6 +28,7 @@ shift $((OPTIND -1))  # Shift past options
 
 # Get testbed info from the bastion
 if ! exec-remote-script "source lab.config && cd INVENTORY &&  python3 create-tb-json.py \
+        --kubeconfig \$KUBECONFIG \
         --lab-config $REG_ROOT/lab.config \
         --ssh-key ~/.ssh/id_rsa \
         --lshw /usr/sbin/lshw \
