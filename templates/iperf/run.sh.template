@@ -405,7 +405,7 @@ for num_pods in $scale_up_factor; do
             done
         endpoint_opt="--endpoint k8s,user:$k8susr,host:$ocphost,osruntime:$osruntime"
         if  [  ! -z ${OCP_PROJECT} ]; then
-            if [ "${KUBE:-0}" = "0" ]; then
+            if [ "${KUBE:-1}" = "0" ]; then
               endpoint_opt+=",unique-project:${OCP_PROJECT}"
             else
               endpoint_opt+=",custom-project:${OCP_PROJECT},sysinfo:false"
@@ -489,7 +489,7 @@ ARGS=" --tags $tags \
     # Generate pod groups if multi-engine pod is enabled
     pod_groups_opt=$(gen_pod_groups $num_clients $num_servers)
 
-    if [ "${KUBE:-0}" = "0" ]; then
+    if [ "${KUBE:-1}" = "0" ]; then
         PROG=reg-c2j-config.py
     else
         PROG=reg-c2j-api.py
