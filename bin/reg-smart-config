@@ -18,8 +18,8 @@
 #       if a NIC has SRIOV VFs (owned and configured by something else), or being unknown NIC type, it
 #       will not be eligible for DPDK tests. 
 #
-# Limitations: 
-#	1. Recognize only XXV710,X710,E810,Cx5 and Cx6 NIC at this moment. For others, it is Just a matter of verifying them.
+# Limitations:
+#	1. Recognize only BF3,BF2,XXV710,X710,X550,E810,E820,CX5,CX6,CX7,CX8 NIC at this moment. For others, it is just a matter of verifying them.
 #
 
 set -e  # Exit on error
@@ -161,7 +161,7 @@ get_ovn_interface() {
 dpdk_acceptable() {
     local model=$1
     case "$model" in
-        CX7|CX8|CX6|E810|E820|XXV710|X710)
+        BF3|BF2|CX7|CX8|CX6|E810|E820|XXV710|X710)
             return 0  # true
             ;;
         *)
@@ -173,7 +173,7 @@ dpdk_acceptable() {
 sriov_acceptable() {
     local model=$1
     case "$model" in
-        CX7|CX8|CX6|E810|E820|XXV710|X710|X550)
+        BF3|BF2|CX7|CX8|CX6|E810|E820|XXV710|X710|X550)
             return 0  # true
             ;;
         *)
@@ -251,8 +251,33 @@ configure_main() {
     if [ ! -z "$WORKER_IP" ]; then
         DPRINT $LINENO "Testing SSH: do_ssh  core@$WORKER_IP..."
         if do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "echo 'SSH connection successful'" >/dev/null 2>&1; then
-            OVN_INTERFACE=$(get_ovn_interface "$WORKER_IP")
-            INFO $LINENO "OVN_INTERFACE=$OVN_INTERFACE"
+
+            # Try DPU detection first
+            DPU_MODE="false"
+            if [ -f "${script_dir}/detect-dpu-ovn.sh" ]; then
+                INFO $LINENO "Attempting DPU mode detection..."
+                source "${script_dir}/detect-dpu-ovn.sh"
+                detection_output=$(detect_dpu_ovn 2>/dev/null)
+
+                if [ $? -eq 0 ]; then
+                    eval "$detection_output" || true
+
+                    if [[ "$DPU_MODE" == "true" ]] && [[ -n "$REG_OVN_NIC" ]]; then
+                        OVN_INTERFACE="$REG_OVN_NIC"
+                        INFO $LINENO "✓ DPU mode detected: $REG_OVN_NIC_MODEL on $OVN_INTERFACE (MTU: $REG_OVN_NIC_MTU)"
+                    else
+                        DPRINT $LINENO "DPU detection ran but DPU mode not enabled"
+                    fi
+                else
+                    DPRINT $LINENO "DPU detection failed, falling back to nmcli"
+                fi
+            fi
+
+            # Fall back to nmcli-based detection if DPU detection didn't find interface
+            if [ -z "$OVN_INTERFACE" ]; then
+                OVN_INTERFACE=$(get_ovn_interface "$WORKER_IP")
+                INFO $LINENO "OVN_INTERFACE=$OVN_INTERFACE (via nmcli)"
+            fi
             
             # Get all available NICs that aren't the OVN interface
             #  When using our do_ssh function with complex nested SSH commands, 
@@ -301,7 +326,11 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                     DPRINT $LINENO "lspci info for $nic ($pci_addr): $(echo "$lspci_info" | head -1)"
                     
                     # Check model based on lspci output
-                    if echo "$lspci_info" | grep -q -i "XXV710"; then
+                    if echo "$lspci_info" | grep -q -i "BlueField-3"; then
+                        model="BF3"
+                    elif echo "$lspci_info" | grep -q -i "BlueField-2"; then
+                        model="BF2"
+                    elif echo "$lspci_info" | grep -q -i "XXV710"; then
                         model="XXV710"
                     elif echo "$lspci_info" | grep -q -i "X550"; then
                         model="X550"
@@ -309,12 +338,16 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                         model="X710"
                     elif echo "$lspci_info" | grep -q -i "E810"; then
                         model="E810"
+                    elif echo "$lspci_info" | grep -q -i "E820"; then
+                        model="E820"
                     elif echo "$lspci_info" | grep -q -i "ConnectX-5"; then
                         model="CX5"
                     elif echo "$lspci_info" | grep -q -i "ConnectX-6"; then
                         model="CX6"
                     elif echo "$lspci_info" | grep -q -i "ConnectX-7"; then
                         model="CX7"
+                    elif echo "$lspci_info" | grep -q -i "ConnectX-8"; then
+                        model="CX8"
                     elif echo "$lspci_info" | grep -q -i "Mellanox.*Connect"; then
                         if [ "$driver" == "mlx5_core" ]; then
                             model="CX5"  # Default to CX5 for Mellanox with mlx5_core
@@ -345,14 +378,34 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
 			# Print each NIC's info
             for nic in $available_nics; do
                 if [ "$nic" == "${OVN_INTERFACE}" ] ; then
+                   # Use DPU-detected values if available, otherwise use scanned values
+                   local ovn_model="${REG_OVN_NIC_MODEL}"
+                   local ovn_mtu="${REG_OVN_NIC_MTU}"
+                   local ovn_label="OVN main"
+
+                   # If DPU detection didn't set these, use scanned values
+                   if [ -z "$ovn_model" ] || [ "$ovn_model" == "DPU" ]; then
+                       ovn_model="${nic_models[$nic]:-UNKNOWN}"
+                   fi
+                   if [ -z "$ovn_mtu" ]; then
+                       ovn_mtu="${nic_mtu[$nic]}"
+                   fi
+
+                   # Add DPU indicator if in DPU mode
+                   if [[ "$DPU_MODE" == "true" ]]; then
+                       ovn_label="OVN-DPU"
+                   fi
+
                    printf "%-12s %-14s %-14s %-8s %-8s\n" \
                     "$nic" \
-                    "${nic_models[$nic]:-UNKNOWN}" \
-                    "OVN main" \
-                    "${nic_mtu[$nic]}" \
+                    "$ovn_model" \
+                    "$ovn_label" \
+                    "$ovn_mtu" \
                     "N/A"
-                    REG_OVN_NIC_MODEL=${nic_models[$nic]:-UNKNOWN}
-                    REG_OVN_NIC_MTU=${nic_mtu[$nic]}
+
+                   # Update the global variables with final values
+                   REG_OVN_NIC_MODEL="$ovn_model"
+                   REG_OVN_NIC_MTU="$ovn_mtu"
                 else
                   # Check status only when displaying
                   local status=$(get_interface_status "$WORKER_IP" "$nic")
