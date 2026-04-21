@@ -26,7 +26,8 @@ class NodeHardwareCollector:
         self.lab_config = lab_config
         self.collected_data = {}
         self.failed_hosts = []  # Track failures
-        self.oc_cmd = ["oc"]
+        # Use kubectl for broader compatibility (works when oc is not available)
+        self.oc_cmd = ["kubectl"]
         if kubeconfig:
             self.oc_cmd.extend(["--kubeconfig", kubeconfig])
     
@@ -91,8 +92,9 @@ class NodeHardwareCollector:
             if capture_output:
                 result = subprocess.run(
                     command,
-                    capture_output=True,
-                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
                     timeout=30
                 )
                 return result.stdout.strip(), result.stderr, result.returncode
@@ -424,22 +426,32 @@ class NodeHardwareCollector:
                 if control_plane_nodes:
                     output_data["control_plane_count"] = len(control_plane_nodes)
                     output_data["control_plane_nodes"] = control_plane_nodes
-                
+
                 output_data["ocp_worker_count"] = len(worker_hosts)
                 output_data["ocp_workers"] = worker_hosts
-                
+
                 output_data["bm_host_count"] = len(bm_hosts)
                 output_data["bm_hosts"] = bm_hosts
-                
+
                 output_data["trex_host_count"] = len(trex_hosts)
                 output_data["trex_hosts"] = trex_hosts
-                
-                # Extract details
+
+                # Extract control plane details
+                control_plane_details = {}
+                if control_plane_nodes:
+                    for hostname in control_plane_nodes:
+                        if hostname in self.collected_data:
+                            control_plane_details[hostname] = self.collected_data[hostname]
+
+                output_data["control_plane_details_count"] = len(control_plane_details)
+                output_data["control_plane_details"] = control_plane_details
+
+                # Extract worker details
                 ocp_workers_details = {}
                 for hostname in worker_hosts:
                     if hostname in self.collected_data:
                         ocp_workers_details[hostname] = self.collected_data[hostname]
-                
+
                 output_data["ocp_workers_details_count"] = len(ocp_workers_details)
                 output_data["ocp_workers_details"] = ocp_workers_details
                 
