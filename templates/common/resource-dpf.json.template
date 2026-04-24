@@ -1,8 +1,4 @@
 "resources": {
-    "requests": {
-           openshift.io/bf3-p0-vfs: 1
-    },
-    "limits": {
-           openshift.io/bf3-p0-vfs: 1
-    }
+    "requests": {},
+    "limits": {}
 }
