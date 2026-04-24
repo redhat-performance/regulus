@@ -1,0 +1,9 @@
+{
+  "CLUSTER_TYPE": "STANDARD",
+  "NUM_WORKERS": "5",
+  "ALLOCATABLE_CPUS": "62",
+  "USEABLE_CPUS": "52",
+  "CORE_PERSOCKET": "32",
+  "CPUS_PERCORE": "1",
+  "NUM_NUMAS": "2"
+}
