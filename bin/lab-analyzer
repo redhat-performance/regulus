@@ -9,6 +9,9 @@
 
 set -euo pipefail
 
+# Debug traceing: DEBUG=1 bash -x ./bin/lab-analyzer --output /tmp/foo 2>&1 | tail -100 
+PS4='Line ${LINENO} (${FUNCNAME[0]}) $(printf "+%.0s" $(seq 1 $BASH_SUBSHELL)): '
+
 OUTPUT_FILE=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -376,31 +379,32 @@ combine_hosts() {
 if ! hostids_match "$(hostname)" "$REG_OCPHOST" ; then
     echo "$0 is NOT on the bastion ... mirror check lab.config match" >&2
     # mirror repo in a sub-shell, to avoid all the unwanted messages
-    (
-        # Install regulus repo on the bastion if applicable
-        create_mirror_repo_on_bastion "${REG_KNI_USER}" "${REG_OCPHOST}"
-
-    ) > lab-init.log 2>&1
-    f_verify_lab_config 
+    if [[ "${DEBUG:-0}" == "1" ]]; then
+        ( create_mirror_repo_on_bastion "${REG_KNI_USER}" "${REG_OCPHOST}" ) 2>&1 | tee lab-init.log
+    else
+        ( create_mirror_repo_on_bastion "${REG_KNI_USER}" "${REG_OCPHOST}" ) > lab-init.log 2>&1
+    fi
+    f_verify_lab_config
 else
     echo "$0 is running on the bastion ... skip lab.config match check" >&2
 fi
 
 # Mirror Regulus repo on BM_HOSTS and TREX_HOSTS too.
 combine_hosts "$BM_HOSTS" "$TREX_HOSTS"
-
 for host in "${BM_HOST_ARR[@]}"; do
     #if [ "$(hostname)" != "$host" ] ; then
     if ! hostids_match "$(hostname)" "$host" ; then
-    	if  hostids_match "$REG_OCPHOST" "$host" ; then
+        if hostids_match "$REG_OCPHOST" "$host" ; then
             echo "remotehost $host is bastion. Skipping cloning..." >&2
             continue
         fi
         echo "remotehost $host is not bastion. Cloning repo to remotehost" >&2
         # Mirror repo in a sub-shell to avoid unwanted messages
-        (
-            create_mirror_repo_on_bastion "root" "${host}"
-        ) > rem-init.log 2>&1
+        if [[ "${DEBUG:-0}" == "1" ]]; then
+            ( create_mirror_repo_on_bastion "root" "${host}" ) 2>&1 | tee rem-init.log
+        else
+            ( create_mirror_repo_on_bastion "root" "${host}" ) > rem-init.log 2>&1
+        fi
     fi
 done
 
