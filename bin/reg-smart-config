@@ -26,6 +26,10 @@ set -e  # Exit on error
 source ${REG_ROOT}/lab.config
 #source ${REG_ROOT}/templates/common/functions
 
+# Debug traceing: DEBUG=1 bash -x ./bin/reg-mart-config-
+PS4='Line ${LINENO} (${FUNCNAME[0]}) $(printf "+%.0s" $(seq 1 $BASH_SUBSHELL)): '
+
+
 # About $reg_dir,
 # On controller, the user can create REGULUS somewhere under their home i.e /root/path/regulus
 # On bastion, the user can be root or kni. Since regulus will clone a repo there. it wil be /home/kni/path/regulus or /root/path/regulus.

@@ -1,58 +1,59 @@
 #
-# Lab environment settings specific to your Regulus cloud
+# Lab environment settings specific to your SUT cloud
+# Make sure variables are wrapped by double quote i.e export VAR="my-value"
 #
 
-# full path name to kubeconfig. Example, KUBECONFIG=/root/mnokubeconfig
-export KUBECONFIG=
+# full path name to kubeconfig. Example, KUBECONFIG="/root/mno/kubeconfig"
+export KUBECONFIG=""
 
-# Bastion login username i.e root or kni
-export REG_KNI_USER=
-# Bastion hostname. i.e "e16-h12-b02-fc640.rdu2.scalelab.redhat.com"
+# Bastion login username i.e "root" or "kni"
+export REG_KNI_USER=""
+# Bastion hostname. i.e "my-host.my-company.com"
 export REG_OCPHOST="" 
-
-# Optional. Just a user defined tag. that label your run artifacts.
-export REG_DP=rds
 
 # Three workers that Regulus will run tests on. Example below i.e worker-1.company.com
 export OCP_WORKER_0=""
 export OCP_WORKER_1=""
 export OCP_WORKER_2=""
 
-# The list of external host/RHEL that will host INGRESS,EGRESS and TREX. Example BM_HOSTS="host_1  host_2 host_3"
+# The list of external host/RHEL that will host INGRESS,EGRESS and TREX. Example BM_HOSTS="host_1 host_2 host_3"
 export BM_HOSTS=""
 
-### To select the NICs for SRIOV, MACVLAN and TREX. You need to understand your worker nodes connectivity.
+# Provide OVNK primary interface info
+export REG_OVN_NIC=
+export REG_OVN_NIC_MODEL=
+export REG_OVN_NIC_MTU=
 
-# Below are examples of the selection for the 120-node RDS testbed in ourlabe as of 3/2025.
-# On our RDS testbed worker nodes, they have  Cx-5 (ens2f0np0,ens2f1np1) and XXV710 (ens2f0,ens2f1)
-# For SRIOV, since ens2f1np1 connects to ovs-port-phys0, we use XXV710 for SRIOV.
-export REG_SRIOV_NIC=ens2f0
-export REG_SRIOV_MTU=9000
-export REG_SRIOV_NIC_MODEL=X710     # all intel 710 derivatives use X710 as model within regulus
+# To select the NICs for SRIOV, MACVLAN and TREX. You need to understand your worker nodes connectivity.
 
-# For MACVLAN, since ens2f1np1 has already connected to ovs-port-phys0, we use XXV710 for MACVLAN as well 
-export REG_MACVLAN_NIC=ens2f0
-export REG_MACVLAN_MTU=9000
+# For SRIOV
+export REG_SRIOV_NIC=""
+export REG_SRIOV_MTU""
+export REG_SRIOV_NIC_MODEL=""   # valid models: CX5,CX6,E810,E820,X710,XXV710,BF3
+
+# For MACVLAN
+export REG_MACVLAN_NIC=""
+export REG_MACVLAN_MTU=""
 # MACVLAN config does not care NIC_MODEL
 
-# For TESTPMD, ens2f1np1 has already connected to ovs-port-phys0, we pick XXV710 for TESTPMD
-export REG_DPDK_NIC_1=ens2f0
-export REG_DPDK_NIC_2=ens2f1
-export REG_DPDK_NIC_MODEL=X710  # all intel 710 derivatives use X710 as model within regulus
+# For TESTPMD
+export REG_DPDK_NIC_1=""
+export REG_DPDK_NIC_2=""
+export REG_DPDK_NIC_MODEL=""  
 
 # The remotehost to host TREX. Example e16-h12-b02-fc640.rdu2.scalelab.redhat.com
 export TREX_HOSTS=""
 
 # For TREX, choose NICs. 
-export TREX_SRIOV_INTERFACE_1=ens2f0
-export TREX_SRIOV_INTERFACE_2=ens2f1
-export TREX_DPDK_NIC_MODEL=X710
+export TREX_SRIOV_INTERFACE_1=""
+export TREX_SRIOV_INTERFACE_2=""
+export TREX_DPDK_NIC_MODEL=""
 
-# Auto config the TREX NICs. Example, REM_DPDK_CONFIG=true
-export REM_DPDK_CONFIG=false   # fale to disable DPDK test, until we manually verify the testbed correctness.
+# Auto config the TREX NICs. Example, REM_DPDK_CONFIG="true"
+export REM_DPDK_CONFIG="false"
 
 #
-# ElasticSearch configuration for report upload
+# ElasticSearch configuration for summary report upload
 #
 # Note: ES_INDEX is now hardcoded in REPORT/es_integration/es_config.py
 # as 'regulus-results-*' to match the rollover index structure.
@@ -63,7 +64,7 @@ export REM_DPDK_CONFIG=false   # fale to disable DPDK test, until we manually ve
 # export ES_URL="http://localhost:9200"
 
 # For development http or https server
-# export ES_URL='https://$ES_USER:$ES_PASSWORD@$ES_HOST'
+# export ES_URL="https://$ES_USER:$ES_PASSWORD@$ES_HOST"
 
 # For production, the ci-tools/Prow/CPT invokes a chain: run_cpt.sh -> run_es.sh - run_es.sh constructs ES_URL from /secret
 # You do not need to define ES_URL here.
@@ -71,4 +72,5 @@ export REM_DPDK_CONFIG=false   # fale to disable DPDK test, until we manually ve
 # EXECUTION_LABEL is optional. A user-defined tag (i.e nighlty, weekly, EUS, nok, vz etc.) added to each document,
 # export EXECUTION_LABEL="your-token"
 # 
+
 
