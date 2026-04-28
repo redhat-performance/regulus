@@ -1,9 +1,7 @@
 pwd=`/bin/pwd`
-ocp_host=$REG_OCPHOST
-if [ "$(hostname)" == "${REG_OCPHOST}" ]; then
-    # use IP if running on the bastion
-    ocp_host="$(hostname -i)"
-fi
+# use IP if running on the bastion
+source ${REG_ROOT}/templates/common/functions
+ocp_host=$(resolve_ssh_host "$REG_OCPHOST") || return 1
 
 k8susr=$REG_KNI_USER
 tags=datapath:mbench
