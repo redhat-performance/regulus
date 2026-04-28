@@ -195,4 +195,42 @@ get_pp_policy() {
 # Source numcpu.sh 
 source "$(dirname "${BASH_SOURCE[0]}")/numcpu.sh"
 
+# Returns the best routable IP for SSH use.
+# Prefers IPv4, falls back to global IPv6, never returns link-local (fe80::).
+get_local_routable_ip() {
+    local ip
+
+    # 1. Try IPv4 first (preferred for SSH)
+    ip=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/ { print $7; exit }')
+    [ -n "$ip" ] && echo "$ip" && return 0
+
+    # 2. Fall back to global IPv6 (excludes fe80:: link-local)
+    ip=$(ip route get 2001:4860:4860::8888 2>/dev/null | awk '/src/ { print $7; exit }')
+    [ -n "$ip" ] && echo "$ip" && return 0
+
+    # 3. Last resort - first global IPv6 from interfaces
+    ip=$(ip -6 addr show scope global | awk '/inet6/ { print $2; exit }' | cut -d/ -f1)
+    [ -n "$ip" ] && echo "$ip" && return 0
+
+    echo "ERROR($LINENO): cannot determine local routable IP" >&2
+    return 1
+}
+
+# Resolves a host to a routable IP for SSH.
+# If the target host is the local machine, substitutes routable IP
+# to avoid DNS ambiguity and Calico/veth interface pollution.
+resolve_ssh_host() {
+    local target_host="$1"
+    local resolved
+
+    if [ "$(hostname 2>/dev/null)" == "$target_host" ]; then
+        resolved=$(get_local_routable_ip) || return 1
+    else
+        resolved="$target_host"
+    fi
+
+    echo "$resolved"
+    return 0
+}
+
 # EOF

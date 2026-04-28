@@ -18,12 +18,9 @@ source ${REG_ROOT}/INVENTORY/tb-get.sh
 
 # trafficgen host
 remhost1=${TREX_HOSTS}
-# ocp admin node
-k8shost1=$REG_OCPHOST
-if [ "$(hostname)" == "${REG_OCPHOST}" ]; then
-    # use IP if running on the bastion
-    k8shost1="$(hostname -i)"
-fi
+
+# use IP if running on the bastion
+k8shost1=$(resolve_ssh_host "$REG_OCPHOST") || return 1
 
 k8susr=$REG_KNI_USER    # Might be "root" or "kni" for some installations
 
