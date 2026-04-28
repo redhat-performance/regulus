@@ -9,6 +9,8 @@ source ${REG_ROOT}/init.sh
 source ${REG_ROOT}/templates/common/remotehost_functions
 source ${REG_ROOT}/templates/common/functions
 source ${REG_ROOT}/INVENTORY/tb-get.sh
+# debug trace. Example: DEBUG=1 bash -x run.sh
+PS4='Line ${LINENO} (${FUNCNAME[0]}) $(printf "+%.0s" $(seq 1 $BASH_SUBSHELL)): '
 
 DURATION=${DURATION:-0}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
@@ -51,11 +53,9 @@ num_cpus=${USEABLE_CPUS}  # A few fewer than the number of *Allocatable* cpus on
              # This is  automatically calculated by lab-analyzer
 pod_qos=$TPL_QOS # static = guaranteed pod, burstable = default pos qos
 [[ "$pod_qos" =~ ^(burstable|guaranteed)$ ]] || { echo "($LINENO) invalid qos: $pod_qos" >&2; exit 1; }
-ocphost=$REG_OCPHOST
-if [ "$(hostname)" == "${REG_OCPHOST}" ]; then
-    # use IP if running on the bastion
-    ocphost="$(hostname -i)"
-fi
+
+# use IP if running on the bastion
+ocphost=$(resolve_ssh_host "$REG_OCPHOST") || return 1
 
 k8susr=$REG_KNI_USER # Might be "root" or "kni" for some installations
 
