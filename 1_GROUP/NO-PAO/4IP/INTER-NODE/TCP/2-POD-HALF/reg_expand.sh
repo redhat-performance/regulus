@@ -1,5 +1,5 @@
 #!/bin/bash
-# uperf DPU,NO-PAO,IPv4,INTER_NODE,2 Pods
+# uperf NO-PAO,IPv4,INTER_NODE,2 Pods HALF
 
 REG_ROOT=${REG_ROOT:-/root/REGULUS}
 # SUBSET_TESTS=NIC-MODE selects reduced test params (NIC-BOND-TEST folders only)
@@ -16,16 +16,9 @@ MANIFEST_DIR=./
 export TPL_SCALE_UP_FACTOR=1
 export TPL_TOPO=internode
 
-export TPL_QOS=burstable
-export TPL_PAO=0
-export TPL_DPF=1
-
-envsubst '\$TPL_QOS,$TPL_PAO,$TPL_DPF,$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
+envsubst '$TPL_SCALE_UP_FACTOR,$TPL_TOPO' < ${REG_TEMPLATES}/run.sh.template > ${MANIFEST_DIR}/run.sh
 export TPL_INTF=eth0
 envsubst '$TPL_INTF' <  ${REG_TEMPLATES}/${TPL_MVPARAMS} >  ${MANIFEST_DIR}/mv-params.json
 
 cp ${REG_COMMON}/tool-params.json.template  ${MANIFEST_DIR}/tool-params.json
-cp ${REG_COMMON}/annotations-pao-qos.json.template  ${MANIFEST_DIR}/annotations-pao-qos.json
-cp ${REG_COMMON}/annotations-dpf.json.template  ${MANIFEST_DIR}/annotations.json
-cp ${REG_COMMON}/resource-dpf.json.template ${MANIFEST_DIR}/resource-dpf.json
 
