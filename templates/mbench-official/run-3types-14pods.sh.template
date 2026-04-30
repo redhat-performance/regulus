@@ -43,11 +43,7 @@ if [ -z "${num_samples}" ]; then
 fi
 
 if [ ! -z "${OCP_PROJECT}" ]; then
-    if [ "${KUBE:-0}" = "0" ]; then 
-        endpoint_opt+="unique-project:${OCP_PROJECT}"
-    else
-        endpoint_opt+="custom-project:${OCP_PROJECT},sysinfo:false"
-    fi
+    endpoint_opt+="custom-project:${OCP_PROJECT},sysinfo:false"
 fi
 if [ "${DRY_RUN}" == true  ]; then
     echo DRY=true
@@ -122,11 +118,7 @@ masters-tool-collect:0,\
 client:1+8+15+21-24+26+27+29+31,\
 server:1+8+15+21-24+26+27+29+31${annotation_opt}${resources_opt}"
 
-if [ "${KUBE:-0}" = "0" ]; then
-    PROG=reg-c2j-config.py
-else
-    PROG=reg-c2j-api.py
-fi
+PROG=reg-c2j-api.py
 $PROG --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS && \
 time crucible run --from-file all-in-one.json
 
