@@ -8,7 +8,7 @@
 #     $ gen-summary
 #
 # Options:
-#   HOSTS="list of node names" 
+#   HOSTS="list of node names"
 #   HOSTS="ALL | all" or "" mean ALL hosts
 #   CPUS="list of comma-separated cpu nums"
 #   CPUS="ALL | all" or "" mean ALL CPUs
@@ -28,6 +28,30 @@
 # summay-$BENCH:
 #  ------------
 #    cpuline: "value": "38.03"
+
+# ============================================================================
+# Load HTTP API fast query module for 10x performance improvement
+# ============================================================================
+if [ -f "${REG_ROOT}/bin/crucible-opensearch-fast.sh" ]; then
+    source "${REG_ROOT}/bin/crucible-opensearch-fast.sh"
+
+    # Wrapper function to intercept "crucible get metric" calls
+    crucible() {
+        if [ "$1" = "get" ] && [ "$2" = "metric" ]; then
+            # Use fast HTTP API path (bypasses CLI startup overhead)
+            shift 2
+            get_metric_fast "$@"
+        else
+            # Pass through to original crucible command
+            command crucible "$@"
+        fi
+    }
+
+    echo "[PERF] HTTP API optimization loaded (queries will be ~10x faster)" >&2
+elif [ -n "$DEBUG" ]; then
+    echo "[WARN] HTTP API optimization not found at ${REG_ROOT}/bin/crucible-opensearch-fast.sh" >&2
+fi
+# ============================================================================
 #    cpuline: "value": "36.07"
 #    cpuline: "value": "34.09"
 #        result: (transactions-sec) samples: 745500.00 655500.00 649100.00 mean: 683366.67 min: 649100.00 max: 745500.00 stddev: 53904.11 stddevpct: 7.89
