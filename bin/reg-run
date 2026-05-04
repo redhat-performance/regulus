@@ -129,12 +129,11 @@ fi
 base_run_dir=$(grep -Po -- '--base-run-dir=\K[^[:space:]]*' "$DIR.log")
 mv $base_run_dir $DIR/  2>/dev/null
 cp $DIR.log $DIR/
+# Copy artifacts (including nodeSelector-*.json) before reg-gen-summary needs them 
+cp nodeSelector-*.json $DIR/
 rm -f latest
 ln -sf $DIR latest
 pushd $DIR
-
-# Copy artifacts (including nodeSelector-*.json) before reg-gen-summary needs them 
-f_save_extra_artifacts  $DIR
 
 reg-gen-summary
 bash horizontal.sh new-summary* > horizontal.txt
@@ -157,5 +156,6 @@ echo tar-result iperf
 popd
 
 f_check_error $DIR.log
+f_save_extra_artifacts  $DIR
 # EOF
 

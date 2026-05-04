@@ -21,6 +21,13 @@ USE_FAST_API=${USE_FAST_API:-1}
 # Debug mode
 DEBUG_FAST_API=${DEBUG_FAST_API:-0}
 
+# Export variables so they're available in subshells
+export CRUCIBLE_API_HOST
+export CRUCIBLE_API_PORT
+export CRUCIBLE_API_URL
+export USE_FAST_API
+export DEBUG_FAST_API
+
 debug_log() {
     if [ "$DEBUG_FAST_API" = "1" ]; then
         echo "[API-DEBUG] $*" >&2
@@ -124,9 +131,33 @@ get_metric_fast() {
     command crucible get metric "${orig_args[@]}"
 }
 
+# Check if a run exists in crucible database via HTTP API
+# Usage: check_run_exists_fast RUN_ID
+# Returns: 0 if run exists, 1 if not found
+check_run_exists_fast() {
+    local run_id="$1"
+
+    if [ -z "$run_id" ]; then
+        debug_log "No run ID provided to check_run_exists_fast"
+        return 1
+    fi
+
+    debug_log "Checking if run $run_id exists via HTTP API"
+
+    # Query runs list via HTTP API (fast - ~0.05s)
+    if curl -s "$CRUCIBLE_API_URL/api/v1/runs" 2>/dev/null | grep -q "\"$run_id\""; then
+        debug_log "Run $run_id found in index"
+        return 0
+    else
+        debug_log "Run $run_id NOT found in index"
+        return 1
+    fi
+}
+
 # Export functions
 export -f get_metric_fast
 export -f get_metric_http_api
+export -f check_run_exists_fast
 export -f debug_log
 
 if [ "$DEBUG_FAST_API" = "1" ]; then
