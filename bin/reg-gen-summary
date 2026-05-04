@@ -47,10 +47,22 @@ if [ -f "${REG_ROOT}/bin/crucible-opensearch-fast.sh" ]; then
         fi
     }
 
+    # Export function so it works in subshells
+    export -f crucible
+
     echo "[PERF] HTTP API optimization loaded (queries will be ~10x faster)" >&2
 elif [ -n "$DEBUG" ]; then
     echo "[WARN] HTTP API optimization not found at ${REG_ROOT}/bin/crucible-opensearch-fast.sh" >&2
 fi
+
+# Ensure CRUCIBLE_API_URL is set (fallback to default if not set by module)
+: ${CRUCIBLE_API_URL:=http://localhost:3000}
+export CRUCIBLE_API_URL
+
+if [ -n "$DEBUG" ]; then
+    echo "[DEBUG] Using Crucible API at: $CRUCIBLE_API_URL" >&2
+fi
+
 # ============================================================================
 #    cpuline: "value": "36.07"
 #    cpuline: "value": "34.09"
@@ -82,7 +94,8 @@ DPRINT() {
 }
 ## </debug>
 
-exec > >(tee new-gen-summary.txt)
+# Disabled: causes multiple process spawning - use tee in calling code instead
+#exec > >(tee new-gen-summary.txt)
 
 #set -v
 
@@ -203,9 +216,9 @@ generate_non_exceptional_numbers() {
 function get_sut_hostname {
     local PP=$1
 
-    echo crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout hostname |  sed -n '/^{/,$p'  
+    echo CMD: HTTP API metric query --source mpstat --type Busy-CPU --period $PP --breakout hostname
     # The highest CPU is the SUT. sed to trim all before "{", those crucible info verbage.
-    g_sut_name=$(crucible get metric --source mpstat --type Busy-CPU --period $PP --breakout hostname --output-format json  |  sed -n '/^{/,$p' | jq -r ' .values | to_entries | max_by(.value[0].value) | .key | gsub("[<>]";"")')
+    g_sut_name=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$PP\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\", \"breakout\": \"hostname\"}" 2>/dev/null | jq -r ' .values | to_entries | max_by(.value[0].value) | .key | gsub("[<>]";"")')
 
     DPRINT $LINENO "g_sut_name: $g_sut_name"
 }
@@ -216,8 +229,8 @@ function get_sut_hostname {
 function get_sut_ifname {
     local PP=$1
     local tempfile=$(mktemp)
-    echo CMD: crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout hostname=$g_sut_name,type=physical,direction,dev
-    crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout hostname=$g_sut_name,type=physical,direction,dev --output-format json  |  sed -n '/^{/,$p'  > $tempfile
+    echo CMD: HTTP API metric query --period $PP --source sar-net --type L2-Gbps --breakout hostname=$g_sut_name,type=physical,direction,dev
+    curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$PP\", \"source\": \"sar-net\", \"type\": \"L2-Gbps\", \"breakout\": \"hostname=$g_sut_name,type=physical,direction,dev\"}" 2>/dev/null > $tempfile
 
     # get the highest valie . -g: sort float, -r: rever highest on top - head -1: get the first line
     gbps_value=$(jq '.values[][].value' $tempfile | sort -rg | head -1)
@@ -242,12 +255,12 @@ any_cpusum_div=0
 # old implementation. Can use f_sum_cpus_all_hosts instead
 function all_cpu_accum {
     cpuline=""
-    echo CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout cstype=worker
-    cpuline=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout cstype=worker --output-format json  < /dev/null | grep "value\"")
+    echo CMD: HTTP API metric query --source mpstat --type Busy-CPU --period $1 --breakout cstype=worker
+    cpuline=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\", \"breakout\": \"cstype=worker\"}" 2>/dev/null | grep "value\"")
     #if [ $(echo $cpuline | awk -F ':' '{print NF}') < 2 ]; then
     if [ "$cpuline" == ""  ]; then
         # combined of cstype client and server
-        cpuline=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --output-format json   < /dev/null | grep "value\"")
+        cpuline=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\"}" 2>/dev/null | grep "value\"")
     fi
     # TBD: above --breakout cstype=worker limits us to pod ONLY
     #echo "HN period : ${PP}"
@@ -271,8 +284,8 @@ function f_sum_cpus_all_hosts {
 
     if [ "${CPUS%%,*}" == "ALL" ] ||  [ "${CPUS%%,*}" == "all" ] ||  [ "${CPUS%%,*}" == "" ] ; then
         # All hosts, all cpus
-        DPRINT $LINENO "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --output-format json"
-        json_data=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --output-format json  | sed -n '/{/,$p' )
+        DPRINT $LINENO "CMD: HTTP API metric query --source mpstat --type Busy-CPU --period $1"
+        json_data=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\"}" 2>/dev/null)
         value=$(echo "$json_data" | jq --arg key "" '.values[$key][] | .value' 2>/dev/null)
         DPRINT $LINENO "value:$value "
         value=$(to_decimal $value)
@@ -280,7 +293,7 @@ function f_sum_cpus_all_hosts {
     else
         # All hosts, some cpus
         DPRINT $LINENO "all_hosts: sime CPUs"
-        json_data=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout num --output-format json  | sed -n '/{/,$p' )
+        json_data=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\", \"breakout\": \"num\"}" 2>/dev/null)
         for cpu in $CPUS; do
             DPRINT $LINENO "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout num --output-format json "
             # Trickiness:  the actual name in the json file has brackets wrapping around i.e. "<cpu>". Add brackets
@@ -311,8 +324,8 @@ function f_sum_cpus_some_hosts {
     if [ "${CPUS%%,*}" == "ALL" ] ||  [ "${CPUS%%,*}" == "all" ]  ||  [ "${CPUS%%,*}" == ""  ] ; then
         DPRINT $LINENO "some_hosts: all CPUS"
         for name in "${HOSTNAMES[@]}"; do
-            DPRINT $LINENO "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$name --output-format json"
-            json_data=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$name --output-format json  | sed -n '/{/,$p' )
+            DPRINT $LINENO "CMD: HTTP API metric query --source mpstat --type Busy-CPU --period $1 --breakout hostname=$name"
+            json_data=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\", \"breakout\": \"hostname=$name\"}" 2>/dev/null)
             value=$(echo "$json_data" | jq --arg key "<$name>" '.values[$key][] | .value' 2>/dev/null)
             DPRINT $LINENO "value: $value"
             if [ ! -z "$value" ]; then
@@ -324,8 +337,8 @@ function f_sum_cpus_some_hosts {
         DPRINT $LINENO "some_hosts: some CPUS"
         for name in "${HOSTNAMES[@]}"; do
             # Get the JSON data for the host
-            DPRINT $LINENO "CMD: crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$name,num --output-format json"
-            json_data=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$name,num --output-format json  | sed -n '/{/,$p' )
+            DPRINT $LINENO "CMD: HTTP API metric query --source mpstat --type Busy-CPU --period $1 --breakout hostname=$name,num"
+            json_data=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\", \"breakout\": \"hostname=$name,num\"}" 2>/dev/null)
             for cpu in $CPUS; do
                 value=$(echo "$json_data" | jq --arg key "<$name>-<$cpu>" '.values[$key][] | .value' 2>/dev/null)
                 DPRINT $LINENO "value: $value"
@@ -373,9 +386,9 @@ function sut_cpu_accum {
     DPRINT $LINENO "CMD: sut_cpu_accum"
 
     # grep for "value": 54.29825981303105
-    echo CMD:crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$g_sut_name
+    echo CMD: HTTP API metric query --source mpstat --type Busy-CPU --period $1 --breakout hostname=$g_sut_name
     # sed to remove other text before json object
-    sut_cpu=$(crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout hostname=$g_sut_name --output-format json  < /dev/null | sed -n '/^{/,$p' | jq '.values[] | .[0].value')
+    sut_cpu=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\", \"breakout\": \"hostname=$g_sut_name\"}" 2>/dev/null | jq '.values[] | .[0].value')
 
     sut_cpusum=$(calc $sut_cpusum + $sut_cpu)
     DPRINT $LINENO "sut_cpu=$sut_cpu sut_cpusum=$sut_cpusum"
@@ -416,8 +429,8 @@ iperf_loss_accum=0
 iperf_loss_div=0
 function iperf_loss_accum {
     #echo pp=$1
-    echo "CMD:crucible get metric --source iperf --type rx-lost/sec --period $1"
-    loss_line=$(crucible get metric --source iperf --output-format json --type rx-lost/sec --period $1  < /dev/null | grep "value\"")
+    echo "CMD: HTTP API metric query --source iperf --type rx-lost/sec --period $1"
+    loss_line=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"iperf\", \"type\": \"rx-lost/sec\"}" 2>/dev/null | grep "value\"")
     val=$(echo $loss_line | awk -F ':' '{print $2}')
     val=${val:-0} # this pp may have iperf or may not
     
@@ -454,11 +467,11 @@ function f_l2_tput_accum {
     local PP=$3
     local gbps;
 
-    echo CMD:crucible get metric --period $PP --source sar-net --type L2-Gbps --breakout hostname=$hostname,type=physical,direction,dev=$ifname 
-    rx_gbps=$(crucible get metric --period $PP --source sar-net --output-format json  --type L2-Gbps --breakout hostname=$hostname,type=physical,direction=rx,dev=$ifname | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?')
+    echo CMD: HTTP API metric query --period $PP --source sar-net --type L2-Gbps --breakout hostname=$hostname,type=physical,direction,dev=$ifname
+    rx_gbps=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$PP\", \"source\": \"sar-net\", \"type\": \"L2-Gbps\", \"breakout\": \"hostname=$hostname,type=physical,direction=rx,dev=$ifname\"}" 2>/dev/null | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?')
     l2_rx_accum=$(calc $l2_rx_accum + $rx_gbps)
 
-    tx_gbps=$(crucible get metric --period $PP --source sar-net --output-format json --type L2-Gbps --breakout hostname=$hostname,type=physical,direction=tx,dev=$ifname | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?')
+    tx_gbps=$(curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$PP\", \"source\": \"sar-net\", \"type\": \"L2-Gbps\", \"breakout\": \"hostname=$hostname,type=physical,direction=tx,dev=$ifname\"}" 2>/dev/null | grep value |  grep -Eo '[+-]?[0-9]+([.][0-9]+)?')
     l2_tx_accum=$(calc $l2_tx_accum + $tx_gbps)
 
     ((l2_div++))
@@ -478,14 +491,15 @@ function f_l2_tput_close {
 function f-gen-summ {
     exec 2> /dev/null
 
-    rm new-summary-$1.txt
+    rm -f new-summary-$1.txt 2>/dev/null
+    # Use tee to show output on screen and save to file
     exec > >(tee -ia new-summary-$1.txt)
 
     # reduce ./run/result-summary.txt 
     show $1 | grep -e common -e unique -e tag -e mean -e "primary period" > show-summary-$1.txt
 
     function CC {
-      crucible get metric --source mpstat --type Busy-CPU --period $1 --breakout cstype=worker --output-format json  < dev/null
+      curl -s -X POST "${CRUCIBLE_API_URL}/api/v1/metric-data" -H 'Content-Type: application/json' -d "{\"period\": \"$1\", \"source\": \"mpstat\", \"type\": \"Busy-CPU\", \"breakout\": \"cstype=worker\"}" 2>/dev/null
     }
     
     function show-perf {
@@ -682,6 +696,7 @@ function f-gen-summ {
 
     } #f-gen-summ-multi
 
+    # Output goes to stdout (tee on line 484 handles file writing)
     if [ "$bench" != "mbench" ]; then
         f-gen-summ-mono $1
     else
@@ -735,6 +750,33 @@ else
 fi
 
 echo HN bench=$bench RUNS=$RUNS
+
+# Verify runs are indexed in crucible before querying metrics
+# Extract run-id from first run directory name (format: bench--DATE_TIME--RUN_ID/)
+if [ -n "$RUNS" ]; then
+    FIRST_RUN=$(echo "$RUNS" | head -n1)
+    FIRST_RUN_NAME=${FIRST_RUN::-1}  # Remove trailing /
+
+    # Extract run-id (last segment after final --)
+    RUN_ID=$(echo "$FIRST_RUN_NAME" | grep -oP '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}')
+
+    if [ -n "$RUN_ID" ]; then
+        echo "Checking if run $RUN_ID is indexed in crucible..."
+
+        # Check via HTTP API (fast - ~0.05s vs CLI ~7s)
+        if ! check_run_exists_fast "$RUN_ID"; then
+            echo "ERROR: Run $RUN_ID is NOT indexed in crucible database" >&2
+            echo "ERROR: Please run 'crucible index' on this run directory first" >&2
+            echo "ERROR: Example: crucible index $PWD/$FIRST_RUN_NAME" >&2
+            exit 1
+        fi
+
+        echo "✓ Run $RUN_ID found in crucible index"
+    else
+        echo "WARNING: Could not extract run-id from directory name: $FIRST_RUN_NAME" >&2
+        echo "WARNING: Proceeding without index check (may hang if run not indexed)" >&2
+    fi
+fi
 
 # all dirs with matching prefix ii.e  iperf--2022-06-19_14:30:29_UTC--09f2d1fd-7695-46e9-88f8-bbf877fa7ce4/
 # Should be one match. Multiple matches is confusing, but that is under the users control.
