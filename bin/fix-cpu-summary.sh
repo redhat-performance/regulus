@@ -5,22 +5,52 @@
 # This script fixes the bug where reg-gen-summary couldn't find nodeSelector files
 # and collected CPU from all nodes instead of just the worker nodes.
 #
+# Features:
+#   - Automatically extracts compressed blobs (.tgz files)
+#   - Re-indexes missing runs into crucible database
+#   - Fixes CPU metrics to only include worker nodes
+#   - Uses HTTP API for fast run ID checking
+#   - Force re-fix option to regenerate already-fixed runs
+#
 # Usage:
-#   fix-cpu-summary.sh [--dryrun]
+#   Recommended: source bootstrap.sh first, then run fixme
+#   fixme [--dryrun] [--force] [--port PORT] [RUN_DIR]
 #
-# Example:
+# Options:
+#   --dryrun       Report what would be fixed without making changes
+#   --force        Force re-fix even if run appears already fixed
+#                  Use when you want to regenerate summaries with updated
+#                  scripts or when you suspect the fix was incomplete
+#   --port PORT    Crucible HTTP API port (default: 3000)
+#
+# Examples:
+#   # Check what needs fixing
+#   cd /path/to/regulus && source bootstrap.sh
 #   cd 2_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD-GU
-#   fix-cpu-summary.sh --dryrun    # Report what would be fixed
-#   fix-cpu-summary.sh             # Actually fix
+#   fixme --dryrun
 #
-#   Or from deeper:
-#   cd 2_GROUP/PAO/4DPU/INTER-NODE/TCP/2-POD-GU/run-30pod-2026-05-01-17:34:37
-#   fix-cpu-summary.sh --dryrun
+#   # Fix all runs in current directory
+#   fixme
 #
+#   # Force re-fix a specific run (regenerate even if already fixed)
+#   fixme --force run-30pod-2026-05-01-17:34:37
+#
+#   # Force re-fix all runs in current directory
+#   fixme --force
+#
+
+# Auto-detect REG_ROOT if not set (assumes fixme is in bin/ subdirectory)
+if [ -z "$REG_ROOT" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    export REG_ROOT="$(dirname "$SCRIPT_DIR")"
+    echo "[WARN] REG_ROOT not set. Auto-detected: $REG_ROOT" >&2
+    echo "[WARN] For best results, source bootstrap.sh first" >&2
+fi
 
 set -e
 
 DRYRUN=false
+FORCE=false
 SPECIFIC_RUN_DIR=""
 CRUCIBLE_PORT=3000
 
@@ -29,6 +59,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --dry|--dryrun|--dry-run)
             DRYRUN=true
+            shift
+            ;;
+        --force|-f)
+            FORCE=true
             shift
             ;;
         --port)
@@ -47,12 +81,36 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --dryrun       Report what would be fixed without making changes"
+            echo "  --force        Force re-fix even if run appears already fixed"
+            echo "                 By default, fixme skips runs that have worker hostnames"
+            echo "                 in new-gen-summary.txt (indicating they were already fixed)."
+            echo "                 Use --force to regenerate summaries anyway."
+            echo ""
+            echo "                 Use cases for --force:"
+            echo "                   - Regenerate summaries after updating reg-gen-summary script"
+            echo "                   - Re-fix runs where the previous fix may have been incomplete"
+            echo "                   - Update CPU metrics after changing nodeSelector files"
+            echo "                   - Verify CPU metrics match crucible data"
+            echo ""
             echo "  --port PORT    Crucible HTTP API port (default: 3000)"
             echo "  --help         Show this help message"
             echo ""
             echo "Arguments:"
             echo "  RUN_DIR        Specific run directory to fix (e.g., run-30proc-2026-05-01-14:42:51)"
             echo "                 If not specified, all run-* directories will be processed"
+            echo ""
+            echo "Examples:"
+            echo "  # Check what needs fixing"
+            echo "  fixme --dryrun"
+            echo ""
+            echo "  # Fix all runs needing repair"
+            echo "  fixme"
+            echo ""
+            echo "  # Force re-fix a specific run"
+            echo "  fixme --force run-30pod-2026-05-01-17:34:37"
+            echo ""
+            echo "  # Force re-fix all runs in current directory"
+            echo "  fixme --force"
             exit 0
             ;;
         -*)
@@ -128,9 +186,40 @@ check_needs_fix() {
 reindex_crucible_run() {
     local run_id="$1"
     local run_dir="$2"
+    local extracted_for_reindex=false
+    local extracted_dir=""
 
     # Find the benchmark blob directory (iperf--*, uperf--*, etc.)
     local blob_dirs=($(find "$run_dir" -maxdepth 1 -type d \( -name "iperf--*" -o -name "uperf--*" -o -name "*--*--$run_id" \) 2>/dev/null))
+
+    # Also check for .tgz archives (only extract if directory doesn't exist)
+    if [ ${#blob_dirs[@]} -eq 0 ]; then
+        local blob_archives=($(find "$run_dir" -maxdepth 1 -type f \( -name "iperf--*.tgz" -o -name "uperf--*.tgz" -o -name "*--*--$run_id.tgz" \) 2>/dev/null))
+
+        if [ ${#blob_archives[@]} -gt 0 ]; then
+            local archive="${blob_archives[0]}"
+            extracted_dir="${archive%.tgz}"
+
+            if [ ! -d "$extracted_dir" ]; then
+                log_info "    Found compressed blob, extracting..."
+                local start_time=$(date +%s)
+                if tar --force-local -xzf "$archive" -C "$run_dir" 2>&1; then
+                    local end_time=$(date +%s)
+                    local elapsed=$((end_time - start_time))
+                    log_info "    ✓ Extraction completed in ${elapsed}s"
+                    extracted_for_reindex=true
+                else
+                    log_error "    Failed to extract archive: $(basename "$archive")"
+                    return 1
+                fi
+            else
+                log_info "    Blob directory already exists (skipping extraction)"
+            fi
+
+            # Re-check for extracted directory
+            blob_dirs=($(find "$run_dir" -maxdepth 1 -type d \( -name "iperf--*" -o -name "uperf--*" -o -name "*--*--$run_id" \) 2>/dev/null))
+        fi
+    fi
 
     if [ ${#blob_dirs[@]} -eq 0 ]; then
         log_error "    Could not find benchmark blob directory for run-id: $run_id"
@@ -138,8 +227,7 @@ reindex_crucible_run() {
     fi
 
     # Get the full absolute path to the blob directory
-    # blob_dirs[0] is already relative path like "run-dir/uperf--..."
-    local blob_dir=$(cd "${blob_dirs[0]}" && pwd)
+    local blob_dir=$(realpath "${blob_dirs[0]}")
 
     if [ -z "$blob_dir" ] || [ ! -d "$blob_dir" ]; then
         log_error "    Invalid blob directory path: $blob_dir"
@@ -148,11 +236,28 @@ reindex_crucible_run() {
 
     # Run crucible index
     log_info "    Running: crucible index $blob_dir"
+    local index_start=$(date +%s)
     if crucible index "$blob_dir" >/dev/null 2>&1; then
-        log_info "    ✓ Successfully re-indexed run: $run_id"
+        local index_end=$(date +%s)
+        local index_elapsed=$((index_end - index_start))
+        log_info "    ✓ Successfully re-indexed run: $run_id (took ${index_elapsed}s)"
+
+        # Clean up extracted directory if we extracted it for re-indexing
+        if [ "$extracted_for_reindex" = true ] && [ -n "$extracted_dir" ] && [ -d "$extracted_dir" ]; then
+            log_info "    Cleaning up extracted directory (keeping .tgz)..."
+            rm -rf "$extracted_dir"
+        fi
+
         return 0
     else
         log_error "    ✗ Failed to re-index run: $run_id"
+
+        # Clean up extracted directory even on failure
+        if [ "$extracted_for_reindex" = true ] && [ -n "$extracted_dir" ] && [ -d "$extracted_dir" ]; then
+            log_info "    Cleaning up extracted directory after failed re-index..."
+            rm -rf "$extracted_dir"
+        fi
+
         return 1
     fi
 }
@@ -237,7 +342,8 @@ echo ""
 
 # Global arrays to track runs for final report
 RUNS_NEED_FIX=()
-RUNS_NEED_REINDEX=()
+RUNS_NEED_FIX_REINDEX=()
+RUNS_NEED_FIX_UNTAR=()
 RUNS_ALREADY_OK=()
 RUNS_NO_RESULTS=()
 RUNS_REINDEX_FAILED=()
@@ -290,6 +396,10 @@ for TEST_DIR in "${TEST_DIRS[@]}"; do
 for DIR in "${RUN_DIRS[@]}"; do
     echo "Checking: $DIR"
 
+    # Initialize extraction tracking for this run
+    EXTRACTED_BLOBS_THIS_RUN=()
+    HAS_COMPRESSED_BLOB=false
+
     # Check if this is a complete run (must have result-summary.txt in run dir or blob)
     HAS_RESULT_SUMMARY=false
     if [ -f "$DIR/result-summary.txt" ]; then
@@ -305,9 +415,11 @@ for DIR in "${RUN_DIRS[@]}"; do
         continue
     fi
 
-    # Check for iperf/uperf result blobs
+    # Check for iperf/uperf result blobs (directories or .tgz archives)
     BLOB_DIRS=($(find "$DIR" -maxdepth 1 -type d \( -name "iperf--*" -o -name "uperf--*" \) 2>/dev/null))
-    BLOB_COUNT=${#BLOB_DIRS[@]}
+    BLOB_ARCHIVES=($(find "$DIR" -maxdepth 1 -type f \( -name "iperf--*.tgz" -o -name "uperf--*.tgz" \) 2>/dev/null))
+
+    BLOB_COUNT=$((${#BLOB_DIRS[@]} + ${#BLOB_ARCHIVES[@]}))
 
     if [ "$BLOB_COUNT" -eq 0 ]; then
         log_warn "  No benchmark blobs - skipping"
@@ -316,15 +428,69 @@ for DIR in "${RUN_DIRS[@]}"; do
         continue
     fi
 
+    # Extract any .tgz archives (only if blob directory doesn't exist)
+    if [ ${#BLOB_ARCHIVES[@]} -gt 0 ]; then
+        for archive in "${BLOB_ARCHIVES[@]}"; do
+            extracted_dir="${archive%.tgz}"
+            if [ -d "$extracted_dir" ]; then
+                log_info "  Blob directory already exists: $(basename "$extracted_dir") (skipping extraction)"
+                BLOB_DIRS+=("$extracted_dir")
+            else
+                # Mark that this run has a compressed blob
+                HAS_COMPRESSED_BLOB=true
+
+                if [ "$DRYRUN" = true ]; then
+                    # In dry-run, skip extraction but continue processing
+                    # check_needs_fix() will determine if already fixed or needs fixing
+                    log_info "  Archive compressed (skipping extraction in dry-run)"
+                else
+                    log_info "  Extracting compressed blob: $(basename "$archive")"
+                    start_time=$(date +%s)
+                    if tar --force-local -xzf "$archive" -C "$DIR" 2>&1; then
+                        end_time=$(date +%s)
+                        elapsed=$((end_time - start_time))
+                        # Add extracted directory to BLOB_DIRS and track for cleanup
+                        if [ -d "$extracted_dir" ]; then
+                            BLOB_DIRS+=("$extracted_dir")
+                            EXTRACTED_BLOBS_THIS_RUN+=("$extracted_dir")
+                            log_info "  ✓ Extraction completed in ${elapsed}s"
+                        else
+                            log_error "  ✗ Extraction failed - directory not found: $(basename "$extracted_dir")"
+                        fi
+                    else
+                        log_error "  ✗ Failed to extract archive: $(basename "$archive")"
+                    fi
+                fi
+            fi
+        done
+    fi
+
     log_info "  Found $BLOB_COUNT benchmark blob(s)"
 
-    # Extract run-id
-    FIRST_BLOB=$(basename "${BLOB_DIRS[0]}")
+    # Extract run-id from blob directory or archive name
+    if [ ${#BLOB_DIRS[@]} -gt 0 ]; then
+        FIRST_BLOB=$(basename "${BLOB_DIRS[0]}")
+    elif [ ${#BLOB_ARCHIVES[@]} -gt 0 ]; then
+        # Use archive name (remove .tgz extension)
+        FIRST_BLOB=$(basename "${BLOB_ARCHIVES[0]%.tgz}")
+    else
+        FIRST_BLOB=""
+    fi
+
     RUN_ID=$(extract_run_id "$FIRST_BLOB")
 
     if [ -z "$RUN_ID" ]; then
         log_error "  Could not extract run-id from blob name: $FIRST_BLOB"
         log_error "  Cannot process this run"
+
+        # Clean up any extracted blobs before continuing
+        if [ ${#EXTRACTED_BLOBS_THIS_RUN[@]} -gt 0 ]; then
+            log_info "  Cleaning up extracted blobs..."
+            for blob_dir in "${EXTRACTED_BLOBS_THIS_RUN[@]}"; do
+                [ -d "$blob_dir" ] && rm -rf "$blob_dir"
+            done
+        fi
+
         echo ""
         continue
     fi
@@ -332,8 +498,13 @@ for DIR in "${RUN_DIRS[@]}"; do
     log_info "  Run ID: $RUN_ID"
 
     # Check if this run needs fixing by examining new-gen-summary.txt
-    if check_needs_fix "$DIR"; then
-        log_warn "  → NEEDS FIX (empty hostnames in summary)"
+    # Force mode bypasses the check and always treats runs as needing fix
+    if [ "$FORCE" = true ] || check_needs_fix "$DIR"; then
+        if [ "$FORCE" = true ]; then
+            log_warn "  → FORCE FIX (--force specified)"
+        else
+            log_warn "  → NEEDS FIX (empty hostnames in summary)"
+        fi
 
         # Show current CPU value from horizontal.txt if it exists
         CURRENT_CPU=""
@@ -348,11 +519,21 @@ for DIR in "${RUN_DIRS[@]}"; do
         NEEDS_REINDEX=false
         if check_crucible_has_run "$RUN_ID"; then
             log_info "  ✓ Run exists in crucible database"
-            RUNS_NEED_FIX+=("$DIR (CPU: ${CURRENT_CPU:-N/A}%)")
+            # Categorize based on whether blob needs extraction (dry-run only)
+            if [ "$DRYRUN" = true ] && [ "$HAS_COMPRESSED_BLOB" = true ]; then
+                RUNS_NEED_FIX_UNTAR+=("$DIR (CPU: ${CURRENT_CPU:-N/A}%)")
+            else
+                RUNS_NEED_FIX+=("$DIR (CPU: ${CURRENT_CPU:-N/A}%)")
+            fi
         else
             log_warn "  ✗ Run NOT in crucible database - needs re-index"
             NEEDS_REINDEX=true
-            RUNS_NEED_REINDEX+=("$DIR (CPU: ${CURRENT_CPU:-N/A}%)")
+            # Categorize: if compressed blob in dry-run, categorize as UNTAR, otherwise as REINDEX
+            if [ "$DRYRUN" = true ] && [ "$HAS_COMPRESSED_BLOB" = true ]; then
+                RUNS_NEED_FIX_UNTAR+=("$DIR (CPU: ${CURRENT_CPU:-N/A}%, needs reindex)")
+            else
+                RUNS_NEED_FIX_REINDEX+=("$DIR (CPU: ${CURRENT_CPU:-N/A}%)")
+            fi
 
             if [ "$DRYRUN" = true ]; then
                 # Find blob directory for display
@@ -368,6 +549,15 @@ for DIR in "${RUN_DIRS[@]}"; do
                 else
                     log_error "  ✗ Re-indexing failed for run: $DIR (run-id: $RUN_ID)"
                     log_error "  Stopping execution - fix the re-indexing issue before continuing"
+
+                    # Clean up any extracted blobs before exiting
+                    if [ ${#EXTRACTED_BLOBS_THIS_RUN[@]} -gt 0 ]; then
+                        log_info "  Cleaning up extracted blobs..."
+                        for blob_dir in "${EXTRACTED_BLOBS_THIS_RUN[@]}"; do
+                            [ -d "$blob_dir" ] && rm -rf "$blob_dir"
+                        done
+                    fi
+
                     exit 1
                 fi
             fi
@@ -396,6 +586,15 @@ for DIR in "${RUN_DIRS[@]}"; do
             if ! ls "$DIR"/nodeSelector-*.json >/dev/null 2>&1; then
                 log_error "  ✗ No nodeSelector files in run directory"
                 log_error "  Cannot fix without nodeSelector files - skipping"
+
+                # Clean up any extracted blobs before continuing
+                if [ ${#EXTRACTED_BLOBS_THIS_RUN[@]} -gt 0 ]; then
+                    log_info "  Cleaning up extracted blobs..."
+                    for blob_dir in "${EXTRACTED_BLOBS_THIS_RUN[@]}"; do
+                        [ -d "$blob_dir" ] && rm -rf "$blob_dir"
+                    done
+                fi
+
                 echo ""
                 continue
             fi
@@ -413,15 +612,19 @@ for DIR in "${RUN_DIRS[@]}"; do
                 cd "$DIR"
 
                 log_info "    Running reg-gen-summary..."
-                reg-gen-summary > /dev/null 2>&1
+                rgs_start=$(date +%s)
+                # Use tee to show output and save to file
+                reg-gen-summary 2>&1 | tee new-gen-summary.txt
+                rgs_end=$(date +%s)
+                rgs_elapsed=$((rgs_end - rgs_start))
 
                 # Verify hostnames were found
                 if [ -f new-gen-summary.txt ]; then
                     HOST_COUNT=$(grep -E "^\s+[a-zA-Z0-9.-]+\.[a-zA-Z]+$" new-gen-summary.txt 2>/dev/null | wc -l)
                     if [ "$HOST_COUNT" -gt 0 ]; then
-                        log_info "    ✓ Found $HOST_COUNT worker node(s)"
+                        log_info "    ✓ Found $HOST_COUNT worker node(s) (took ${rgs_elapsed}s)"
                     else
-                        log_warn "    ⚠ No worker nodes detected - CPU may still be wrong"
+                        log_warn "    ⚠ No worker nodes detected - CPU may still be wrong (took ${rgs_elapsed}s)"
                     fi
                 fi
 
@@ -491,6 +694,17 @@ for DIR in "${RUN_DIRS[@]}"; do
         RUNS_ALREADY_OK+=("$DIR (CPU: ${CURRENT_CPU:-N/A}%)")
     fi
 
+    # Clean up extracted blobs (keep .tgz archives)
+    if [ ${#EXTRACTED_BLOBS_THIS_RUN[@]} -gt 0 ]; then
+        log_info "  Cleaning up extracted blobs (keeping .tgz archives)..."
+        for blob_dir in "${EXTRACTED_BLOBS_THIS_RUN[@]}"; do
+            if [ -d "$blob_dir" ]; then
+                log_info "    Removing: $(basename "$blob_dir")"
+                rm -rf "$blob_dir"
+            fi
+        done
+    fi
+
     echo ""
 done
 
@@ -500,12 +714,13 @@ done
 echo ""
 echo "========================================"
 log_info "GLOBAL Summary:"
-echo "  Needs fix:        ${#RUNS_NEED_FIX[@]}"
-echo "  Needs reindex:    ${#RUNS_NEED_REINDEX[@]}"
-echo "  Already OK:       ${#RUNS_ALREADY_OK[@]}"
-echo "  No results:       ${#RUNS_NO_RESULTS[@]}"
-echo "  Incomplete:       ${#RUNS_INCOMPLETE[@]}"
-echo "  Reindex failed:   ${#RUNS_REINDEX_FAILED[@]}"
+echo "  Needs fix:            ${#RUNS_NEED_FIX[@]}"
+echo "  Needs fix + reindex:  ${#RUNS_NEED_FIX_REINDEX[@]}"
+echo "  Needs fix + untar:    ${#RUNS_NEED_FIX_UNTAR[@]}"
+echo "  Already OK:           ${#RUNS_ALREADY_OK[@]}"
+echo "  No results:           ${#RUNS_NO_RESULTS[@]}"
+echo "  Incomplete:           ${#RUNS_INCOMPLETE[@]}"
+echo "  Reindex failed:       ${#RUNS_REINDEX_FAILED[@]}"
 echo "========================================"
 
 # Detailed report
@@ -517,16 +732,24 @@ if [ "$DRYRUN" = true ]; then
 
     if [ ${#RUNS_NEED_FIX[@]} -gt 0 ]; then
         echo ""
-        echo "Runs that NEED FIX (in crucible DB):"
+        echo "Runs that NEED FIX:"
         for run in "${RUNS_NEED_FIX[@]}"; do
             echo "  - $run"
         done
     fi
 
-    if [ ${#RUNS_NEED_REINDEX[@]} -gt 0 ]; then
+    if [ ${#RUNS_NEED_FIX_REINDEX[@]} -gt 0 ]; then
         echo ""
-        echo "Runs that NEED FIX + RE-INDEX (not in crucible DB):"
-        for run in "${RUNS_NEED_REINDEX[@]}"; do
+        echo "Runs that NEED FIX + REINDEX (not in crucible DB):"
+        for run in "${RUNS_NEED_FIX_REINDEX[@]}"; do
+            echo "  - $run"
+        done
+    fi
+
+    if [ ${#RUNS_NEED_FIX_UNTAR[@]} -gt 0 ]; then
+        echo ""
+        echo "Runs that NEED FIX + UNTAR (compressed, run without --dryrun to fix):"
+        for run in "${RUNS_NEED_FIX_UNTAR[@]}"; do
             echo "  - $run"
         done
     fi
@@ -573,7 +796,7 @@ if [ ${#RUNS_REINDEX_FAILED[@]} -gt 0 ]; then
     log_warn "Check the error messages above for details"
 fi
 
-if [ "$DRYRUN" = true ] && [ $((${#RUNS_NEED_FIX[@]} + ${#RUNS_NEED_REINDEX[@]})) -gt 0 ]; then
+if [ "$DRYRUN" = true ] && [ $((${#RUNS_NEED_FIX[@]} + ${#RUNS_NEED_FIX_REINDEX[@]} + ${#RUNS_NEED_FIX_UNTAR[@]})) -gt 0 ]; then
     echo ""
     log_dryrun "Re-run without --dryrun to apply fixes"
 fi
