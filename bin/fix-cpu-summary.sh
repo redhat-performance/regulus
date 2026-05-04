@@ -168,9 +168,10 @@ check_needs_fix() {
     fi
 
     # Extract lines between "Hostnames:" and "CPUs:"
-    # If there are hostname entries, they appear as "  hostname.example.com"
+    # If there are hostname entries, they appear as "  hostname" or "  hostname.example.com"
+    # Accept both short hostnames (x37-h09-000-r740xd) and FQDNs (nvd-srv-24.my.com)
     local hostname_count=$(sed -n '/^Hostnames:/,/^CPUs:/p' "$summary_file" | \
-                          grep -E "^\s+[a-zA-Z0-9.-]+\.[a-zA-Z]+$" | \
+                          grep -E "^\s+[a-zA-Z0-9][a-zA-Z0-9.-]*$" | \
                           wc -l)
 
     if [ "$hostname_count" -eq 0 ]; then
