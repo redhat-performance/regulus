@@ -77,6 +77,19 @@ detect_dpu_ovn() {
         return 1
     fi
 
+    # Source worker_labels.config if it exists (for MATCH variables)
+    # Try multiple locations: current dir, REG_ROOT, or relative to script
+    local worker_labels_config=""
+    if [[ -f "templates/common/worker_labels.config" ]]; then
+        worker_labels_config="templates/common/worker_labels.config"
+    elif [[ -n "$REG_ROOT" ]] && [[ -f "$REG_ROOT/templates/common/worker_labels.config" ]]; then
+        worker_labels_config="$REG_ROOT/templates/common/worker_labels.config"
+    fi
+
+    if [[ -n "$worker_labels_config" ]]; then
+        source "$worker_labels_config"
+    fi
+
     local dest="$REG_KNI_USER@$REG_OCPHOST"
 
     # ============================================================================
@@ -85,20 +98,47 @@ detect_dpu_ovn() {
     # Mixed cluster support: Prioritize DPU-enabled nodes (br-dpu) to detect
     # cluster DPU capability. Falls back to first worker if no DPU nodes found.
     # Valid scenarios: Pure DPU, Pure non-DPU, or Mixed (DPU + non-DPU workers)
+    #
+    # Uses MATCH, MATCH_NOT_1, MATCH_NOT_2, MATCH_NOT_3, MATCH_NOT_4 variables
+    # for worker node selection (from template/common/worker_labels.config or environment)
     # ============================================================================
 
-    # Look for nodes with br-dpu bridge (indicates DPU mode)
-    local worker_node=$(do_ssh $dest "oc get nodes -l node-role.kubernetes.io/worker= -o json | jq -r '.items[] | select(.metadata.annotations[\"k8s.ovn.org/l3-gateway-config\"] | contains(\"br-dpu\")) | .metadata.name' | head -1")
+    # Build jq selector from MATCH, MATCH_NOT_* variables
+    local jq_select=""
+    if [[ -z "$MATCH" ]]; then
+        jq_select=".\"node-role.kubernetes.io/worker\" != null"
+    else
+        jq_select=".\"node-role.kubernetes.io/$MATCH\" != null"
+    fi
+    if [[ -n "$MATCH_NOT_1" ]]; then
+        jq_select+=" and .\"node-role.kubernetes.io/$MATCH_NOT_1\" == null"
+    fi
+    if [[ -n "$MATCH_NOT_2" ]]; then
+        jq_select+=" and .\"node-role.kubernetes.io/$MATCH_NOT_2\" == null"
+    fi
+    if [[ -n "$MATCH_NOT_3" ]]; then
+        jq_select+=" and .\"node-role.kubernetes.io/$MATCH_NOT_3\" == null"
+    fi
+    if [[ -n "$MATCH_NOT_4" ]]; then
+        jq_select+=" and .\"node-role.kubernetes.io/$MATCH_NOT_4\" == null"
+    fi
 
-    # If no DPU nodes found, fall back to first worker node
+    # Get all nodes as JSON and filter with jq
+    # First, try to find a DPU-enabled node (has br-dpu in l3-gateway-config)
+    local worker_node=$(do_ssh $dest "oc get nodes -o json | jq -r '.items[] | select(.metadata.labels | $jq_select) | select(.metadata.annotations[\"k8s.ovn.org/l3-gateway-config\"] | contains(\"br-dpu\")) | .metadata.name' | head -1")
+
+    # If no DPU nodes found, fall back to first worker node matching the selector
+    # Sort by name to ensure deterministic selection
     if [[ -z "$worker_node" ]]; then
-        worker_node=$(do_ssh $dest "oc get nodes -l node-role.kubernetes.io/worker= -o jsonpath='{.items[0].metadata.name}'")
+        worker_node=$(do_ssh $dest "oc get nodes -o json | jq -r '.items[] | select(.metadata.labels | $jq_select) | .metadata.name' | sort | head -1")
     fi
 
     if [[ -z "$worker_node" ]]; then
         echo "ERROR: No worker nodes found" >&2
         return 1
     fi
+
+    echo "DEBUG: Selected worker node: $worker_node" >&2
 
     # Get worker node IP
     local jq_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))'
