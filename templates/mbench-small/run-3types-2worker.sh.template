@@ -1,0 +1,107 @@
+#!/bin/bash
+source ${REG_ROOT}/lab.config
+source ${REG_ROOT}/init.sh
+source ${REG_ROOT}/templates/common/functions
+source ${REG_ROOT}/INVENTORY/tb-get.sh
+
+NUM_SAMPLES=${NUM_SAMPLES:-1}
+DURATION=${DURATION:-0}
+
+num_samples=$NUM_SAMPLES
+config=$1
+placement=./pairs.placement
+if [ -z "$config" ]; then
+    echo "config file not specified.  Use ./run.sh <your-config-file>"
+    exit 1
+fi
+if [ ! -e $config ]; then
+    echo "Could not find $config, exiting"
+    exit 1
+fi
+
+if [ ! -e $placement ]; then
+    echo "Could not find $placement, exiting"
+    exit 1
+fi
+. $placement
+. $config
+
+if [ -z "$tags" ]; then
+    echo "You must define tags in your config file"
+    exit 1
+fi
+
+if [ -z "$ocp_host" ]; then
+    echo "You must define ocp_host in your config file"
+    exit 1
+fi
+
+if [ -z "${num_samples}" ]; then
+    echo "You must define num_samples in your config file"
+    exit 1
+fi
+
+if [ ! -z "${OCP_PROJECT}" ]; then
+    endpoint_opt+="custom-project:${OCP_PROJECT},sysinfo:false"
+fi
+if [ "${DRY_RUN}" == true  ]; then
+    echo DRY=true
+    endpoint_opt+=",dry-run:true"
+fi
+
+if [ "$TPL_PAO" == 1 ] || [ "$TPL_SRIOV" == 1 ] || [ "$TPL_HOSTNETWORK" == 1 ]; then
+    securityContext_file="`/bin/pwd`/securityContext.json"
+    endpoint_opt+=",securityContext:default:$securityContext_file"
+fi
+
+ nic=$(tb-get-nic-model REG_OVN_NIC_MODEL ) || { echo "ERROR: Failed to get NIC model" >&2; exit 1; }
+[[ -z "$nic" ]] && { echo "ERROR: NIC model is empty" >&2; exit 1; }
+
+arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU model" >&2; exit 1; }
+[[ -z "$arch" ]] && { echo "ERROR: CPU model is empty" >&2; exit 1; }
+
+if [ "${TPL_SRIOV}" == 1  ]; then
+    nic=$(tb-get-nic-model REG_SRIOV_NIC_MODEL ) || { echo "ERROR: Failed to get SRIOV NIC model" >&2; exit 1; }
+    [[ -z "$nic" ]] && { echo "ERROR: SRIOV NIC model is empty" >&2; exit 1; }
+    source ${REG_ROOT}/SRIOV-config/config.env
+    DEST=$REG_KNI_USER@$REG_OCPHOST
+    do_ssh ${DEST} "kubectl delete ns $OCP_PROJECT" &> /dev/null
+    do_ssh ${DEST} "kubectl create ns $OCP_PROJECT"
+
+    # crucible delete NS and thus also delete neworkAttachmentDefinition. Now we need to recreate them.
+    do_ssh ${DEST} "kubectl config set-context --current --namespace=$OCP_PROJECT && kubectl apply -f ${REM_REG_ROOT}/${REG_SRIOV_NAD}"
+    # sometime the network-attachment takes a few seconds to be ready.
+    sleep 5
+fi
+
+if [ "$DURATION" != 0 ]; then
+	# Use the env-defined duration
+	FILES=$(ls *mv*.json)
+	for file in $FILES; do
+		sed -i 's/\({ "arg": "duration", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
+		sed -i 's/\({ "arg": "time", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
+	done
+fi
+tags+=",nic:$nic"
+tags+=",arch:$arch"
+
+ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
+ --bench-ids iperf:21-26,uperf:1-20+27-32\
+ --tags $tags\
+ --num-samples=$NUM_SAMPLES --max-sample-failures=1\
+ --endpoint k8s,user:$k8susr,host:$ocp_host,$endpoint_opt,\
+\
+nodeSelector:client-${worker0_clients}:$pwd/nodeSelector-$worker0.json,\
+nodeSelector:server-${worker0_servers}:$pwd/nodeSelector-$worker0.json,\
+\
+nodeSelector:client-${worker1_clients}:$pwd/nodeSelector-$worker1.json,\
+nodeSelector:server-${worker1_servers}:$pwd/nodeSelector-$worker1.json,\
+userenv:fedora-latest,\
+masters-tool-collect:0,\
+client:1-32,\
+server:1-32${annotation_opt}${resources_opt}"
+
+PROG=reg-c2j-api.py
+$PROG --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS && \
+time crucible run --from-file all-in-one.json
+

@@ -1,0 +1,9 @@
+# 2worker-32pairs.placement.template
+# Balanced 2-worker configuration: 50% inter-node, 50% intra-node
+# Covers TCP CRR, TCP Stream, UDP evenly across both workers
+# Inter-node: 16 instances, Intra-node: 16 instances
+
+worker0_clients=1-5+21-22+27-28+11-15+25+31
+worker0_servers=6-10+23-24+29-30+11-15+25+31
+worker1_clients=6-10+23-24+29-30+16-20+26+32
+worker1_servers=1-5+21-22+27-28+16-20+26+32
