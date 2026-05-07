@@ -138,8 +138,6 @@ detect_dpu_ovn() {
         return 1
     fi
 
-    echo "DEBUG: Selected worker node: $worker_node" >&2
-
     # Get worker node IP
     local jq_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))'
     local worker_ip=$(do_ssh $dest "oc get node $worker_node -o json | jq -r '$jq_cmd'")
@@ -193,7 +191,7 @@ detect_dpu_ovn() {
     # ============================================================================
 
     local ovn_nic=""
-    local ovn_nic_model="DPU"  # Default for DPU mode
+    local ovn_nic_model=""  # Will be detected via lspci
     local ovn_nic_mtu=""
 
     if [[ "$dpu_mode" == "true" ]]; then
@@ -229,6 +227,11 @@ detect_dpu_ovn() {
                     ovn_nic_model="E810"
                 elif echo "$lspci_info" | grep -q -i "XXV710"; then
                     ovn_nic_model="XXV710"
+                elif echo "$lspci_info" | grep -q -i "X550"; then
+                    ovn_nic_model="X550"
+                else
+                    echo "DEBUG: unknown DPU NIC model" >&2
+                    ovn_nic_model="UNKNOWN"
                 fi
             fi
         fi
@@ -240,24 +243,48 @@ detect_dpu_ovn() {
             # Get model for non-DPU OVN interface (same lspci logic)
             local lspci_output=$(do_ssh $dest "ssh $SSH_OPTS core@$worker_ip \"sudo ethtool -i $ovn_nic 2>/dev/null | grep 'bus-info' | awk '{print \\\$2}'\"" || echo "")
 
+            # If no bus-info (e.g., bond interface), try to get the first slave interface
+            if [[ -z "$lspci_output" ]]; then
+                local slave_nic=$(do_ssh $dest "ssh $SSH_OPTS core@$worker_ip \"ls /sys/class/net/$ovn_nic/lower_* 2>/dev/null | head -1 | xargs -r basename\"" || echo "")
+                if [[ -n "$slave_nic" ]]; then
+                    slave_nic=$(echo "$slave_nic" | sed 's/lower_//')
+                    lspci_output=$(do_ssh $dest "ssh $SSH_OPTS core@$worker_ip \"sudo ethtool -i $slave_nic 2>/dev/null | grep 'bus-info' | awk '{print \\\$2}'\"" || echo "")
+                fi
+            fi
+
             if [[ -n "$lspci_output" ]]; then
                 local pci_addr=$(echo "$lspci_output" | sed 's/0000://')
                 local lspci_info=$(do_ssh $dest "ssh $SSH_OPTS core@$worker_ip \"lspci -s $pci_addr -v 2>/dev/null\"" || echo "")
 
                 # Determine model (same pattern matching as DPU mode)
-                if echo "$lspci_info" | grep -q -i "XXV710"; then
+                if echo "$lspci_info" | grep -q -i "BlueField-3"; then
+                    ovn_nic_model="BF3"
+                elif echo "$lspci_info" | grep -q -i "BlueField-2"; then
+                    ovn_nic_model="BF2"
+                elif echo "$lspci_info" | grep -q -i "XXV710"; then
                     ovn_nic_model="XXV710"
                 elif echo "$lspci_info" | grep -q -i "X710"; then
                     ovn_nic_model="X710"
                 elif echo "$lspci_info" | grep -q -i "E810"; then
                     ovn_nic_model="E810"
+                elif echo "$lspci_info" | grep -q -i "E820"; then
+                    ovn_nic_model="E820"
+                elif echo "$lspci_info" | grep -q -i "ConnectX-8"; then
+                    ovn_nic_model="CX8"
                 elif echo "$lspci_info" | grep -q -i "ConnectX-7"; then
                     ovn_nic_model="CX7"
                 elif echo "$lspci_info" | grep -q -i "ConnectX-6"; then
                     ovn_nic_model="CX6"
                 elif echo "$lspci_info" | grep -q -i "ConnectX-5"; then
                     ovn_nic_model="CX5"
+                elif echo "$lspci_info" | grep -q -i "X550"; then
+                    ovn_nic_model="X550"
+                elif echo "$lspci_info" | grep -q -i "Mellanox.*Connect"; then
+                    if [ "$driver" == "mlx5_core" ]; then
+                        ovn_nic_model="CX5"  # Default to CX5 for Mellanox with mlx5_core
+                    fi
                 else
+                    echo "DEBUG: unknown OVNK NIC model" >&2
                     ovn_nic_model="UNKNOWN"
                 fi
             fi
