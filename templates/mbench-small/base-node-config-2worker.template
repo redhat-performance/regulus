@@ -1,0 +1,31 @@
+pwd=`/bin/pwd`
+# use IP if running on the bastion
+source ${REG_ROOT}/templates/common/functions
+ocp_host=$(resolve_ssh_host "$REG_OCPHOST") || return 1
+
+k8susr=$REG_KNI_USER
+tags=datapath:mbench
+
+#NAME       STATUS   ROLES                  AGE   VERSION
+#master-0   Ready    control-plane,master   21h   v1.27.6+98158f9
+#master-1   Ready    control-plane,master   21h   v1.27.6+98158f9
+#master-2   Ready    control-plane,master   21h   v1.27.6+98158f9
+#worker-0   Ready    worker                 21h   v1.27.6+98158f9
+#worker-1   Ready    worker                 21h   v1.27.6+98158f9
+
+
+# 2-worker configuration
+worker0=worker-0  # Worker 0
+worker1=worker-1  # Worker 1
+
+# PAO requires runtimeClass and irq + cpu_quota annotation
+annotation_opt=",annotations:server-${worker0_servers}:$pwd/annotations.json,annotations:client-${worker0_clients}:$pwd/annotations.json"
+annotation_opt+=",annotations:server-${worker1_servers}:$pwd/annotations.json,annotations:client-${worker1_clients}:$pwd/annotations.json"
+if [ "${TPL_PAO}" = "1" ]; then
+    annotation_opt+=",runtimeClassName:performance-${MCP}"
+fi
+
+
+# QoS needs num static cpus
+resources_opt="$TPL_RESOURCES"
+
