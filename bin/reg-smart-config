@@ -379,11 +379,38 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                 DPRINT $LINENO "NIC $nic - driver: $driver, model: $model, SRIOV configured: ${nic_has_sriov[$nic]}  MTU  ${nic_mtu[$nic]}"
             done
 
+            # Special handling for bond interfaces (e.g., bond0)
+            # Bond interfaces are virtual and filtered out from available_nics, but we need their model
+            if [[ "$OVN_INTERFACE" == bond* ]]; then
+                DPRINT $LINENO "OVN interface is bond: $OVN_INTERFACE, detecting slave interface model"
+
+                # Get the first slave interface of the bond
+                local bond_slave=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP \"ls /sys/class/net/$OVN_INTERFACE/lower_* 2>/dev/null | head -1 | xargs -r basename\"" || echo "")
+                if [[ -n "$bond_slave" ]]; then
+                    bond_slave=$(echo "$bond_slave" | sed 's/lower_//')
+                    DPRINT $LINENO "Bond $OVN_INTERFACE slave interface: $bond_slave"
+
+                    # Check if we already scanned this slave
+                    if [[ -n "${nic_models[$bond_slave]}" ]]; then
+                        nic_models[$OVN_INTERFACE]="${nic_models[$bond_slave]}"
+                        nic_mtu[$OVN_INTERFACE]=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP" "cat /sys/class/net/$OVN_INTERFACE/mtu")
+                        DPRINT $LINENO "Set bond $OVN_INTERFACE model to ${nic_models[$OVN_INTERFACE]} from slave $bond_slave"
+                    fi
+                fi
+            fi
+
             # Print header
             printf "%-12s %-14s %-14s %-8s %-8s\n" "NIC" "Model" "SRIOV exists"   "MTU" "Status"
             printf "%-12s %-14s %-14s %-8s %-8s\n" "------------" "--------------" "------------"  "----------" "--------"
-			# Print each NIC's info
-            for nic in $available_nics; do
+
+            # Build list of NICs to print (includes OVN_INTERFACE even if virtual)
+            local nics_to_print="$available_nics"
+            if [[ -n "$OVN_INTERFACE" ]] && ! echo "$available_nics" | grep -qw "$OVN_INTERFACE"; then
+                nics_to_print="$OVN_INTERFACE $available_nics"
+            fi
+
+            # Print each NIC's info
+            for nic in $nics_to_print; do
                 if [ "$nic" == "${OVN_INTERFACE}" ] ; then
                    # Use DPU-detected values if available, otherwise use scanned values
                    local ovn_model="${REG_OVN_NIC_MODEL}"
@@ -391,7 +418,7 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                    local ovn_label="OVN main"
 
                    # If DPU detection didn't set these, use scanned values
-                   if [ -z "$ovn_model" ] || [ "$ovn_model" == "DPU" ]; then
+                   if [ -z "$ovn_model" ]; then
                        ovn_model="${nic_models[$nic]:-UNKNOWN}"
                    fi
                    if [ -z "$ovn_mtu" ]; then
@@ -410,6 +437,11 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                     "$ovn_mtu" \
                     "N/A"
 
+                   # Enhance OVN NIC model with bond suffix if using bonded interface
+                   if [[ "$OVN_INTERFACE" == bond* ]]; then
+                       ovn_model="${ovn_model}-bond"
+                   fi
+
                    # Update the global variables with final values
                    REG_OVN_NIC_MODEL="$ovn_model"
                    REG_OVN_NIC_MTU="$ovn_mtu"
@@ -425,7 +457,31 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                 fi
             done
 
-            
+            # Handle case where OVN_INTERFACE is not in available_nics (e.g., bond0)
+            # This happens when OVN interface is a virtual/bond interface
+            if [[ -n "$OVN_INTERFACE" ]] && [[ -z "$REG_OVN_NIC_MODEL" ]]; then
+                DPRINT $LINENO "OVN interface $OVN_INTERFACE not in physical NIC list, detecting slave interface model"
+
+                # For bond interfaces, get the first slave interface
+                local slave_nic=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP \"ls /sys/class/net/$OVN_INTERFACE/lower_* 2>/dev/null | head -1 | xargs -r basename\"" || echo "")
+                if [[ -n "$slave_nic" ]]; then
+                    slave_nic=$(echo "$slave_nic" | sed 's/lower_//')
+                    DPRINT $LINENO "Found slave interface: $slave_nic"
+
+                    # Get the model from the slave interface
+                    local ovn_model="${nic_models[$slave_nic]:-UNKNOWN}"
+                    DPRINT $LINENO "Slave interface model: $ovn_model"
+
+                    # Add bond suffix since it's a bonded interface
+                    if [[ "$OVN_INTERFACE" == bond* ]]; then
+                        ovn_model="${ovn_model}-bond"
+                    fi
+
+                    REG_OVN_NIC_MODEL="$ovn_model"
+                    INFO $LINENO "Set REG_OVN_NIC_MODEL=$REG_OVN_NIC_MODEL for bond interface $OVN_INTERFACE"
+                fi
+            fi
+
             local sriov_nic=""
             local sriov_model=""
             if [ !  -z "$REG_SRIOV_NIC" ]; then
