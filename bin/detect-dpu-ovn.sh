@@ -138,7 +138,7 @@ detect_dpu_ovn() {
         return 1
     fi
 
-    echo "DEBUG: Selected worker node: $worker_node" >&2
+    echo "DEBUG: Selected node for OVN/bond detection: $worker_node (using MATCH=$MATCH, MATCH_NOT_1=$MATCH_NOT_1, MATCH_NOT_2=$MATCH_NOT_2)" >&2
 
     # Get worker node IP
     local jq_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))'
