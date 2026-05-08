@@ -264,7 +264,8 @@ configure_main() {
             if [ -f "${script_dir}/detect-dpu-ovn.sh" ]; then
                 INFO $LINENO "Attempting DPU mode detection..."
                 source "${script_dir}/detect-dpu-ovn.sh"
-                detection_output=$(detect_dpu_ovn 2>/dev/null)
+                # Variable assignments (DPU_MODE=..., REG_OVN_NIC=...) go into detection_output, debug messages go to stderr
+                detection_output=$(detect_dpu_ovn 2>&1 | tee >(grep -v "^DPU_MODE=\|^REG_OVN" >&2) | grep "^DPU_MODE=\|^REG_OVN")
 
                 if [ $? -eq 0 ]; then
                     eval "$detection_output" || true
@@ -387,7 +388,7 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                 # Get the first slave interface of the bond
                 local bond_slave=$(do_ssh $DEST "ssh $SSH_OPTS core@$WORKER_IP \"ls /sys/class/net/$OVN_INTERFACE/lower_* 2>/dev/null | head -1 | xargs -r basename\"" || echo "")
                 if [[ -n "$bond_slave" ]]; then
-                    bond_slave=$(echo "$bond_slave" | sed 's/lower_//')
+                    bond_slave=$(echo "$bond_slave" | sed 's/lower_//' | tr -d ':')
                     DPRINT $LINENO "Bond $OVN_INTERFACE slave interface: $bond_slave"
 
                     # Check if we already scanned this slave
@@ -417,8 +418,8 @@ bash /tmp/get_nics.sh && rm -f /tmp/get_nics.sh'")
                    local ovn_mtu="${REG_OVN_NIC_MTU}"
                    local ovn_label="OVN main"
 
-                   # If DPU detection didn't set these, use scanned values
-                   if [ -z "$ovn_model" ]; then
+                   # If DPU detection didn't set these or returned UNKNOWN, use scanned values
+                   if [ -z "$ovn_model" ] || [ "$ovn_model" == "UNKNOWN" ]; then
                        ovn_model="${nic_models[$nic]:-UNKNOWN}"
                    fi
                    if [ -z "$ovn_mtu" ]; then
