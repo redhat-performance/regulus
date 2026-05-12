@@ -15,7 +15,7 @@
       "include": "common-params",
       "params": [
         { "arg": "test-type", "vals": ["stream"] },
-        { "arg": "wsize", "vals": ["512","32768", "134144"] }
+        { "arg": "wsize", "vals": ["512","32768", "131072"] }
       ]
     },
     {
