@@ -1,12 +1,35 @@
-{
-  "tool": "power",
-  "deployment": "opt-in",
-  "opt-tag": "power-monitoring",
-  "params": [
-    {  "arg": "interval", "val": "1" },
-    {  "arg": "plugin", "val": "bf3-sensor" },
-    {  "arg": "endpoints", "val": "bluefield3-bmc.xxx.yyy,zzz,<next-fqdn>,<or-next-ip>" },
-    {  "arg": "user", "val": "admin" },
-    {  "arg": "password", "val": "your-password-here" }
-  ]
-}
+[
+  { "tool": "sysstat" },
+  { "tool": "procstat" },
+  {  "tool": "power",
+      "id": "power-srv-22",
+      "deployment": "opt-in",
+      "opt-tag": "power-monitoring",
+      "params": [
+        { "arg": "interval", "val": "2" },
+        { "arg": "username", "val": "redacted" },
+        { "arg": "password", "val": "redacted" },
+        { "arg": "endpoints", "val": "10.6.136.1" },
+        { "arg": "plugin", "val": "generic-redfish" }
+      ]
+  },
+  {  "tool": "power",
+      "id": "power-srv-23",
+      "deployment": "opt-in",
+      "opt-tag": "power-monitoring",
+      "params": [
+        { "arg": "interval", "val": "2" },
+        { "arg": "username", "val": "redacted" },
+        { "arg": "password", "val": "redacted" },
+        { "arg": "endpoints", "val": "10.6.136.2" },
+        { "arg": "plugin", "val": "generic-redfish" }
+      ]
+  },
+  { "tool": "mlxreg",
+        "params": [
+            {"arg": "devices", "val": "ens7f0np0"},
+            {"arg": "interval", "val": "1"},
+            {"arg": "sensors", "val": "1,2,6"} 
+        ]
+  }
+]

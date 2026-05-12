@@ -42,9 +42,11 @@ if [ -z "${num_samples}" ]; then
     exit 1
 fi
 
+endpoint_opt+="kubeconfig:${KUBECONFIG}"
 if [ ! -z "${OCP_PROJECT}" ]; then
-    endpoint_opt+="custom-project:${OCP_PROJECT},sysinfo:false"
+    endpoint_opt+=",custom-project:${OCP_PROJECT},sysinfo:false"
 fi
+
 if [ "${DRY_RUN}" == true  ]; then
     echo DRY=true
     endpoint_opt+=",dry-run:true"
@@ -127,6 +129,17 @@ userenv:fedora-latest,\
 masters-tool-collect:0,\
 client:1-32,\
 server:1-32${annotation_opt}${resources_opt}"
+
+# Check if tool-power is configured in tool-params.json
+if [ -f "tool-params.json" ]; then
+    has_power=$(jq -r '[.[] | select(.tool == "power")] | length' tool-params.json 2>/dev/null)
+    if [ "$has_power" -gt 0 ] 2>/dev/null; then
+        echo "Detected tool-power in tool-params.json, adding power monitoring endpoint"
+        read -a BMLHOSTS <<< "$BM_HOSTS"
+        userenv=fedora-latest
+        ARGS+=" --endpoint remotehosts,user:root,host:${BMLHOSTS[0]},profiler:1-1,userenv:$userenv,tool-opt-in-tags:[power-monitoring],host-mounts:`pwd`/hostmount.json"
+    fi
+fi
 
 PROG=reg-c2j-api.py
 $PROG --name iperf,uperf --output all-in-one.json --tool-params tool-params.json $ARGS && \
