@@ -15,7 +15,7 @@
       "params": [
         { "arg": "test-type", "vals": ["stream"] },
         { "arg": "nthreads", "vals": ["1"] },
-        { "arg": "wsize", "vals": ["32768","134144"] }
+        { "arg": "wsize", "vals": ["32768","131072"] }
       ]
     },
     {
