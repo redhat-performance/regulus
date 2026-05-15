@@ -29,7 +29,7 @@
         "params": [
             {"arg": "devices", "val": "ens7f0np0"},
             {"arg": "interval", "val": "1"},
-            {"arg": "sensors", "val": "1,2,6"} 
+            {"arg": "sensors", "val": "1,2,6,127"} 
         ]
   }
 ]
