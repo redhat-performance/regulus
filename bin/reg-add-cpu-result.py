@@ -132,19 +132,25 @@ def update_destination_file(dest_path, values, output_path=None, target_metric=N
         values: Dictionary with 'tput' and 'cpu' lists
         output_path: Optional output path (if None, updates in place)
         target_metric: Specific metric type to update (e.g., 'uperf::Gbps')
-                      If None, auto-detect
+                      If None, updates ALL iterations in order regardless of metric type
     """
     with open(dest_path, 'r') as f:
         lines = f.readlines()
 
-    # Auto-detect target metric if not specified
+    # If target_metric is specified, use old behavior (filter by metric)
+    # If target_metric is None, update ALL iterations in order
     if target_metric is None:
-        target_metric = identify_target_metric(lines)
-        if target_metric:
-            print(f"Auto-detected target metric: {target_metric}")
-        else:
-            print("Error: Could not detect target metric")
-            sys.exit(1)
+        # Show all metrics found but update all of them
+        all_metrics = []
+        for line in lines:
+            if 'result:' in line:
+                metric_type = extract_metric_type(line)
+                if metric_type and metric_type not in all_metrics:
+                    all_metrics.append(metric_type)
+        print(f"Found metrics in result file: {', '.join(all_metrics)}")
+        print(f"Will update ALL iterations in order (across all metric types)")
+    else:
+        print(f"Target metric specified: {target_metric}")
 
     updated_lines = []
     iteration_count = 0
@@ -154,8 +160,11 @@ def update_destination_file(dest_path, values, output_path=None, target_metric=N
         if 'result:' in line:
             metric_type = extract_metric_type(line)
 
-            # Only update lines matching the target metric
-            if metric_type == target_metric:
+            # If target_metric is None, update ALL iterations
+            # If target_metric is specified, only update matching metric type
+            should_update = (target_metric is None) or (metric_type == target_metric)
+
+            if should_update:
                 # Make sure we have values for this iteration
                 if iteration_count < len(values['tput']):
                     tput_value = values['tput'][iteration_count]
@@ -187,7 +196,7 @@ def update_destination_file(dest_path, values, output_path=None, target_metric=N
         f.writelines(updated_lines)
 
     print(f"\nSuccessfully updated {output_file}")
-    print(f"Updated {iteration_count} iterations for metric: {target_metric}")
+    print(f"Updated {iteration_count} iterations" + (f" for metric: {target_metric}" if target_metric else " (all metrics)"))
     print(f"TPUT values applied: {', '.join(str(v) for v in values['tput'][:iteration_count])}")
     if values['cpu']:
         print(f"CPU values applied: {', '.join(str(v) for v in values['cpu'][:iteration_count])}")
