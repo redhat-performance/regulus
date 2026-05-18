@@ -11,6 +11,7 @@ Common commands:
   python3 bin/analyze-power.py by-profile                   # By workload
   python3 bin/analyze-power.py find-high --limit 5          # Top 5 power consumers
   python3 bin/analyze-power.py find-low --metric nic        # Lowest NIC power
+  python3 bin/analyze-power.py stats                        # Test run statistics
 
 Usage: run at REG_ROOT
 
@@ -86,6 +87,11 @@ class PowerAnalyzer:
             # If benchmark contains comma or multiple benchmark types, it's multibench
             if ',' in bench_value or ('iperf' in bench_value and 'uperf' in bench_value):
                 benchmark = "multibench"
+                # Multibench runs don't have protocol/topology in the report, mark as multibench
+                if protocol == "unknown":
+                    protocol = "multibench"
+                if topology == "unknown":
+                    topology = "multibench"
             else:
                 benchmark = bench_value
         else:
@@ -105,9 +111,14 @@ class PowerAnalyzer:
             test_type_match = re.search(r'test-type=(\w+)', block_text)
             test_type = test_type_match.group(1) if test_type_match else "unknown"
 
-            # iperf only does stream traffic, so if benchmark is iperf (not multibench) and test-type is unknown, set to stream
-            if benchmark == "iperf" and test_type == "unknown":
-                test_type = "stream"
+            # Handle cases where test-type is unknown
+            if test_type == "unknown":
+                if benchmark == "multibench":
+                    # Multibench runs don't have a single test-type
+                    test_type = "multibench"
+                elif benchmark == "iperf":
+                    # iperf only does stream traffic
+                    test_type = "stream"
 
             # Extract power metrics
             bmc_power = {}
@@ -284,21 +295,28 @@ class PowerAnalyzer:
         for server in ['srv-22', 'srv-23']:
             if data[server]['vr0'] and data[server]['vr1']:
                 nic_name = f"BF3-{server.split('-')[1]}"
-                total_mean = statistics.mean(data[server]['vr0']) + statistics.mean(data[server]['vr1'])
+
+                # Calculate totals
+                vr0_vals = data[server]['vr0']
+                vr1_vals = data[server]['vr1']
+                total_vals = [v0 + v1 for v0, v1 in zip(vr0_vals, vr1_vals)]
+                total_mean = statistics.mean(total_vals)
 
                 # VR0
-                vals = data[server]['vr0']
-                mean_val = statistics.mean(vals)
+                mean_val = statistics.mean(vr0_vals)
                 pct = (mean_val / total_mean * 100) if total_mean > 0 else 0
-                print(f"{nic_name:<10} {'VR0':<15} {len(vals):<10} {mean_val:<12.2f} "
-                      f"{min(vals):<10.2f} {max(vals):<10.2f} {pct:<12.1f}")
+                print(f"{nic_name:<10} {'VR0':<15} {len(vr0_vals):<10} {mean_val:<12.2f} "
+                      f"{min(vr0_vals):<10.2f} {max(vr0_vals):<10.2f} {pct:<12.1f}")
 
                 # VR1
-                vals = data[server]['vr1']
-                mean_val = statistics.mean(vals)
+                mean_val = statistics.mean(vr1_vals)
                 pct = (mean_val / total_mean * 100) if total_mean > 0 else 0
-                print(f"{nic_name:<10} {'VR1':<15} {len(vals):<10} {mean_val:<12.2f} "
-                      f"{min(vals):<10.2f} {max(vals):<10.2f} {pct:<12.1f}")
+                print(f"{nic_name:<10} {'VR1':<15} {len(vr1_vals):<10} {mean_val:<12.2f} "
+                      f"{min(vr1_vals):<10.2f} {max(vr1_vals):<10.2f} {pct:<12.1f}")
+
+                # TOTAL
+                print(f"{nic_name:<10} {'TOTAL':<15} {len(total_vals):<10} {total_mean:<12.2f} "
+                      f"{min(total_vals):<10.2f} {max(total_vals):<10.2f} {'100.0':<12}")
                 print()
 
     def find_high(self, limit: int = 10, metric: str = 'bmc'):
@@ -395,12 +413,75 @@ class PowerAnalyzer:
         print(f"{'TOTAL':<40} {len(self.metrics):<10}")
         print()
 
+    def test_run_stats(self):
+        """Show test run and iteration statistics"""
+        # Collect unique test configs and total runs
+        from collections import defaultdict
+
+        configs = defaultdict(list)
+        total_iterations = 0
+        total_samples = 0
+
+        for report_file in self.reg_root.rglob("report-power.txt"):
+            parent_path = str(report_file.parent.relative_to(self.reg_root))
+
+            # Skip nested blobs
+            if '/run/' in parent_path or parent_path.endswith('/run'):
+                continue
+            if re.search(r'/\w+-\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}_[A-Z]+-[-0-9a-f]{36}/', parent_path):
+                continue
+
+            # Extract test config (remove run-* directory)
+            config = re.sub(r'/run-[^/]*$', '', parent_path)
+            run_name = parent_path.split('/')[-1] if '/' in parent_path else parent_path
+
+            configs[config].append(run_name)
+
+            # Count iterations and samples in this run
+            with open(report_file, 'r') as f:
+                content = f.read()
+            iter_count = len(re.findall(r'iteration-id:\s+([A-F0-9-]+)', content))
+            sample_count = len(re.findall(r'sample-id:\s+([A-F0-9-]+)', content))
+            total_iterations += iter_count
+            total_samples += sample_count
+
+        # Count duplicates
+        single_run_configs = sum(1 for runs in configs.values() if len(runs) == 1)
+        double_run_configs = sum(1 for runs in configs.values() if len(runs) == 2)
+        triple_run_configs = sum(1 for runs in configs.values() if len(runs) == 3)
+
+        total_runs = sum(len(runs) for runs in configs.values())
+        unique_configs = len(configs)
+        duplicate_runs = total_runs - unique_configs
+
+        print("\nTEST RUN AND ITERATION STATISTICS")
+        print("=" * 70)
+        print(f"{'Unique test configurations:':<40} {unique_configs}")
+        print(f"{'Total test runs:':<40} {total_runs}")
+        print(f"{'Duplicate runs (same config):':<40} {duplicate_runs}")
+        print(f"{'Duplicate percentage:':<40} {duplicate_runs/total_runs*100:.1f}%")
+        print()
+        print(f"{'Total iterations (all runs):':<40} {total_iterations}")
+        print(f"{'Valid iterations (with power data):':<40} {len(self.metrics)}")
+        print(f"{'Iterations without power data:':<40} {total_iterations - len(self.metrics)}")
+        print(f"{'Total samples:':<40} {total_samples}")
+        print()
+        print(f"{'Average iterations per run:':<40} {total_iterations/total_runs:.1f}")
+        print(f"{'Average samples per iteration:':<40} {total_samples/total_iterations:.1f}")
+        print()
+        print("Test Configuration Breakdown:")
+        print(f"  {single_run_configs} configs tested 1 time")
+        print(f"  {double_run_configs} configs tested 2 times ({double_run_configs} duplicate runs)")
+        if triple_run_configs > 0:
+            print(f"  {triple_run_configs} config(s) tested 3 times ({triple_run_configs * 2} duplicate runs)")
+        print()
+
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze power consumption from regulus test results')
     parser.add_argument('command', choices=[
         'summary', 'by-profile', 'by-server', 'nic-breakdown',
-        'find-high', 'find-low', 'count'
+        'find-high', 'find-low', 'count', 'stats'
     ], help='Analysis command to run')
 
     # Options for by-profile
@@ -442,6 +523,8 @@ def main():
         analyzer.find_low(args.limit, args.metric)
     elif args.command == 'count':
         analyzer.count(args.group_by)
+    elif args.command == 'stats':
+        analyzer.test_run_stats()
 
     return 0
 
