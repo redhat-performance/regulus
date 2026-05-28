@@ -5,7 +5,7 @@
       "params": [
         { "arg": "ifname", "vals": ["$TPL_INTF"], "role": "server" },
         { "arg": "time", "vals": ["120"] },
-        { "arg": "omit", "vals": ["3"] },
+        { "arg": "omit", "vals": ["3"], "role": "all" },
         { "arg": "protocol", "vals": ["tcp"] },
         { "arg": "ipv", "vals": ["$TPL_IPV"], "role": "all" },
         { "arg": "passthru", "vals": ["--reverse"], "id": "1" },
