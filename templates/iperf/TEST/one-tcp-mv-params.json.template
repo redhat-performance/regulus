@@ -14,7 +14,7 @@
     {
       "include": "common-params",
       "params": [
-        { "arg": "length", "vals": ["130000"] }
+        { "arg": "length", "vals": ["131072"] }
       ]
     }
   ]
