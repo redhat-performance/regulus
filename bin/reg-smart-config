@@ -177,7 +177,7 @@ dpdk_acceptable() {
 sriov_acceptable() {
     local model=$1
     case "$model" in
-        BF3|BF2|CX7|CX8|CX6|E810|E820|XXV710|X710|X550)
+        BF3|BF2|CX7|CX8|CX6|E810|E820|XXV710|X710)
             return 0  # true
             ;;
         *)
