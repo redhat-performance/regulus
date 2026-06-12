@@ -418,7 +418,7 @@ tb_cluster_type=$(f_get_cluster_type)
 echo "cluster_type=$tb_cluster_type" >&2
 f_validate_worker_nodes
 if [[ -z "$OCP_WORKER_0" ]]; then
-    first_worker=$(do_ssh $REG_KNI_USER@$REG_OCPHOST "oc get nodes -l node-role.kubernetes.io/worker= --no-headers -o custom-columns=NAME:.metadata.name | head -1")
+    first_worker=$(do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config  && oc get nodes -l node-role.kubernetes.io/worker= --no-headers -o custom-columns=NAME:.metadata.name | head -1")
 else
     first_worker=$OCP_WORKER_0
 fi
