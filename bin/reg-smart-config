@@ -7,12 +7,11 @@
 #		b. BM_HOSTS
 #		c. REG_SRIOV_NIC, REG_MACVLAN_NIC, REG_DPDK_NIC, MODEL, MTU
 #		d. TREX_HOSTS, TREX_SRIOV_INTERFACE_1-2, MODEL, MTU
-#  Usage: bash re-config
+#  Usage: bash reg-smart-config
 #
 #  Exec context:
 #       Can be called after "make init-lab" to fix up lab.config
-#       Can be called before "make init-lab" ONLY when crucible controller runs on the bastion
-#       CANNOT be called before "make init-lab" when controller is NOT running on bastion. Repo has not been mirrored to the bastion yet.
+#       Can be called before "make init-lab" from controller or bastion (no longer requires regulus repo on bastion)
 #
 # Logic: For SRIOV, MACVLAN, and DPDK, interfaces must also be up (cable is good, not lab interface) and have no IP addresses assigned (in-used).
 #       if a NIC has SRIOV VFs (owned and configured by something else), or being unknown NIC type, it
@@ -30,10 +29,8 @@ source ${REG_ROOT}/lab.config
 PS4='Line ${LINENO} (${FUNCNAME[0]}) $(printf "+%.0s" $(seq 1 $BASH_SUBSHELL)): '
 
 
-# About $reg_dir,
-# On controller, the user can create REGULUS somewhere under their home i.e /root/path/regulus
-# On bastion, the user can be root or kni. Since regulus will clone a repo there. it wil be /home/kni/path/regulus or /root/path/regulus.
-# We need to identify the relative path from the bastion user's HOME. That is the "path/regulus" so that we can ssh to the bastion and cd to "path/regulus"
+# Note: reg_dir is no longer needed since we use heredoc to inline the core-auth-key.sh script
+# Kept for backwards compatibility if other scripts reference it
 reg_dir="${PWD#"$HOME"/}"
 echo reg_dir=$reg_dir >&2
 
@@ -251,8 +248,87 @@ configure_main() {
   if [ ! -z "$OCP_WORKER_0" ]; then
     WORKER_IP=$(get_node_ip "$OCP_WORKER_0")
 
-    DPRINT $LINENO "CMD: $core_auth_script_path $OCP_WORKER..."
-    do_ssh $DEST "cd $reg_dir && bash bin/core-auth-key.sh $OCP_WORKER_0  ~/.ssh/id_rsa.pub }"
+    DPRINT $LINENO "Setting up SSH key for core@$OCP_WORKER_0..."
+    # Inline the core-auth-key.sh script via heredoc to avoid dependency on regulus directory existing on bastion
+    ssh $SSH_OPTS $DEST bash <<EOF_CORE_AUTH
+export KUBECONFIG='${KUBECONFIG}'
+SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ConnectTimeout=20"
+
+node_ip=\$(kubectl get node ${OCP_WORKER_0} -o json | jq -r '.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))')
+if [ -z "\$node_ip" ]; then
+    echo "Error: Could not get IP for node ${OCP_WORKER_0}" >&2
+    exit 1
+fi
+
+# Test if ssh core@node_ip already works
+if ssh \$SSH_OPTS core@\$node_ip "pwd" >/dev/null 2>&1; then
+    echo "[INFO] SSH to core@\$node_ip already configured"
+    exit 0
+fi
+
+# Need to set up the key
+NODE_NAME="${OCP_WORKER_0}"
+LOCAL_FILE="\$HOME/.ssh/id_rsa.pub"
+TARGET_FILE="/var/home/core/.ssh/authorized_keys.d/ignition"
+NAMESPACE="default"
+
+if [[ ! -f "\$LOCAL_FILE" ]]; then
+    echo "[ERROR] Local file '\$LOCAL_FILE' does not exist."
+    exit 1
+fi
+
+TMP_LOG=\$(mktemp)
+echo "[INFO] Launching debug pod on node \$NODE_NAME (logs: \$TMP_LOG)..."
+oc debug node/"\$NODE_NAME" -- bash -c "sleep 300" > "\$TMP_LOG" 2>&1 &
+sleep 5
+
+DEBUG_POD=\$(grep -oE '^Starting pod/[a-z0-9-]+' "\$TMP_LOG" | cut -d/ -f2 | tail -1)
+if [[ -z "\$DEBUG_POD" ]]; then
+    echo "[ERROR] Could not determine debug pod name from output:"
+    cat "\$TMP_LOG"
+    rm -f "\$TMP_LOG"
+    exit 1
+fi
+
+echo "[INFO] Waiting for debug pod \$DEBUG_POD to become ready..."
+if ! oc wait --for=condition=Ready pod/"\$DEBUG_POD" --timeout=60s -n "\$NAMESPACE" > /dev/null; then
+    echo "[ERROR] Debug pod did not become ready in time."
+    oc delete pod/"\$DEBUG_POD" -n "\$NAMESPACE" --ignore-not-found
+    rm -f "\$TMP_LOG"
+    exit 1
+fi
+
+TEMP_REMOTE_FILE="/tmp/\$(basename "\$LOCAL_FILE")"
+echo "[INFO] Copying local key file to \$TEMP_REMOTE_FILE on node..."
+if ! oc cp "\$LOCAL_FILE" "\$NAMESPACE/\$DEBUG_POD:/host\$TEMP_REMOTE_FILE"; then
+    echo "[ERROR] Failed to copy key file into debug pod."
+    oc delete pod/"\$DEBUG_POD" -n "\$NAMESPACE" --ignore-not-found
+    rm -f "\$TMP_LOG"
+    exit 1
+fi
+
+echo "[INFO] Appending key file content to \$TARGET_FILE on node..."
+if ! oc exec -n "\$NAMESPACE" "\$DEBUG_POD" -- chroot /host /bin/bash -c '
+    mkdir -p "\$(dirname "'"$TARGET_FILE"'")"
+    if [[ -f "'"$TARGET_FILE"'" && \$(tail -c1 "'"$TARGET_FILE"'") != "" ]]; then
+        printf "\\n" >> "'"$TARGET_FILE"'"
+    fi
+    cat "'"$TEMP_REMOTE_FILE"'" >> "'"$TARGET_FILE"'"
+    chmod 600 "'"$TARGET_FILE"'"
+    chown core:core "'"$TARGET_FILE"'"
+    rm "'"$TEMP_REMOTE_FILE"'"
+'; then
+    echo "[ERROR] Failed to append key file on node."
+    oc delete pod/"\$DEBUG_POD" -n "\$NAMESPACE" --ignore-not-found
+    rm -f "\$TMP_LOG"
+    exit 1
+fi
+
+echo "[INFO] Cleaning up debug pod \$DEBUG_POD..."
+oc delete pod/"\$DEBUG_POD" -n "\$NAMESPACE" --ignore-not-found > /dev/null
+rm -f "\$TMP_LOG"
+echo "[SUCCESS] Appended '\$LOCAL_FILE' content to '\$NODE_NAME:\$TARGET_FILE'"
+EOF_CORE_AUTH
 
     
     if [ ! -z "$WORKER_IP" ]; then
