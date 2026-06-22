@@ -40,7 +40,7 @@ def main():
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmplog:
         log_file = tmplog.name
     
-    subprocess.Popen(f"oc debug node/{node_name} -- bash -c 'sleep 300' > {log_file} 2>&1", shell=True)
+    subprocess.Popen(f"oc debug node/{node_name} --to-namespace=default -- bash -c 'sleep 300' > {log_file} 2>&1", shell=True)
     run_cmd("sleep 5", check=False)
     
     # Get debug pod name
