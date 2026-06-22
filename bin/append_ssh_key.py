@@ -63,14 +63,19 @@ def main():
         os.unlink(log_file)
         sys.exit(1)
     
-    # Check if key already exists
+    # Check if key already exists - using temp file for grep
     print(f"[INFO] Checking if key already exists in {target_file}...")
     check_script = f"""#!/bin/bash
-if [ -f "{target_file}" ] && grep -qF '{key_content}' "{target_file}"; then
+cat > /tmp/key_to_check <<'KEY_EOF'
+{key_content}
+KEY_EOF
+
+if [ -f "{target_file}" ] && grep -qFf /tmp/key_to_check "{target_file}"; then
     echo "KEY_EXISTS"
 else
     echo "KEY_NOT_FOUND"
 fi
+rm -f /tmp/key_to_check
 """
     
     output, _ = run_cmd(f"echo '{check_script}' | oc exec -i -n {namespace} {debug_pod} -- chroot /host /bin/bash", check=False)
