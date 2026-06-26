@@ -278,7 +278,7 @@ class NodeHardwareCollector:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     universal_newlines=True,
-                    timeout=120,
+                    timeout=180,
                     env=env
                 )
                 stdout, stderr, returncode = result.stdout.strip(), result.stderr, result.returncode
@@ -310,7 +310,7 @@ class NodeHardwareCollector:
         # Ensure SSH key is installed for OCP worker nodes
         if ssh_user == "core" and node_type in ["ocp_worker", "cluster_node"]:
             if not self.ensure_ssh_key(node_name, ssh_user):
-                print(f"  WARNING: Could not ensure SSH key for {node_name}, collection may fail", file=sys.stderr)
+                raise RuntimeError(f"Failed to install SSH key for {node_name}. Cannot proceed with collection.")
 
         if self.json_output:
             # JSON mode

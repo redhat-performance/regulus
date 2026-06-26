@@ -33,26 +33,43 @@ oc_append_key_to_node() {
 
   oc debug node/"$NODE_NAME" -- bash -c "sleep 300" > "$TMP_LOG" 2>&1 &
 
-  sleep 5
-
-  # Extract namespace from log output
-  local NAMESPACE
-  NAMESPACE=$(grep -oE 'Temporary namespace openshift-debug-[a-z0-9]+' "$TMP_LOG" | head -1 | awk '{print $3}')
+  # Poll for namespace and pod information in log file (CodeRabbit suggestion)
+  local NAMESPACE=""
+  local DEBUG_POD=""
+  local MAX_WAIT=10
+  local ELAPSED=0
+  
+  echo "[INFO] Waiting for debug pod information..."
+  while [ $ELAPSED -lt $MAX_WAIT ]; do
+    sleep 1
+    ELAPSED=$((ELAPSED + 1))
+    
+    # Try to extract namespace
+    if [[ -z "$NAMESPACE" ]]; then
+      NAMESPACE=$(grep -oE 'Temporary namespace openshift-debug-[a-z0-9]+' "$TMP_LOG" 2>/dev/null | head -1 | awk '{print $3}')
+    fi
+    
+    # Try to extract pod name
+    if [[ -z "$DEBUG_POD" ]]; then
+      DEBUG_POD=$(grep -oE 'Starting pod/[a-z0-9-]+' "$TMP_LOG" 2>/dev/null | cut -d/ -f2 | tail -1)
+    fi
+    
+    # Break if we have both
+    if [[ -n "$NAMESPACE" && -n "$DEBUG_POD" ]]; then
+      echo "[INFO] Found namespace: $NAMESPACE, pod: $DEBUG_POD (after ${ELAPSED}s)"
+      break
+    fi
+  done
   
   if [[ -z "$NAMESPACE" ]]; then
-    echo "[ERROR] Could not determine debug namespace from output:"
+    echo "[ERROR] Could not determine debug namespace from output after ${MAX_WAIT}s:"
     cat "$TMP_LOG"
     rm -f "$TMP_LOG"
     return 1
   fi
 
-  echo "[INFO] Using namespace: $NAMESPACE"
-
-  local DEBUG_POD
-  DEBUG_POD=$(grep -oE 'Starting pod/[a-z0-9-]+' "$TMP_LOG" | cut -d/ -f2 | tail -1)
-
   if [[ -z "$DEBUG_POD" ]]; then
-    echo "[ERROR] Could not determine debug pod name from output:"
+    echo "[ERROR] Could not determine debug pod name from output after ${MAX_WAIT}s:"
     cat "$TMP_LOG"
     rm -f "$TMP_LOG"
     return 1
