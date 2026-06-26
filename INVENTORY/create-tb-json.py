@@ -169,7 +169,7 @@ class NodeHardwareCollector:
         ssh_cmd = [
             "ssh",
             "-o", "StrictHostKeyChecking=no",
-            "-o", "ConnectTimeout=10",
+            "-o", "ConnectTimeout=3",
             "-o", "LogLevel=ERROR"
         ]
         
@@ -195,7 +195,7 @@ class NodeHardwareCollector:
         scp_cmd = [
             "scp",
             "-o", "StrictHostKeyChecking=no",
-            "-o", "ConnectTimeout=10",
+            "-o", "ConnectTimeout=3",
             "-o", "LogLevel=ERROR"
         ]
         
@@ -207,6 +207,93 @@ class NodeHardwareCollector:
         stdout, stderr, returncode = self.run_command(scp_cmd)
         return returncode == 0
     
+
+    def ensure_ssh_key(self, node_name, ssh_user="core"):
+        """
+        Ensure SSH key is installed on OCP node using core-auth-key.sh
+        Only works for OCP nodes with 'core' user (uses oc debug)
+        Returns True if SSH is working (key already installed or just installed)
+        """
+        # Only works for core user on OCP nodes
+        if ssh_user != "core":
+            return False
+
+        # Test if SSH already works
+        test_cmd = [
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=3",
+            "-o", "LogLevel=ERROR",
+            "-o", "UserKnownHostsFile=/dev/null"
+        ]
+
+        if self.ssh_key:
+            test_cmd.extend(["-i", self.ssh_key])
+
+        test_cmd.extend([f"{ssh_user}@{node_name}", "echo", "test"])
+
+        stdout, stderr, returncode = self.run_command(test_cmd)
+        if returncode == 0:
+            # SSH already works - silent success
+            return True
+
+        # SSH failed, need to install key using core-auth-key.sh
+        print(f"  Installing SSH key for {node_name}...")
+
+        # Find core-auth-key.sh script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        key_script = os.path.join(script_dir, "..", "bin", "core-auth-key.sh")
+
+        if not os.path.exists(key_script):
+            print(f"  WARNING: core-auth-key.sh not found at {key_script}", file=sys.stderr)
+            return False
+
+        # Determine which public key to use
+        if self.ssh_key:
+            # Use corresponding .pub file
+            pub_key = f"{self.ssh_key}.pub"
+            if not os.path.exists(pub_key):
+                print(f"  WARNING: Public key not found: {pub_key}", file=sys.stderr)
+                pub_key = os.path.expanduser("~/.ssh/id_rsa.pub")
+        else:
+            pub_key = os.path.expanduser("~/.ssh/id_rsa.pub")
+
+        if not os.path.exists(pub_key):
+            print(f"  ERROR: Public key not found: {pub_key}", file=sys.stderr)
+            return False
+
+        # Call core-auth-key.sh (needs KUBECONFIG from self.kubeconfig)
+        install_cmd = ["bash", key_script, node_name, pub_key]
+        
+        # Need to set KUBECONFIG environment for the script
+        if self.kubeconfig:
+            import os as os_module
+            env = os_module.environ.copy()
+            env["KUBECONFIG"] = self.kubeconfig
+            # Use subprocess directly with env
+            import subprocess
+            try:
+                result = subprocess.run(
+                    install_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    timeout=120,
+                    env=env
+                )
+                stdout, stderr, returncode = result.stdout.strip(), result.stderr, result.returncode
+            except Exception as e:
+                stdout, stderr, returncode = "", str(e), 1
+        else:
+            stdout, stderr, returncode = self.run_command(install_cmd)
+
+        if returncode != 0:
+            print(f"  ERROR: Failed to install SSH key", file=sys.stderr)
+            return False
+
+        print(f"  ✓ SSH key installed successfully")
+        return True
+
     def write_output(self, text, print_also=True):
         """Write text to output file and optionally print"""
         with open(self.output_file, "a") as f:
@@ -219,7 +306,12 @@ class NodeHardwareCollector:
         """Collect all hardware info from a single node"""
         # Resolve hostname first
         resolved_address = self.resolve_hostname(node_name, ssh_user)
-        
+
+        # Ensure SSH key is installed for OCP worker nodes
+        if ssh_user == "core" and node_type in ["ocp_worker", "cluster_node"]:
+            if not self.ensure_ssh_key(node_name, ssh_user):
+                print(f"  WARNING: Could not ensure SSH key for {node_name}, collection may fail", file=sys.stderr)
+
         if self.json_output:
             # JSON mode
             node_data = {
