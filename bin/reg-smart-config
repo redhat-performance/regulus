@@ -29,8 +29,7 @@ source ${REG_ROOT}/lab.config
 PS4='Line ${LINENO} (${FUNCNAME[0]}) $(printf "+%.0s" $(seq 1 $BASH_SUBSHELL)): '
 
 
-# Note: reg_dir is no longer needed since we use heredoc to inline the core-auth-key.sh script
-# Kept for backwards compatibility if other scripts reference it
+# Note: reg_dir is used for remote script execution
 reg_dir="${PWD#"$HOME"/}"
 echo reg_dir=$reg_dir >&2
 
@@ -61,7 +60,6 @@ exit_error() {
 
 # locate this script path. We may need to call its support script(s)
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-core_auth_script_path="${script_dir}/core-auth-key.sh"
 
 # In double/netsted usage, we need extra_SSH_OPTS
 SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ConnectTimeout=20"
