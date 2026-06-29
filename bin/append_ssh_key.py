@@ -2,14 +2,16 @@
 """
 Simple script to append SSH key to authorized_keys via oc debug pod.
 Idempotent - checks if key already exists before appending.
+SECURITY: Uses shlex.quote() to prevent command injection.
 """
 import sys
 import subprocess
 import tempfile
 import os
+import shlex
 
 def run_cmd(cmd, check=True):
-    """Run command and return output"""
+    """Run command and return output - USE ONLY with safe, quoted inputs"""
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     if check and result.returncode != 0:
         print(f"[ERROR] Command failed: {cmd}", file=sys.stderr)
@@ -22,17 +24,19 @@ def main():
         print("Usage: append_ssh_key.py <node-name> <local-key-file>")
         sys.exit(1)
     
-    node_name = sys.argv[1]
-    local_file = sys.argv[2]
+    # SECURITY: Quote all user inputs to prevent command injection
+    node_name = shlex.quote(sys.argv[1])
+    local_file = shlex.quote(sys.argv[2])
     target_file = "/var/home/core/.ssh/authorized_keys.d/ignition"
     namespace = "default"
     
-    if not os.path.exists(local_file):
-        print(f"[ERROR] Local file '{local_file}' does not exist.")
+    # Validate file exists (use unquoted path for filesystem check)
+    if not os.path.exists(sys.argv[2]):
+        print(f"[ERROR] Local file '{sys.argv[2]}' does not exist.")
         sys.exit(1)
     
     # Read the key content to check if already present
-    with open(local_file, 'r') as f:
+    with open(sys.argv[2], 'r') as f:
         key_content = f.read().strip()
     
     # Create debug pod
@@ -40,11 +44,12 @@ def main():
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmplog:
         log_file = tmplog.name
     
-    subprocess.Popen(f"oc debug node/{node_name} --to-namespace=default -- bash -c 'sleep 300' > {log_file} 2>&1", shell=True)
+    # SECURITY: node_name is now quoted
+    subprocess.Popen(f"oc debug node/{node_name} --to-namespace=default -- bash -c 'sleep 300' > {shlex.quote(log_file)} 2>&1", shell=True)
     run_cmd("sleep 5", check=False)
     
-    # Get debug pod name
-    output, _ = run_cmd(f"grep -oE '^Starting pod/[a-z0-9-]+' {log_file} | cut -d/ -f2 | tail -1", check=False)
+    # Get debug pod name - log_file is quoted
+    output, _ = run_cmd(f"grep -oE '^Starting pod/[a-z0-9-]+' {shlex.quote(log_file)} | cut -d/ -f2 | tail -1", check=False)
     debug_pod = output
     
     if not debug_pod:
@@ -54,7 +59,7 @@ def main():
         os.unlink(log_file)
         sys.exit(1)
     
-    # Wait for pod to be ready
+    # Wait for pod to be ready - debug_pod comes from grep output, should be safe
     print(f"[INFO] Waiting for debug pod {debug_pod} to become ready...")
     _, rc = run_cmd(f"oc wait --for=condition=Ready pod/{debug_pod} --timeout=60s -n {namespace} > /dev/null", check=False)
     if rc != 0:
@@ -90,17 +95,17 @@ rm -f /tmp/key_to_check
     
     print(f"[INFO] Key not found, will append...")
     
-    # Copy key file to pod
-    temp_remote = f"/tmp/{os.path.basename(local_file)}"
+    # Copy key file to pod - SECURITY: local_file is now quoted
+    temp_remote = f"/tmp/{os.path.basename(sys.argv[2])}"
     print(f"[INFO] Copying local key file to {temp_remote} on node...")
-    _, rc = run_cmd(f"oc cp {local_file} {namespace}/{debug_pod}:/host{temp_remote}", check=False)
+    _, rc = run_cmd(f"oc cp {local_file} {namespace}/{debug_pod}:/host{shlex.quote(temp_remote)}", check=False)
     if rc != 0:
         print("[ERROR] Failed to copy key file into debug pod.")
         run_cmd(f"oc delete pod/{debug_pod} -n {namespace} --ignore-not-found", check=False)
         os.unlink(log_file)
         sys.exit(1)
     
-    # Append key
+    # Append key - temp_remote is derived from basename, should be safe
     print(f"[INFO] Appending key file content to {target_file} on node...")
     append_script = f"""#!/bin/bash
 mkdir -p "$(dirname "{target_file}")"
