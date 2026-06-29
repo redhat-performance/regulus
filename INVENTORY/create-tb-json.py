@@ -210,7 +210,7 @@ class NodeHardwareCollector:
 
     def ensure_ssh_key(self, node_name, ssh_user="core"):
         """
-        Ensure SSH key is installed on OCP node using core-auth-key.sh
+        Ensure SSH key is installed on OCP node using append_ssh_key.py
         Only works for OCP nodes with 'core' user (uses oc debug)
         Returns True if SSH is working (key already installed or just installed)
         """
@@ -237,15 +237,15 @@ class NodeHardwareCollector:
             # SSH already works - silent success
             return True
 
-        # SSH failed, need to install key using core-auth-key.sh
+        # SSH failed, need to install key using append_ssh_key.py
         print(f"  Installing SSH key for {node_name}...")
 
-        # Find core-auth-key.sh script
+        # Find append_ssh_key.py script (uses --to-namespace=default, idempotent)
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        key_script = os.path.join(script_dir, "..", "bin", "core-auth-key.sh")
+        key_script = os.path.join(script_dir, "..", "bin", "append_ssh_key.py")
 
         if not os.path.exists(key_script):
-            print(f"  WARNING: core-auth-key.sh not found at {key_script}", file=sys.stderr)
+            print(f"  WARNING: append_ssh_key.py not found at {key_script}", file=sys.stderr)
             return False
 
         # Determine which public key to use
@@ -262,8 +262,8 @@ class NodeHardwareCollector:
             print(f"  ERROR: Public key not found: {pub_key}", file=sys.stderr)
             return False
 
-        # Call core-auth-key.sh (needs KUBECONFIG from self.kubeconfig)
-        install_cmd = ["bash", key_script, node_name, pub_key]
+        # Call append_ssh_key.py (needs KUBECONFIG from self.kubeconfig)
+        install_cmd = ["python3", key_script, node_name, pub_key]
         
         # Need to set KUBECONFIG environment for the script
         if self.kubeconfig:

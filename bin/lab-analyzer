@@ -75,7 +75,7 @@ function exit_error() {
 }
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-core_auth_script_path="${script_dir}/core-auth-key.sh"
+core_auth_script_path="${script_dir}/append_ssh_key.py"
 
 SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ConnectTimeout=20"
 SSH_OPTS+="${extra_SSH_OPTS:-}"
@@ -435,7 +435,7 @@ echo "useable_cpus=$tb_useable_cpus" >&2
 
 # Setup auth key to ssh core@<ip>
 if [[ -e "${core_auth_script_path}" ]]; then
-  do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && bash $reg_dir/bin/core-auth-key.sh ${first_worker} ~/.ssh/id_rsa.pub >&2"
+  do_ssh $REG_KNI_USER@$REG_OCPHOST "source $reg_dir/lab.config && python3 $reg_dir/bin/append_ssh_key.py ${first_worker} ~/.ssh/id_rsa.pub >&2"
 else
   echo $LINENO "$core_auth_script_path not found "
   exit 1
