@@ -308,13 +308,13 @@ async def search_benchmarks(
         must_clauses.append({"term": {"offload": offload}})
 
     # Execution context filters
-    # These are defined as 'keyword' type in the mapping template, so no .keyword suffix needed
+    # run_id and iteration_id are mapped as 'text' with .keyword subfield, so we need .keyword for exact match
     if execution_label:
         must_clauses.append({"term": {"execution_label": execution_label}})
     if run_id:
-        must_clauses.append({"term": {"run_id": run_id}})
+        must_clauses.append({"term": {"run_id.keyword": run_id}})
     if iteration_id:
-        must_clauses.append({"term": {"iteration_id": iteration_id}})
+        must_clauses.append({"term": {"iteration_id.keyword": iteration_id}})
 
     # Integer field filters (exact match or range)
     if threads is not None:
