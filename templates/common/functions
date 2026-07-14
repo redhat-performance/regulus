@@ -192,23 +192,69 @@ get_pp_policy() {
         | tr -d '[:space:]'
 }
 
-# Source numcpu.sh 
+# Source numcpu.sh
 source "$(dirname "${BASH_SOURCE[0]}")/numcpu.sh"
 
 # Returns the best routable IP for SSH use.
+#
+# On multi-homed hosts (e.g. lab bastions with a primary/lab NIC plus a
+# separate provisioning/machine-network NIC), naively asking "what's my
+# source IP to reach the internet" picks whichever interface holds the
+# default route -- which is frequently NOT the interface that the OCP/k8s
+# cluster's pod network can actually route back to.
+#
+# To avoid this, we first try to discover the cluster's real node IPs via
+# oc/kubectl and ask the kernel for the source IP used to reach THEM
+# specifically. That forces a match against the specific machine-network
+# route instead of falling through to the default route. This is fully
+# automatic -- no config var required -- and reflects the cluster's live
+# node set rather than a possibly-stale hardcoded value.
+#
+# Falls back to $OCP_WORKER_0 (if set) and finally to the original
+# internet-probe behavior so nothing regresses for environments without a
+# reachable cluster at call time (e.g. non-k8s/remotehost-only runs, or
+# calls that happen before the cluster/KUBECONFIG is up).
+#
 # Prefers IPv4, falls back to global IPv6, never returns link-local (fe80::).
 get_local_routable_ip() {
     local ip
+    local node_ips
+    local candidate
+    local k8s_bin
 
-    # 1. Try IPv4 first (preferred for SSH)
-    ip=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/ { print $7; exit }')
+    # 1. Discover actual cluster node IPs via oc/kubectl, then find the local
+    #    source IP that's actually on-link with them.
+    k8s_bin=$(command -v oc 2>/dev/null || command -v kubectl 2>/dev/null)
+
+    if [ -n "$k8s_bin" ]; then
+        node_ips=$("$k8s_bin" get nodes --request-timeout=10s \
+            -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null)
+
+        for candidate in $node_ips; do
+            ip=$(ip route get "$candidate" 2>/dev/null | awk '/src/ { for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit} }')
+            [ -n "$ip" ] && echo "$ip" && return 0
+
+            ip=$(ip -6 route get "$candidate" 2>/dev/null | awk '/src/ { for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit} }')
+            [ -n "$ip" ] && echo "$ip" && return 0
+        done
+    fi
+
+    # 2. Fallback: statically configured worker, in case oc/kubectl isn't
+    #    usable yet at this point in the run (no KUBECONFIG, API unreachable)
+    if [ -n "$OCP_WORKER_0" ]; then
+        ip=$(ip route get "$OCP_WORKER_0" 2>/dev/null | awk '/src/ { for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit} }')
+        [ -n "$ip" ] && echo "$ip" && return 0
+    fi
+
+    # 3. Try IPv4 internet probe (preferred for SSH)
+    ip=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/ { for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit} }')
     [ -n "$ip" ] && echo "$ip" && return 0
 
-    # 2. Fall back to global IPv6 (excludes fe80:: link-local)
-    ip=$(ip route get 2001:4860:4860::8888 2>/dev/null | awk '/src/ { print $7; exit }')
+    # 4. Fall back to global IPv6 (excludes fe80:: link-local)
+    ip=$(ip route get 2001:4860:4860::8888 2>/dev/null | awk '/src/ { for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit} }')
     [ -n "$ip" ] && echo "$ip" && return 0
 
-    # 3. Last resort - first global IPv6 from interfaces
+    # 5. Last resort - first global IPv6 from interfaces
     ip=$(ip -6 addr show scope global | awk '/inet6/ { print $2; exit }' | cut -d/ -f1)
     [ -n "$ip" ] && echo "$ip" && return 0
 
