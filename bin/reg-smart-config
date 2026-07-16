@@ -740,6 +740,26 @@ update_config_var "TREX_SRIOV_INTERFACE_2" "$TREX_SRIOV_INTERFACE_2" "$LAB_CONFI
 update_config_var "TREX_DPDK_NIC_MODEL" "$TREX_DPDK_NIC_MODEL" "$LAB_CONFIG"
 update_config_var "REM_DPDK_CONFIG" "false" "$LAB_CONFIG"
 
+# ElasticSearch configuration (for local development)
+# Prow writes these before running reg-smart-config, so they won't be overwritten
+if [ -z "$ES_PROTOCOL" ]; then
+    ES_PROTOCOL="http"
+fi
+if [ -z "$ES_HOST" ]; then
+    ES_HOST="localhost:9200"
+fi
+if [ -z "$ES_USER" ]; then
+    ES_USER=""
+fi
+if [ -z "$ES_PASSWORD" ]; then
+    ES_PASSWORD=""
+fi
+
+update_config_var "ES_PROTOCOL" "$ES_PROTOCOL" "$LAB_CONFIG"
+update_config_var "ES_HOST" "$ES_HOST" "$LAB_CONFIG"
+update_config_var "ES_USER" "$ES_USER" "$LAB_CONFIG"
+update_config_var "ES_PASSWORD" "$ES_PASSWORD" "$LAB_CONFIG"
+
 DPRINT $LINENO "Updated $LAB_CONFIG successfully. Backup saved as ${LAB_CONFIG}.bak"
 
 #EOF

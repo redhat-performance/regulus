@@ -7,6 +7,9 @@
 #   ./run_es.sh              # Full workflow (setup + upload)
 #   ./run_es.sh --setup-only # Only setup (template + ILM), skip upload
 #   ./run_es.sh --skip-setup # Only upload, skip setup
+#
+# Run env: Runs on the Crucible controller (which is on the bastion in Prow CI environments)
+#
 
 set -e  # Exit on error
 set -u  # Exit on undefined variable
@@ -50,72 +53,55 @@ REG_ROOT="${REG_ROOT:-$(cd "$(dirname "$0")" && pwd)}"
 echo "REG_ROOT: $REG_ROOT"
 
 # ============================================================================
-# ES Configuration Determination (OUTSIDE REPORT/)
+# ES Configuration (from lab.config)
 # ============================================================================
 
-# Note: Do NOT initialize ES_URL here - check if it's already set from environment
+# Source lab.config (single source of truth)
+if [ ! -f "$REG_ROOT/lab.config" ]; then
+    echo "ERROR: $REG_ROOT/lab.config not found"
+    echo "  Run: bash bin/reg-smart-config"
+    exit 1
+fi
+
+source "$REG_ROOT/lab.config"
+
+# Validate required ES variables
+if [ -z "${ES_PROTOCOL:-}" ] || [ -z "${ES_HOST:-}" ]; then
+    echo "ERROR: lab.config must define ES_PROTOCOL and ES_HOST"
+    echo "  Run: bash bin/reg-smart-config"
+    exit 1
+fi
+
+# Build ES_URL with proper URL encoding for special characters in passwords
+if [ -n "${ES_USER:-}" ] && [ -n "${ES_PASSWORD:-}" ]; then
+    # Use Python to URL-encode credentials (handles special chars like !:@#$%)
+    ES_URL=$(python3 -c "
+import urllib.parse
+user = '''${ES_USER}'''
+pwd = '''${ES_PASSWORD}'''
+print('${ES_PROTOCOL}://' + urllib.parse.quote(user, safe='') + ':' + urllib.parse.quote(pwd, safe='') + '@${ES_HOST}')
+")
+else
+    ES_URL="${ES_PROTOCOL}://${ES_HOST}"
+fi
+
+# Set ES_INDEX if not already set
 ES_INDEX="${ES_INDEX:-regulus-results}"
 
-# Priority 1: ES_URL directly provided (simplest case)
-if [ -n "${ES_URL:-}" ]; then
-    echo "Mode: Using ES_URL from environment variable"
-    # ES_URL already set, nothing to do
-
-# Priority 2: ci-tools (Prow) secrets (production)
-elif [ -d "/secret" ]; then
-    echo "Mode: Production - Reading credentials from /secret/*"
-    ES_USER=$(cat /secret/username 2>/dev/null || echo "")
-    ES_PASSWORD=$(cat /secret/password 2>/dev/null || echo "")
-    ES_HOST=$(cat /secret/host 2>/dev/null || echo "")
-
-    if [ -z "$ES_HOST" ]; then
-        echo "ERROR: /secret/host is empty or not readable"
-        exit 1
-    fi
-
-    # Build ES_URL (production always uses HTTPS)
-    if [ -n "$ES_USER" ] && [ -n "$ES_PASSWORD" ]; then
-        ES_URL="https://${ES_USER}:${ES_PASSWORD}@${ES_HOST}"
-    else
-        ES_URL="https://${ES_HOST}"
-    fi
-
-# Priority 3: lab.config (development/testing)
-elif [ -f "$REG_ROOT/lab.config" ]; then
-    echo "Mode: Development - Reading ES_URL from lab.config"
-    source "$REG_ROOT/lab.config"
-
-    # lab.config must provide ES_URL directly
-    if [ -z "${ES_URL:-}" ]; then
-        echo "ERROR: lab.config must define ES_URL"
-        echo "  Example: ES_URL=\"https://user:password@host.example.com\""
-        exit 1
-    fi
-
-# No credentials available
+# Display configuration (sanitize credentials)
+if [ -n "${ES_USER:-}" ]; then
+    ES_URL_DISPLAY="${ES_PROTOCOL}://***:***@${ES_HOST}"
 else
-    echo "ERROR: No ES configuration found."
-    echo "  - No ES_URL environment variable"
-    echo "  - No /secret/ directory (Kubernetes secrets)"
-    echo "  - No $REG_ROOT/lab.config file"
-    exit 1
+    ES_URL_DISPLAY="${ES_URL}"
 fi
-
-# ============================================================================
-# Validate ES Configuration
-# ============================================================================
-
-if [ -z "$ES_URL" ]; then
-    echo "ERROR: ES_URL could not be determined"
-    exit 1
-fi
-
-# Extract host from ES_URL for display (hide credentials)
-ES_URL_DISPLAY=$(echo "$ES_URL" | sed -E 's|(https?://)([^:]+):([^@]+)@|\1***:***@|')
 
 echo "=============================================="
 echo "  ElasticSearch Configuration"
 echo "=============================================="
+echo "ES_PROTOCOL: $ES_PROTOCOL"
+echo "ES_HOST:     $ES_HOST"
+echo "ES_USER:     ${ES_USER:+***}"
+echo "ES_PASSWORD: ${ES_PASSWORD:+***}"
 echo "ES_URL:      $ES_URL_DISPLAY"
 echo "ES_INDEX:    $ES_INDEX"
 echo "=============================================="
@@ -128,7 +114,7 @@ export ES_INDEX
 # Navigate to build_report directory
 # ============================================================================
 
-cd "$REG_ROOT/REPORT/build_report"
+cd "$REG_ROOT/REPORT"
 
 # ============================================================================
 # Step 1: Check ES Connection
