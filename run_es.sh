@@ -99,12 +99,10 @@ echo "ES_HOST:     $ES_HOST"
 echo "ES_USER:     ${ES_USER:+***}"
 echo "ES_PASSWORD: ${ES_PASSWORD:+***}"
 echo "ES_URL:      $ES_URL_DISPLAY"
-echo "ES_INDEX:    $ES_INDEX"
 echo "=============================================="
 
 # Export for makefile
 export ES_URL
-export ES_INDEX
 
 # ============================================================================
 # Navigate to build_report directory
@@ -151,4 +149,4 @@ make es-upload || {
 # Success Summary
 # ============================================================================
 
-echo "✓ Upload complete to index: $ES_INDEX"
+echo "✓ Upload complete"
