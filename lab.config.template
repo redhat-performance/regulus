@@ -55,22 +55,24 @@ export REM_DPDK_CONFIG="false"
 #
 # ElasticSearch configuration for summary report upload
 #
-# Note: ES_INDEX is now hardcoded in REPORT/es_integration/es_config.py
+# Note: ES_INDEX is hardcoded in REPORT/es_integration/es_config.py
 # as 'regulus-results-*' to match the rollover index structure.
-# DO NOT change it unless you are an expert and understand the ISM/rollover architecture.
+# DO NOT change it unless you understand the ISM/rollover architecture.
+#
+# ES_URL is built automatically from the components below by run_es.sh
+# and the REPORT/makefile. You do NOT need to set ES_URL directly.
+#
+# For production/Prow: credentials come from /secret; these fields are not needed.
 #
 
-# For Regulus dev, use local ES server. 
-# export ES_URL="http://localhost:9200"
+# Protocol: "http" or "https"
+export ES_PROTOCOL=""
+# Host and port. Example: "my-es-server.example.com:9200"
+export ES_HOST=""
+# Credentials (leave empty for unauthenticated access)
+export ES_USER=""
+export ES_PASSWORD=""
 
-# For development http or https server
-# export ES_URL="https://$ES_USER:$ES_PASSWORD@$ES_HOST"
-
-# For production, the ci-tools/Prow/CPT invokes a chain: run_cpt.sh -> run_es.sh - run_es.sh constructs ES_URL from /secret
-# You do not need to define ES_URL here.
-
-# EXECUTION_LABEL is optional. A user-defined tag (i.e nighlty, weekly, EUS, nok, vz etc.) added to each document,
+# EXECUTION_LABEL is optional. A user-defined tag (i.e nightly, weekly, EUS, nok, vz etc.) added to each document.
 # export EXECUTION_LABEL="your-token"
-# 
-
 
