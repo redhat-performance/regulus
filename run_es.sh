@@ -36,7 +36,7 @@ for arg in "$@"; do
             echo ""
             echo "Options:"
             echo "  --setup-only  Only run one-time setup (template + ILM), skip upload"
-            echo "  --skip-setup  Skip one-time setup, only upload data"
+            echo "  --skip-setup  Skip ILM policy setup, only upload data (template still applied)"
             echo "  --help        Show this help message"
             echo ""
             echo "Default (no options): Run full workflow (setup + upload)"
@@ -74,19 +74,15 @@ fi
 
 # Build ES_URL with proper URL encoding for special characters in passwords
 if [ -n "${ES_USER:-}" ] && [ -n "${ES_PASSWORD:-}" ]; then
-    # Use Python to URL-encode credentials (handles special chars like !:@#$%)
-    ES_URL=$(python3 -c "
-import urllib.parse
-user = '''${ES_USER}'''
-pwd = '''${ES_PASSWORD}'''
+    ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" python3 -c "
+import os, urllib.parse
+user = os.environ['ES_USER']
+pwd = os.environ['ES_PASSWORD']
 print('${ES_PROTOCOL}://' + urllib.parse.quote(user, safe='') + ':' + urllib.parse.quote(pwd, safe='') + '@${ES_HOST}')
 ")
 else
     ES_URL="${ES_PROTOCOL}://${ES_HOST}"
 fi
-
-# Set ES_INDEX if not already set
-ES_INDEX="${ES_INDEX:-regulus-results}"
 
 # Display configuration (sanitize credentials)
 if [ -n "${ES_USER:-}" ]; then

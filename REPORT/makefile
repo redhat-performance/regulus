@@ -59,7 +59,7 @@ SOURCE_ES_CONFIG = \
 				exit 1; \
 			fi; \
 			if [ -n "$${ES_USER:-}" ] && [ -n "$${ES_PASSWORD:-}" ]; then \
-				ES_URL=$$(python3 -c "import urllib.parse; print('$${ES_PROTOCOL}://' + urllib.parse.quote('''$${ES_USER}''', safe='') + ':' + urllib.parse.quote('''$${ES_PASSWORD}''', safe='') + '@$${ES_HOST}')"); \
+				ES_URL=$$(ES_USER="$${ES_USER}" ES_PASSWORD="$${ES_PASSWORD}" python3 -c "import os, urllib.parse; print('$${ES_PROTOCOL}://' + urllib.parse.quote(os.environ['ES_USER'], safe='') + ':' + urllib.parse.quote(os.environ['ES_PASSWORD'], safe='') + '@$${ES_HOST}')"); \
 			else \
 				ES_URL="$${ES_PROTOCOL}://$${ES_HOST}"; \
 			fi; \
