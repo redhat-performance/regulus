@@ -54,8 +54,15 @@ SOURCE_ES_CONFIG = \
 	elif [ -f "$(REG_ROOT)/lab.config" ]; then \
 		. $(REG_ROOT)/lab.config; \
 		if [ -z "$${ES_URL:-}" ]; then \
-			echo "ERROR: lab.config must define ES_URL"; \
-			exit 1; \
+			if [ -z "$${ES_PROTOCOL:-}" ] || [ -z "$${ES_HOST:-}" ]; then \
+				echo "ERROR: lab.config must define ES_URL or (ES_PROTOCOL + ES_HOST)"; \
+				exit 1; \
+			fi; \
+			if [ -n "$${ES_USER:-}" ] && [ -n "$${ES_PASSWORD:-}" ]; then \
+				ES_URL=$$(ES_USER="$${ES_USER}" ES_PASSWORD="$${ES_PASSWORD}" python3 -c "import os, urllib.parse; print('$${ES_PROTOCOL}://' + urllib.parse.quote(os.environ['ES_USER'], safe='') + ':' + urllib.parse.quote(os.environ['ES_PASSWORD'], safe='') + '@$${ES_HOST}')"); \
+			else \
+				ES_URL="$${ES_PROTOCOL}://$${ES_HOST}"; \
+			fi; \
 		fi; \
 		export ES_URL; \
 	else \
@@ -250,7 +257,7 @@ es-template: es-check
 	echo "  Platform: $$PLATFORM"; \
 	echo "  Template: $$TEMPLATE_FILE"
 
-es-upload:
+es-upload: es-template
 	@if [ ! -f "$(GENERATED_DIR)/reports.ndjson" ]; then \
 		echo "reports.ndjson not found. Running 'make summary' to generate it..."; \
 		$(MAKE) summary; \
