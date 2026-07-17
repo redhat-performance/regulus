@@ -78,7 +78,7 @@ if [ -n "${ES_USER:-}" ] && [ -n "${ES_PASSWORD:-}" ]; then
 import os, urllib.parse
 user = os.environ['ES_USER']
 pwd = os.environ['ES_PASSWORD']
-print('${ES_PROTOCOL}://' + urllib.parse.quote(user, safe='') + ':' + urllib.parse.quote(pwd, safe='') + '@${ES_HOST}')
+print('${ES_PROTOCOL}://' + urllib.parse.quote(urllib.parse.unquote(user), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(pwd), safe='') + '@${ES_HOST}')
 ")
 else
     ES_URL="${ES_PROTOCOL}://${ES_HOST}"
