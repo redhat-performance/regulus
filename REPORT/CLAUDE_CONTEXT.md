@@ -15,12 +15,13 @@
 - **Write Alias**: `regulus-results-write` (upload target)
 - **Documents**: 471 total (2 batches)
 
-### Index Lifecycle Management (ISM)
+### Index Lifecycle Management (ISM) — Optional
+- **Requires**: `opensearch-index-management` plugin (pre-installed in Docker/RPM; absent in tar installs)
 - **Policy**: `regulus-ism-policy` (no-delete version for CCR compatibility)
 - **States**: hot → warm → replicated (NO delete phase)
-- **Status**: Active, rollover ready
 - **Rollover Conditions**: 30 days age or document count threshold
-- **Critical Setting**: `index.plugins.index_state_management.rollover_alias: "regulus-results-write"`
+- **Critical Setting**: `index.plugins.index_state_management.rollover_alias: "regulus-results-write"` (only set when ISM is available)
+- **Without ISM**: Index works as a plain growing index; data is unaffected; ISM can be added later
 
 ---
 
@@ -106,12 +107,18 @@
 
 ### Makefile (`REPORT/makefile`)
 Main entry point for all operations:
-- `make es-bootstrap-index`: Create rollover index with ISM policy
-- `make es-upload`: Upload data to ES
+- `make es-bootstrap-index`: Create rollover index (detects ISM plugin; works with or without it)
+- `make es-upload`: Upload data to ES (auto-creates index + write alias if not found)
 - `make es-full`: Complete workflow (summary → template → upload)
 - `make es-list-execution-labels`: List execution labels
 - `make es-ilm-explain`: Check ISM policy status
 - `make summary`: Generate reports (unflatten + flatten)
+
+### ISM Plugin (Optional)
+ISM (Index State Management) requires the `opensearch-index-management` plugin.
+- **Tar installs**: Plugin not included by default. Install with `bin/opensearch-plugin install opensearch-index-management`
+- **Docker/RPM/DEB installs**: Plugin is pre-installed
+- **Without ISM**: Index works as a plain growing index. No automatic rollover or lifecycle phases. Data is not affected — ISM can be added later without losing existing batches.
 
 ### Templates
 - `es_integration/opensearch_mapping_template.json`: OpenSearch template (with _meta docs)
@@ -134,14 +141,14 @@ Main entry point for all operations:
 ### Bootstrap New Index (Complete Setup)
 ```bash
 cd REPORT
-make es-bootstrap-index  # Creates index + ISM policy + template + write alias
+make es-bootstrap-index  # Creates index; applies ISM policy if plugin is available
 ```
 
 ### Upload Data
 ```bash
 cd REPORT
 make summary             # Generate report.json and reports.ndjson
-make es-upload          # Upload to ES via write alias
+make es-upload          # Upload to ES via write alias (auto-creates index if needed)
 ```
 
 ### Query Data (Fast - Use Container CLI)

@@ -47,7 +47,8 @@ SOURCE_ES_CONFIG = \
 			exit 1; \
 		fi; \
 		if [ -n "$$ES_USER" ] && [ -n "$$ES_PASSWORD" ]; then \
-			export ES_URL="https://$${ES_USER}:$${ES_PASSWORD}@$${ES_HOST}"; \
+			ES_URL=$$(ES_USER="$$ES_USER" ES_PASSWORD="$$ES_PASSWORD" python3 -c "import os, urllib.parse; print('https://' + urllib.parse.quote(os.environ['ES_USER'], safe='') + ':' + urllib.parse.quote(os.environ['ES_PASSWORD'], safe='') + '@$$ES_HOST')"); \
+			export ES_URL; \
 		else \
 			export ES_URL="https://$${ES_HOST}"; \
 		fi; \
@@ -264,6 +265,27 @@ es-upload: es-template
 	fi
 	@$(SOURCE_ES_CONFIG); \
 	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
+	ALIAS_EXISTS=$$(curl -s "$${ES_URL}/_cat/aliases/$(ES_WRITE_ALIAS)" 2>/dev/null | grep -c "$(ES_WRITE_ALIAS)" || true); \
+	INDEX_EXISTS=$$(curl -s "$${ES_URL}/_cat/indices/$(ES_WRITE_ALIAS)" 2>/dev/null | grep -c "$(ES_WRITE_ALIAS)" || true); \
+	if [ "$$ALIAS_EXISTS" = "0" ] && [ "$$INDEX_EXISTS" = "0" ]; then \
+		echo "Write target '$(ES_WRITE_ALIAS)' not found. Auto-creating index..."; \
+		BASE_INDEX_EXISTS=$$(curl -s "$${ES_URL}/_cat/indices/$(BASE_NAME)-000001" 2>/dev/null | grep -c "$(BASE_NAME)-000001" || true); \
+		if [ "$$BASE_INDEX_EXISTS" != "0" ]; then \
+			echo "ERROR: Index $(BASE_NAME)-000001 exists but write alias '$(ES_WRITE_ALIAS)' is missing."; \
+			echo "  Add the alias manually:"; \
+			echo "  curl -X POST \"\$$ES_URL/_aliases\" -H 'Content-Type: application/json' -d '{\"actions\":[{\"add\":{\"index\":\"$(BASE_NAME)-000001\",\"alias\":\"$(ES_WRITE_ALIAS)\",\"is_write_index\":true}}]}'"; \
+			exit 1; \
+		fi; \
+		RESPONSE=$$(curl -s -X PUT "$${ES_URL}/$(BASE_NAME)-000001" \
+			-H 'Content-Type: application/json' \
+			-d '{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}}'); \
+		if echo "$$RESPONSE" | grep -q '"error"'; then \
+			echo "ERROR: Failed to create index:"; \
+			echo "$$RESPONSE" | $(PYTHON) -m json.tool 2>/dev/null || echo "$$RESPONSE"; \
+			exit 1; \
+		fi; \
+		echo "✓ Created index $(BASE_NAME)-000001 with write alias $(ES_WRITE_ALIAS)"; \
+	fi; \
 	echo "Uploading reports to ElasticSearch..."; \
 	echo "  Source: $(GENERATED_DIR)/reports.ndjson"; \
 	echo "  ES URL: $$SAFE_URL"; \
@@ -468,16 +490,28 @@ es-ilm-policy: es-check
 	fi; \
 	eval "$$PLATFORM_VARS"; \
 	echo "Detected platform: $$PLATFORM (version $$VERSION)"; \
-	echo "Applying policy: $$POLICY_NAME"; \
-	echo ""; \
-	curl -X PUT "$${ES_URL}$${POLICY_ENDPOINT}/$${POLICY_NAME}" \
-		-H 'Content-Type: application/json' \
-		-d @$(ES_INTEGRATION_DIR)/$${POLICY_FILE} | $(PYTHON) -m json.tool; \
-	echo ""; \
-	echo "✓ Lifecycle policy applied successfully"; \
-	echo "  Platform: $$PLATFORM"; \
-	echo "  Policy: $$POLICY_NAME"; \
-	echo "  Phases: hot (30d) -> warm (7d) -> cold (30d) -> delete (90d)"
+	HAS_ISM=$$(curl -s "$${ES_URL}/_cat/plugins" 2>/dev/null | grep -c "opensearch-index-management" || true); \
+	if [ "$$PLATFORM" = "opensearch" ] && [ "$$HAS_ISM" = "0" ]; then \
+		echo "⚠ SKIPPED: ISM plugin (opensearch-index-management) not installed."; \
+		echo "  Install the plugin and retry, or operate without lifecycle management."; \
+	else \
+		echo "Applying policy: $$POLICY_NAME"; \
+		echo ""; \
+		RESPONSE=$$(curl -s -X PUT "$${ES_URL}$${POLICY_ENDPOINT}/$${POLICY_NAME}" \
+			-H 'Content-Type: application/json' \
+			-d @$(ES_INTEGRATION_DIR)/$${POLICY_FILE}); \
+		if echo "$$RESPONSE" | grep -q '"error"'; then \
+			echo "ERROR: Failed to apply lifecycle policy:"; \
+			echo "$$RESPONSE" | $(PYTHON) -m json.tool 2>/dev/null || echo "$$RESPONSE"; \
+			exit 1; \
+		fi; \
+		echo "$$RESPONSE" | $(PYTHON) -m json.tool 2>/dev/null || echo "$$RESPONSE"; \
+		echo ""; \
+		echo "✓ Lifecycle policy applied successfully"; \
+		echo "  Platform: $$PLATFORM"; \
+		echo "  Policy: $$POLICY_NAME"; \
+		echo "  Phases: hot (30d) -> warm (7d) -> cold (30d) -> delete (90d)"; \
+	fi
 
 es-ilm-policy-no-delete: es-check
 	@$(SOURCE_ES_CONFIG); \
@@ -491,24 +525,34 @@ es-ilm-policy-no-delete: es-check
 	fi; \
 	eval "$$PLATFORM_VARS"; \
 	echo "Detected platform: $$PLATFORM (version $$VERSION)"; \
-	echo "Applying policy: $$POLICY_NAME"; \
-	echo ""; \
-	if [ "$$PLATFORM" = "opensearch" ]; then \
-		POLICY_FILE_NO_DELETE="opensearch_ism_policy_no_delete.json"; \
-	else \
+	HAS_ISM=$$(curl -s "$${ES_URL}/_cat/plugins" 2>/dev/null | grep -c "opensearch-index-management" || true); \
+	if [ "$$PLATFORM" = "opensearch" ] && [ "$$HAS_ISM" = "0" ]; then \
+		echo "⚠ SKIPPED: ISM plugin (opensearch-index-management) not installed."; \
+		echo "  Install the plugin and retry, or operate without lifecycle management."; \
+	elif [ "$$PLATFORM" != "opensearch" ]; then \
 		echo "ERROR: No-delete policy currently only available for OpenSearch"; \
 		echo "For ElasticSearch, manually edit es_ilm_policy.json to remove delete phase"; \
 		exit 1; \
-	fi; \
-	curl -X PUT "$${ES_URL}$${POLICY_ENDPOINT}/$${POLICY_NAME}" \
-		-H 'Content-Type: application/json' \
-		-d @$(ES_INTEGRATION_DIR)/$${POLICY_FILE_NO_DELETE} | $(PYTHON) -m json.tool; \
-	echo ""; \
-	echo "✓ Lifecycle policy applied successfully (NO DELETION)"; \
-	echo "  Platform: $$PLATFORM"; \
-	echo "  Policy: $$POLICY_NAME"; \
-	echo "  Phases: hot (30d) -> warm (7d) -> cold (30d)"; \
-	echo "  NOTE: No delete phase - data retained permanently for CCR"
+	else \
+		POLICY_FILE_NO_DELETE="opensearch_ism_policy_no_delete.json"; \
+		echo "Applying policy: $$POLICY_NAME"; \
+		echo ""; \
+		RESPONSE=$$(curl -s -X PUT "$${ES_URL}$${POLICY_ENDPOINT}/$${POLICY_NAME}" \
+			-H 'Content-Type: application/json' \
+			-d @$(ES_INTEGRATION_DIR)/$${POLICY_FILE_NO_DELETE}); \
+		if echo "$$RESPONSE" | grep -q '"error"'; then \
+			echo "ERROR: Failed to apply lifecycle policy:"; \
+			echo "$$RESPONSE" | $(PYTHON) -m json.tool 2>/dev/null || echo "$$RESPONSE"; \
+			exit 1; \
+		fi; \
+		echo "$$RESPONSE" | $(PYTHON) -m json.tool 2>/dev/null || echo "$$RESPONSE"; \
+		echo ""; \
+		echo "✓ Lifecycle policy applied successfully (NO DELETION)"; \
+		echo "  Platform: $$PLATFORM"; \
+		echo "  Policy: $$POLICY_NAME"; \
+		echo "  Phases: hot (30d) -> warm (7d) -> cold (30d)"; \
+		echo "  NOTE: No delete phase - data retained permanently for CCR"; \
+	fi
 
 es-ilm-info: es-check
 	@$(SOURCE_ES_CONFIG); \
@@ -540,7 +584,7 @@ es-ilm-explain: es-check
 	echo ""; \
 	curl -s "$${ES_URL}$${POLICY_EXPLAIN_PREFIX}$(ES_INDEX)$${POLICY_EXPLAIN_SUFFIX}" | $(PYTHON) -m json.tool 2>/dev/null || echo "Index does not exist or lifecycle management not enabled yet"
 
-es-bootstrap-index: es-check es-ilm-policy-no-delete es-template
+es-bootstrap-index: es-check es-template
 	@$(SOURCE_ES_CONFIG); \
 	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
 	echo "=========================================="; \
@@ -554,13 +598,34 @@ es-bootstrap-index: es-check es-ilm-policy-no-delete es-template
 	echo "Write alias: $(ES_WRITE_ALIAS)"; \
 	echo "URL: $$SAFE_URL"; \
 	echo ""; \
-	curl -X PUT "$${ES_URL}/$(BASE_NAME)-000001" \
+	HAS_ISM=$$(curl -s "$${ES_URL}/_cat/plugins" 2>/dev/null | grep -c "opensearch-index-management" || true); \
+	if [ "$$HAS_ISM" != "0" ]; then \
+		echo "ISM plugin detected. Applying lifecycle policy..."; \
+		$(MAKE) es-ilm-policy-no-delete; \
+		INDEX_BODY='{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}, "settings": {"index.plugins.index_state_management.rollover_alias": "$(ES_WRITE_ALIAS)"}}'; \
+	else \
+		echo "NOTE: ISM plugin not installed. Creating index without lifecycle management."; \
+		echo "      To add ISM later, install opensearch-index-management plugin and run 'make es-ilm-policy-no-delete'"; \
+		INDEX_BODY='{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}}'; \
+	fi; \
+	RESPONSE=$$(curl -s -X PUT "$${ES_URL}/$(BASE_NAME)-000001" \
 		-H 'Content-Type: application/json' \
-		-d '{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}, "settings": {"index.plugins.index_state_management.rollover_alias": "$(ES_WRITE_ALIAS)"}}' | $(PYTHON) -m json.tool; \
+		-d "$$INDEX_BODY"); \
+	if echo "$$RESPONSE" | grep -q '"error"'; then \
+		echo "ERROR: Failed to create index:"; \
+		echo "$$RESPONSE" | $(PYTHON) -m json.tool 2>/dev/null || echo "$$RESPONSE"; \
+		exit 1; \
+	fi; \
+	echo "$$RESPONSE" | $(PYTHON) -m json.tool 2>/dev/null || echo "$$RESPONSE"; \
 	echo ""; \
 	echo "✓ Bootstrapped index created successfully"; \
 	echo "  Write index: $(BASE_NAME)-000001"; \
 	echo "  Write alias: $(ES_WRITE_ALIAS)"; \
+	if [ "$$HAS_ISM" != "0" ]; then \
+		echo "  ISM policy: regulus-ism-policy (attached)"; \
+	else \
+		echo "  ISM policy: none (plugin not installed)"; \
+	fi; \
 	echo ""; \
 	echo "NOTE: Upload to '$(ES_WRITE_ALIAS)' alias, not directly to $(BASE_NAME)-000001"
 

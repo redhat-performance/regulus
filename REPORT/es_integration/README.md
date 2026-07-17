@@ -99,7 +99,9 @@ with open('elasticsearch/es_mapping_template.json') as f:
 
 ## Index Lifecycle Management (ISM)
 
-The regulus indices use OpenSearch ISM (Index State Management) for automated lifecycle policies.
+ISM (Index State Management) is **optional**. It requires the `opensearch-index-management` plugin, which is pre-installed in Docker/RPM/DEB distributions but **not included** in tar installs.
+
+Without ISM, everything still works — you get a plain growing index with no automatic rollover or lifecycle phases. ISM can be added later without affecting existing data.
 
 ### Rollover Index Structure
 
@@ -108,9 +110,25 @@ Data is stored in rollover indices:
 - **Read pattern**: `regulus-results-*` (queries all rollover indices)
 - **Index naming**: `regulus-results-000001`, `regulus-results-000002`, etc.
 
+### Auto-Create on Upload
+
+`make es-upload` checks if the write alias/index exists before uploading. If neither is found, it auto-creates `regulus-results-000001` with the `regulus-results-write` write alias. This means uploads work on a completely fresh OpenSearch with no prior setup.
+
+### ISM Plugin Detection
+
+The makefile targets (`es-bootstrap-index`, `es-ilm-policy`, `es-ilm-policy-no-delete`) detect whether the ISM plugin is installed by querying `_cat/plugins`. Behavior:
+- **ISM available**: Full index creation with rollover alias setting and ISM policy attachment
+- **ISM not available**: Plain index creation, ISM targets print a skip message
+
+To install the ISM plugin on a tar distribution:
+```bash
+bin/opensearch-plugin install opensearch-index-management
+# Then restart OpenSearch
+```
+
 ### ISM Policy
 
-The `regulus-ism-policy` manages index lifecycle:
+The `regulus-ism-policy` manages index lifecycle (when ISM is available):
 
 **Rollover conditions (ANY triggers):**
 - 5,000 documents OR
