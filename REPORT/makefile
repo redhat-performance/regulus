@@ -276,9 +276,15 @@ es-upload: es-template
 			echo "  curl -X POST \"\$$ES_URL/_aliases\" -H 'Content-Type: application/json' -d '{\"actions\":[{\"add\":{\"index\":\"$(BASE_NAME)-000001\",\"alias\":\"$(ES_WRITE_ALIAS)\",\"is_write_index\":true}}]}'"; \
 			exit 1; \
 		fi; \
+		HAS_ISM=$$(curl -s "$${ES_URL}/_cat/plugins" 2>/dev/null | grep -c "opensearch-index-management" || true); \
+		if [ "$$HAS_ISM" != "0" ]; then \
+			INDEX_BODY='{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}, "settings": {"index.plugins.index_state_management.rollover_alias": "$(ES_WRITE_ALIAS)"}}'; \
+		else \
+			INDEX_BODY='{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}}'; \
+		fi; \
 		RESPONSE=$$(curl -s -X PUT "$${ES_URL}/$(BASE_NAME)-000001" \
 			-H 'Content-Type: application/json' \
-			-d '{"aliases": {"$(ES_WRITE_ALIAS)": {"is_write_index": true}}}'); \
+			-d "$$INDEX_BODY"); \
 		if echo "$$RESPONSE" | grep -q '"error"'; then \
 			echo "ERROR: Failed to create index:"; \
 			echo "$$RESPONSE" | $(PYTHON) -m json.tool 2>/dev/null || echo "$$RESPONSE"; \
