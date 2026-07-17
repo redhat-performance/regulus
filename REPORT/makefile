@@ -266,11 +266,11 @@ es-upload: es-template
 	@$(SOURCE_ES_CONFIG); \
 	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
 	ALIAS_EXISTS=$$(curl -s "$${ES_URL}/_cat/aliases/$(ES_WRITE_ALIAS)" 2>/dev/null | grep -c "$(ES_WRITE_ALIAS)" || true); \
-	INDEX_EXISTS=$$(curl -s "$${ES_URL}/_cat/indices/$(ES_WRITE_ALIAS)" 2>/dev/null | grep -c "$(ES_WRITE_ALIAS)" || true); \
-	if [ "$$ALIAS_EXISTS" = "0" ] && [ "$$INDEX_EXISTS" = "0" ]; then \
+	INDEX_EXISTS=$$(curl -s -o /dev/null -w '%{http_code}' "$${ES_URL}/_cat/indices/$(ES_WRITE_ALIAS)" 2>/dev/null); \
+	if [ "$$ALIAS_EXISTS" = "0" ] && [ "$$INDEX_EXISTS" != "200" ]; then \
 		echo "Write target '$(ES_WRITE_ALIAS)' not found. Auto-creating index..."; \
-		BASE_INDEX_EXISTS=$$(curl -s "$${ES_URL}/_cat/indices/$(BASE_NAME)-000001" 2>/dev/null | grep -c "$(BASE_NAME)-000001" || true); \
-		if [ "$$BASE_INDEX_EXISTS" != "0" ]; then \
+		BASE_INDEX_EXISTS=$$(curl -s -o /dev/null -w '%{http_code}' "$${ES_URL}/_cat/indices/$(BASE_NAME)-000001" 2>/dev/null); \
+		if [ "$$BASE_INDEX_EXISTS" = "200" ]; then \
 			echo "ERROR: Index $(BASE_NAME)-000001 exists but write alias '$(ES_WRITE_ALIAS)' is missing."; \
 			echo "  Add the alias manually:"; \
 			echo "  curl -X POST \"\$$ES_URL/_aliases\" -H 'Content-Type: application/json' -d '{\"actions\":[{\"add\":{\"index\":\"$(BASE_NAME)-000001\",\"alias\":\"$(ES_WRITE_ALIAS)\",\"is_write_index\":true}}]}'"; \
