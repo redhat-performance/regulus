@@ -160,6 +160,8 @@ function gen_resource_file() {
     fi
 }
 
+TPL_IPV=${TPL_IPV:-4}
+
 other_tags=""
 collect_more_tags() {
 	if [ "$TPL_PAO" == 1 ]; then
@@ -170,6 +172,7 @@ collect_more_tags() {
     fi
     other_tags+=",nic:$nic"
     other_tags+=",arch:$arch"
+    other_tags+=",ipv:$TPL_IPV"
 }
 
 # Generate pod groups for multi-engine pods
