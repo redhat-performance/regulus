@@ -103,8 +103,10 @@ if [ "$DURATION" != 0 ]; then
 	done
 fi
 
+TPL_IPV=${TPL_IPV:-4}
 tags+=",nic:$nic"
 tags+=",arch:$arch"
+tags+=",ipv:$TPL_IPV"
 
 ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\

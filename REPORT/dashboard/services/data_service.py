@@ -82,6 +82,7 @@ class DataService:
             'topo': request.args.get('topo'),
             'perf': request.args.get('perf'),
             'offload': request.args.get('offload'),
+            'ipv': request.args.get('ipv'),
             'threads': request.args.get('threads'),
             'pods_per_worker': request.args.get('pods_per_worker'),
             'scale_out_factor': request.args.get('scale_out_factor'),

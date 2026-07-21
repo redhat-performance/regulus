@@ -23,7 +23,8 @@
           "mean": "Mean throughput value",
           "stddev": "Standard deviation of throughput",
           "stddev_pct": "Standard deviation as percentage",
-          "unit": "Unit of measurement for throughput (e.g., Gbps, transactions-sec)"
+          "unit": "Unit of measurement for throughput (e.g., Gbps, transactions-sec)",
+          "ipv": "IP version (4 or 6)"
         }
       },
       "properties": {
@@ -76,6 +77,9 @@
           "type": "keyword"
         },
         "offload": {
+          "type": "keyword"
+        },
+        "ipv": {
           "type": "keyword"
         },
         "threads": {
