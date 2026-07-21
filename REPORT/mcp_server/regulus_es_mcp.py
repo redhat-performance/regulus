@@ -210,6 +210,7 @@ async def search_benchmarks(
     cpu: Optional[str] = None,
     performance_profile: Optional[str] = None,
     offload: Optional[str] = None,
+    ipv: Optional[str] = None,
     threads: Optional[int] = None,
     min_threads: Optional[int] = None,
     max_threads: Optional[int] = None,
@@ -252,6 +253,7 @@ async def search_benchmarks(
         cpu: Filter by CPU count (e.g., '4', '26', '52')
         performance_profile: Filter by performance profile (e.g., 'performance', 'latency-performance')
         offload: Filter by offload settings (e.g., 'on', 'off')
+        ipv: Filter by IP version ('4' or '6')
         threads: Exact thread count (e.g., 1, 32, 64)
         min_threads: Minimum thread count
         max_threads: Maximum thread count
@@ -306,6 +308,8 @@ async def search_benchmarks(
         must_clauses.append({"term": {"performance_profile": performance_profile}})
     if offload:
         must_clauses.append({"term": {"offload": offload}})
+    if ipv:
+        must_clauses.append({"term": {"ipv": ipv}})
 
     # Execution context filters
     # run_id and iteration_id are mapped as 'text' with .keyword subfield, so we need .keyword for exact match

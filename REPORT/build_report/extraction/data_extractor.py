@@ -386,7 +386,8 @@ class RegexDataExtractor:
             'pods-per-worker': 'None',
             'scale_out_factor': 'None',
             'topo': 'None',
-            'cpu': 'None'
+            'cpu': 'None',
+            'ipv': 'None'
         }
 
         # Parse tags string and update values if present

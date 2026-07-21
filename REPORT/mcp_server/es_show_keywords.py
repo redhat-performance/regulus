@@ -85,6 +85,7 @@ async def main():
         "cpu": "CPU Counts (--cpu)",
         "performance_profile": "Performance Profiles (--performance-profile)",
         "offload": "Offload Settings (--offload)",
+        "ipv": "IP Version (--ipv)",
         "threads": "Thread Counts (--threads)",
         "wsize": "Write Sizes (--wsize)",
         "rsize": "Read Sizes (--rsize)",
