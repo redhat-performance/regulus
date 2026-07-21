@@ -84,8 +84,10 @@ if [ "$DURATION" != 0 ]; then
 		sed -i 's/\({ "arg": "time", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
 	done
 fi
+TPL_IPV=${TPL_IPV:-4}
 tags+=",nic:$nic"
 tags+=",arch:$arch"
+tags+=",ipv:$TPL_IPV"
 
 ARGS=" --mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:1-2,uperf:3-4,uperf:5-6\

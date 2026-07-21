@@ -32,6 +32,7 @@ class BenchmarkResult:
     rcos: Optional[str] = None
     cpu: Optional[str] = None
     topo: Optional[str] = None
+    ipv: Optional[str] = None
     pods_per_worker: Optional[str] = None
     scale_out_factor: Optional[str] = None
 
@@ -337,6 +338,7 @@ class ReportLoader:
                         rcos=key_tags.get('rcos'),
                         cpu=key_tags.get('cpu'),
                         topo=key_tags.get('topo'),
+                        ipv=key_tags.get('ipv'),
                         pods_per_worker=key_tags.get('pods-per-worker'),
                         scale_out_factor=key_tags.get('scale_out_factor'),
 
