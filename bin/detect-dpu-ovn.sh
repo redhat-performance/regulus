@@ -141,8 +141,14 @@ detect_dpu_ovn() {
     echo "DEBUG: Selected node for OVN/bond detection: $worker_node (using MATCH=$MATCH, MATCH_NOT_1=$MATCH_NOT_1, MATCH_NOT_2=$MATCH_NOT_2)" >&2
 
     # Get worker node IP
+    # Dual-stack: prefer IPv4; IPv6-only: use IPv6
     local jq_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))'
     local worker_ip=$(do_ssh $dest "oc get node $worker_node -o json | jq -r '$jq_cmd'")
+    if [[ -z "$worker_ip" ]]; then
+        jq_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains(":"))'
+        worker_ip=$(do_ssh $dest "oc get node $worker_node -o json | jq -r '$jq_cmd'")
+        echo "DEBUG: IPv6 single-stack: $worker_node -> $worker_ip" >&2
+    fi
 
     if [[ -z "$worker_ip" ]]; then
         echo "ERROR: Could not get worker node IP for $worker_node" >&2
