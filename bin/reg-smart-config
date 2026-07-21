@@ -136,11 +136,14 @@ fi
 get_node_ip() {
     local node=$1
     DPRINT $LINENO "Getting IP address for node $node..."
-    # we may have both ipv4 and v6 if dual stack. Take ipv4
-    # local ip=$(do_ssh $DEST "oc get node $node -o json | jq -r '.status.addresses[] | select(.type=="InternalIP" and (.address | test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))) | .address'")
-
-    local jq_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))'
-    local ip=$(do_ssh $DEST "oc get node $node -o json | jq -r '$jq_cmd'")
+    # Dual-stack: prefer IPv4; IPv6-only: use IPv6
+    local ipv4_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains("."))'
+    local ip=$(do_ssh $DEST "oc get node $node -o json | jq -r '$ipv4_cmd'")
+    if [ -z "$ip" ]; then
+        local ipv6_cmd='.status.addresses[] | select(.type=="InternalIP") | .address | select(contains(":"))'
+        ip=$(do_ssh $DEST "oc get node $node -o json | jq -r '$ipv6_cmd'")
+        INFO $LINENO "IPv6 single-stack: $node -> $ip"
+    fi
     if [ -z "$ip" ]; then
         exit_error $LINENO "Could not get IP address for node $node"
     fi
