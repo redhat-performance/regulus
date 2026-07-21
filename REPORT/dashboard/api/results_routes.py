@@ -45,6 +45,7 @@ def init_results_routes(data_service, aggregation_service):
                 'arch': r.arch,
                 'perf': r.perf,
                 'offload': r.offload,
+                'ipv': r.ipv,
                 'kernel': r.kernel,
                 'rcos': r.rcos,
                 'cpu': r.cpu,

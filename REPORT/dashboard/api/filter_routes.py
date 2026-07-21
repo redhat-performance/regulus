@@ -21,7 +21,7 @@ def init_filter_routes(data_service):
         filters = {}
         filter_fields = [
             'benchmark', 'model', 'nic', 'arch', 'protocol', 'test_type', 'cpu',
-            'kernel', 'rcos', 'topo', 'perf', 'offload', 'threads',
+            'kernel', 'rcos', 'topo', 'perf', 'offload', 'ipv', 'threads',
             'pods_per_worker', 'scale_out_factor', 'wsize'
         ]
 
@@ -83,7 +83,7 @@ def init_filter_routes(data_service):
         # IMPORTANT: For each field, exclude that field from filtering so users can change their selection
         filter_fields = [
             'benchmark', 'model', 'nic', 'arch', 'protocol', 'test_type', 'cpu',
-            'kernel', 'rcos', 'topo', 'perf', 'offload', 'threads',
+            'kernel', 'rcos', 'topo', 'perf', 'offload', 'ipv', 'threads',
             'pods_per_worker', 'scale_out_factor', 'wsize'
         ]
 

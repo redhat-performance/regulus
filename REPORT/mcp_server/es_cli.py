@@ -73,6 +73,7 @@ Environment Variables:
     search_parser.add_argument('--cpu', help='CPU count')
     search_parser.add_argument('--performance-profile', dest='performance_profile', help='Performance profile')
     search_parser.add_argument('--offload', help='Offload setting (on, off)')
+    search_parser.add_argument('--ipv', help='IP version (4, 6)')
     search_parser.add_argument('--threads', type=int, help='Exact thread count')
     search_parser.add_argument('--min-threads', dest='min_threads', type=int, help='Minimum thread count')
     search_parser.add_argument('--max-threads', dest='max_threads', type=int, help='Maximum thread count')
@@ -145,6 +146,7 @@ Environment Variables:
                 cpu=args.cpu,
                 performance_profile=args.performance_profile,
                 offload=args.offload,
+                ipv=args.ipv,
                 threads=args.threads,
                 min_threads=args.min_threads,
                 max_threads=args.max_threads,

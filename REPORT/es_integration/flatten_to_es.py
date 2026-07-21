@@ -83,6 +83,7 @@ class ESDocumentFlattener:
             "topology": result.topo,
             "performance_profile": result.perf,
             "offload": result.offload,
+            "ipv": result.ipv,
             "threads": result.threads,
             "wsize": result.wsize,
             "rsize": result.rsize,

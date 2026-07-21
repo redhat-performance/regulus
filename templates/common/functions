@@ -268,8 +268,28 @@ get_local_routable_ip() {
 resolve_ssh_host() {
     local target_host="$1"
     local resolved
+    local local_hostname
+    local target_ip
 
-    if [ "$(hostname 2>/dev/null)" == "$target_host" ]; then
+    local_hostname=$(hostname 2>/dev/null)
+
+    # Check if target is this machine: short hostname, FQDN, target's
+    # FQDN starts with our short hostname, or target resolves to a local IP
+    local is_local=false
+    if [ "$local_hostname" == "$target_host" ]; then
+        is_local=true
+    elif [ "$(hostname -f 2>/dev/null)" == "$target_host" ]; then
+        is_local=true
+    elif [[ "$target_host" == "${local_hostname}."* ]]; then
+        is_local=true
+    else
+        target_ip=$(getent ahosts "$target_host" 2>/dev/null | awk '{print $1}' | head -1)
+        if [ -n "$target_ip" ] && ip addr show 2>/dev/null | grep -qw "$target_ip"; then
+            is_local=true
+        fi
+    fi
+
+    if $is_local; then
         resolved=$(get_local_routable_ip) || return 1
     else
         resolved="$target_host"

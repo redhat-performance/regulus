@@ -79,8 +79,10 @@ arch=$(tb-get-cpu-model $OCP_WORKER_0 ) || { echo "ERROR: Failed to get CPU mode
 [[ -z "$arch" ]] && { echo "ERROR: CPU model is empty" >&2; exit 1; }
 
 
+TPL_IPV=${TPL_IPV:-4}
 tags+=",nic:$nic"
 tags+=",arch:$arch"
+tags+=",ipv:$TPL_IPV"
 SYSINFO=",sysinfo:false"
 
 ARGS=" --tags $tags \

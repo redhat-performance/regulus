@@ -134,6 +134,7 @@ async function loadFilters() {
         populateSelect('filterTopo', filterOptions.topo || []);
         populateSelect('filterPerf', filterOptions.perf || []);
         populateSelect('filterOffload', filterOptions.offload || []);
+        populateSelect('filterIpv', filterOptions.ipv || []);
 
         // Populate filter dropdowns - Row 3
         populateSelect('filterThreads', filterOptions.threads || []);
@@ -153,7 +154,7 @@ function setupDynamicFilters() {
     const filterIds = [
         'filterBenchmark', 'filterModel', 'filterNic', 'filterArch',
         'filterProtocol', 'filterTestType', 'filterCpu', 'filterKernel',
-        'filterRcos', 'filterTopo', 'filterPerf', 'filterOffload',
+        'filterRcos', 'filterTopo', 'filterPerf', 'filterOffload', 'filterIpv',
         'filterThreads', 'filterScaleUp', 'filterScaleOut', 'filterWsize'
     ];
 
@@ -185,6 +186,7 @@ async function updateDynamicFilters() {
         populateSelect('filterTopo', dynamicOptions.topo || []);
         populateSelect('filterPerf', dynamicOptions.perf || []);
         populateSelect('filterOffload', dynamicOptions.offload || []);
+        populateSelect('filterIpv', dynamicOptions.ipv || []);
         populateSelect('filterThreads', dynamicOptions.threads || []);
         populateSelect('filterScaleUp', dynamicOptions.pods_per_worker || []);
         populateSelect('filterScaleOut', dynamicOptions.scale_out_factor || []);
@@ -304,6 +306,7 @@ function getCurrentFilters() {
         topo: getSelectValue('filterTopo'),
         perf: getSelectValue('filterPerf'),
         offload: getSelectValue('filterOffload'),
+        ipv: getSelectValue('filterIpv'),
         threads: getSelectValue('filterThreads'),
         pods_per_worker: getSelectValue('filterScaleUp'),
         scale_out_factor: getSelectValue('filterScaleOut'),
@@ -336,6 +339,7 @@ function restoreFilterState(filterState) {
         topo: 'filterTopo',
         perf: 'filterPerf',
         offload: 'filterOffload',
+        ipv: 'filterIpv',
         threads: 'filterThreads',
         pods_per_worker: 'filterScaleUp',
         scale_out_factor: 'filterScaleOut',
@@ -382,6 +386,7 @@ function applyRowFilters(result) {
         topo: 'filterTopo',
         perf: 'filterPerf',
         offload: 'filterOffload',
+        ipv: 'filterIpv',
         threads: 'filterThreads',
         pods_per_worker: 'filterScaleUp',
         scale_out_factor: 'filterScaleOut',
@@ -490,6 +495,7 @@ function buildChartTitleWithFilters(baseTitle) {
         topo: 'Topology',
         perf: 'Performance',
         offload: 'Offload',
+        ipv: 'IP Version',
         threads: 'Threads',
         pods_per_worker: 'Scale Up',
         scale_out_factor: 'Scale Out',
@@ -562,7 +568,7 @@ async function clearFilters() {
     const filterIds = [
         'filterBenchmark', 'filterModel', 'filterNic', 'filterArch',
         'filterProtocol', 'filterTestType', 'filterCpu', 'filterKernel',
-        'filterRcos', 'filterTopo', 'filterPerf', 'filterOffload',
+        'filterRcos', 'filterTopo', 'filterPerf', 'filterOffload', 'filterIpv',
         'filterThreads', 'filterScaleUp', 'filterScaleOut', 'filterWsize',
         'filterDateRange', 'filterReportFiles'
     ];
@@ -1668,6 +1674,7 @@ function renderResultsTable(results) {
             <td>${result.arch || '-'}</td>
             <td>${result.kernel || '-'}</td>
             <td>${result.model || '-'}</td>
+            <td>${result.ipv || '-'}</td>
             <td>${config}</td>
             <td>${result.cpu || '-'}</td>
             <td>${testTypeComposite}</td>
@@ -1682,7 +1689,7 @@ function renderResultsTable(results) {
     // Create fresh DataTable
     $('#resultsTable').DataTable({
         pageLength: 25,
-        order: [[11, 'desc']], // Sort by mean by default (column 11)
+        order: [[12, 'desc']], // Sort by mean by default (column 12)
         language: {
             search: "Search results:"
         }
