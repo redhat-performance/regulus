@@ -1,0 +1,3 @@
+requests
+pyyaml
+orion @ git+https://github.com/cloud-bulldozer/orion.git
