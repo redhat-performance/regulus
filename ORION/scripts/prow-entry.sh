@@ -54,7 +54,9 @@ CMD+=("--lookback" "${LOOKBACK:-90d}")
 [[ -n "${IGNORE:-}" ]] && CMD+=("--ignore" "${IGNORE}")
 [[ "${DEBUG:-false}" == "true" ]] && CMD+=("--debug")
 
-echo "Running: ${CMD[*]}"
+REDACTED_CMD="${CMD[*]}"
+REDACTED_CMD=$(echo "$REDACTED_CMD" | sed -E 's|https?://[^@]*@|https://***:***@|g')
+echo "Running: ${REDACTED_CMD}"
 echo ""
 
 # ── Run analysis ──────────────────────────────────────────────────────────────

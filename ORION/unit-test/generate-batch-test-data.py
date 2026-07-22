@@ -393,7 +393,7 @@ def main():
         url = f"{args.es_server}/_bulk"
         headers = {'Content-Type': 'application/x-ndjson'}
 
-        response = requests.post(url, data=bulk_body, headers=headers)
+        response = requests.post(url, data=bulk_body, headers=headers, timeout=60)
 
         if response.status_code == 200:
             result = response.json()
