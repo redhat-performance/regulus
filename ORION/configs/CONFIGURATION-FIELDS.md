@@ -292,8 +292,8 @@ See [README-REGULUS.md](./README-REGULUS.md#analysis-algorithms) for detailed co
 **Possible Causes**:
 
 1. **Wrong `direction` value**
-   - Solution: Use `direction: -1` for throughput/bandwidth tests
-   - Remember: `-1` means "lower is worse"
+   - Solution: Use `direction: 0` to detect changes in either direction
+   - Use `-1` (lower is worse) or `1` (higher is worse) for single-direction detection
 
 2. **`threshold` too high**
    - Solution: Lower threshold (try `5` instead of `10`)
@@ -344,7 +344,7 @@ tests:
     metrics:
       - name: throughput
         metric_of_interest: mean
-        direction: -1        # Lower throughput = regression
+        direction: 0         # Flag changes in either direction
         threshold: 5         # Ignore changes < 5%
         labels:
           - "[Jira: NETWORK-789]"
@@ -382,7 +382,7 @@ tests:
 | `unit` | Yes | Metadata | Metric unit filter | `"Gbps"`, `"trans-sec"`, etc. |
 | `name` | Yes | Metric | Metric identifier | `"throughput"` |
 | `metric_of_interest` | Yes | Metric | Value field | `"mean"` |
-| `direction` | Yes | Metric | Regression type | `-1` for throughput |
+| `direction` | Yes | Metric | Regression type | `0` (both directions) |
 | `threshold` | Yes | Metric | Min % change | `5` to `10` |
 
 ---
