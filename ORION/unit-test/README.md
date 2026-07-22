@@ -132,13 +132,11 @@ Plus Orion-required fields:
 - `@timestamp` - Timestamp field
 - `iteration_id` - UUID field
 - `batch_id` - Batch identifier
-- `mean`, `min`, `max`, `stddev`, `samples` - Performance metrics
+- `mean`, `min`, `max`, `stddev`, `sample_count`, `busy_cpu` - Performance metrics
 
 ## See Also
 
 - **README-BATCH-TEST.md** - Detailed batch test data documentation
 - **MAKEFILE-QUICK-REF.md** - Makefile targets reference
 - **../README.md** - Main README with Quick Start
-- **../FINGERPRINT-DEFINITION.md** - dynamic fingerprint reference
-- **../docs/QUICK-START-TESTING.md** - Testing workflow guide
-- **../docs/MOCK-DATA-GUIDE.md** - Mock data generation guide
+- **../FINGERPRINT-DEFINITION.md** - Dynamic fingerprint reference

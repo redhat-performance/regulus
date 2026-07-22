@@ -1003,7 +1003,7 @@ tests:
     metrics:
       - name: throughput
         metric_of_interest: mean
-        direction: 0            # Should be -1 for throughput
+        direction: 0            # Catches both directions; use -1 to flag only decreases
         threshold: 1            # Too sensitive for production
 ```
 
@@ -1012,8 +1012,7 @@ tests:
 2. Too many metadata filters (execution_label, batch_id, nic, threads)
    - Will return very few documents
    - Unreliable regression detection
-3. `direction: 0` for throughput - should be `-1` (lower is worse)
-4. `threshold: 1` too sensitive - should be 5-10 for production
+3. `threshold: 1` too sensitive - should be 5-10 for production
 
 **Fixed version:**
 ```yaml
@@ -1123,8 +1122,8 @@ Now that you understand config files, try:
 2. **Metadata section** defines WHICH data to analyze (filters)
 3. **Metrics section** defines WHAT to monitor (regressions)
 4. **Include minimal metadata** - only filter on meaningful categories
-5. **Use direction: -1** for performance metrics (throughput, bandwidth)
-6. **Use direction: 1** for overhead metrics (CPU, latency, errors)
+5. **Use direction: 0** to flag changes in either direction (Regulus default)
+6. **Use direction: -1 or 1** to flag only decreases or only increases
 7. **Set realistic thresholds** - 5-10% for production
 
 You're now ready to read, understand, and create Orion configuration files!
