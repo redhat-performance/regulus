@@ -126,7 +126,6 @@ ORION/
 ├── configs/
 │   ├── README.md                 # Config concepts
 │   └── CONFIG-TUTORIAL.md        # Orion config tutorial
-├── docs/                         # Additional documentation
 ├── Makefile                      # All targets (make help)
 ├── CLAUDE.md                     # Project reference for Claude Code sessions
 ├── FINGERPRINT-DEFINITION.md     # Fingerprint field definitions

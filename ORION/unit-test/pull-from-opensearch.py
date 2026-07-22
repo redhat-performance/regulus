@@ -54,7 +54,7 @@ def pull_from_opensearch(es_server, index_pattern, query=None, output_dir="gener
     print()
 
     # Execute search
-    response = requests.post(url, json=search_body, auth=auth)
+    response = requests.post(url, json=search_body, auth=auth, timeout=30)
 
     if response.status_code != 200:
         print(f"Error: HTTP {response.status_code}")

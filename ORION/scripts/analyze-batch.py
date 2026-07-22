@@ -50,6 +50,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 import os
 import subprocess
@@ -82,6 +83,7 @@ class BatchAnalyzer:
         self.ignore = ignore or set()
         self.lookback = lookback
         self.debug = debug
+        self.es_server_display = re.sub(r'https?://[^@]*@', lambda m: m.group(0).split('//')[0] + '//***:***@', es_server)
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.repo_root = os.path.dirname(self.script_dir)
 
@@ -132,10 +134,10 @@ class BatchAnalyzer:
 
         url = f"{self.es_server}/{self.es_index}/_mapping"
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=30)
             response.raise_for_status()
         except Exception as e:
-            print(f"❌ FATAL: Cannot retrieve ES mapping from {url}: {e}")
+            print(f"❌ FATAL: Cannot retrieve ES mapping: {e}")
             sys.exit(1)
 
         mapping_data = response.json()
@@ -158,7 +160,7 @@ class BatchAnalyzer:
     def discover_latest_batch(self) -> str:
         """Auto-discover the latest batch_id from Elasticsearch."""
         print(f"\n🔍 Auto-discovering latest batch...")
-        print(f"   Server: {self.es_server}")
+        print(f"   Server: {self.es_server_display}")
         print(f"   Index: {self.es_index}")
 
         query = {
@@ -181,7 +183,7 @@ class BatchAnalyzer:
         url = f"{self.es_server}/{self.es_index}/_search"
 
         try:
-            response = requests.post(url, json=query, headers={'Content-Type': 'application/json'})
+            response = requests.post(url, json=query, headers={'Content-Type': 'application/json'}, timeout=30)
             response.raise_for_status()
             result = response.json()
 
@@ -207,7 +209,7 @@ class BatchAnalyzer:
     def query_tests(self) -> List[Dict[str, Any]]:
         """Query Elasticsearch for tests (batch-based or match-based)."""
         print(f"\n📥 Querying ES for matching tests")
-        print(f"   Server: {self.es_server}")
+        print(f"   Server: {self.es_server_display}")
         print(f"   Index: {self.es_index}")
 
         # Build query based on batch_id and/or match criteria
@@ -239,7 +241,7 @@ class BatchAnalyzer:
         url = f"{self.es_server}/{self.es_index}/_search"
 
         try:
-            response = requests.post(url, json=query, headers={'Content-Type': 'application/json'})
+            response = requests.post(url, json=query, headers={'Content-Type': 'application/json'}, timeout=30)
             response.raise_for_status()
             result = response.json()
 
