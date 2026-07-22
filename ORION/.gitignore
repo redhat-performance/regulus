@@ -1,0 +1,60 @@
+# Orion output files
+output/
+generated-configs/
+generated-orion/
+
+# Local configuration
+.makerc
+*.csv
+*.json
+!unit-test/templates/*.json
+*.html
+*_table_*
+data-*
+hunter-results_*
+*-output.*
+viz-output_*
+regulus-report_*
+
+# Unit test generated files
+unit-test/generated/
+unit-test/generated/*.json
+unit-test/generated/*.ndjson
+*.status
+
+# Temporary files
+/tmp/
+*.log
+/tmp/*.sh
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Orion container artifacts
+.orion/
+unit-test/backup/
+
+# Secrets and credentials (defensive — prevent accidental commits)
+.env
+.env.*
+*.pem
+*.key
+*.cert
+*.p12
+id_rsa*
+credentials*
