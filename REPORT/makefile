@@ -38,10 +38,10 @@ SANITIZE_URL = sed -E 's|(https?://)([^:]+):([^@]+)@|\1***:***@|'
 SOURCE_ES_CONFIG = \
 	if [ -n "$${ES_URL:-}" ]; then \
 		export ES_URL; \
-	elif [ -d "/secret" ] && [ -s "/secret/host" ]; then \
+	elif [ -d "/secret" ] && ES_HOST_RAW=$$(cat /secret/host 2>/dev/null | tr -d '[:space:]') && [ -n "$$ES_HOST_RAW" ]; then \
 		ES_USER=$$(cat /secret/username 2>/dev/null || echo ""); \
 		ES_PASSWORD=$$(cat /secret/password 2>/dev/null || echo ""); \
-		ES_HOST=$$(cat /secret/host 2>/dev/null || echo ""); \
+		ES_HOST="$$ES_HOST_RAW"; \
 		if [ -n "$$ES_USER" ] && [ -n "$$ES_PASSWORD" ]; then \
 			ES_URL=$$(ES_USER="$$ES_USER" ES_PASSWORD="$$ES_PASSWORD" python3 -c "import os, urllib.parse; print('https://' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='') + '@$$ES_HOST')"); \
 			export ES_URL; \

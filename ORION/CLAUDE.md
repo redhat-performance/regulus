@@ -118,7 +118,7 @@ Three ways to test the regression analysis pipeline, from narrowest to most real
 | **Data setup** | Creates & pushes mock data | Expects data already in ES | Expects data already in ES |
 | **ES credentials** | `ES_SERVER` make var | `ES_SERVER` make var | Interactive prompt; creates mock `/secret/perfscale-prod` |
 | **Secrets simulation** | None | None | Creates `/tmp/prow-secret-perfscale-prod/` and symlinks to `/secret/perfscale-prod` |
-| **ES index** | `regulus-results-mock` | `regulus-results-mock` | `regulus-results-write` (production-like) |
+| **ES index** | `regulus-results-mock` | `regulus-results-mock` | `regulus-results-mock` |
 | **Validates results** | `validate-test-results.sh` | Checks `/tmp/prow-artifacts/` | Checks timestamped `ARTIFACT_DIR` |
 
 **Typical sequence:** run `test-full` first (generates + pushes mock data, validates analyzer), then `test-prow` (reuses same data, validates Prow bridge). Use `test-prow-step.sh` for full end-to-end Prow simulation.

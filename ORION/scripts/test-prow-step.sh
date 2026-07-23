@@ -35,8 +35,7 @@ export ORION_TAG="${ORION_TAG:-latest}"
 export BATCH_ID="${BATCH_ID}"
 export MATCH="${MATCH:-}"
 export IGNORE="${IGNORE:-}"
-#export ES_BENCHMARK_INDEX="${ES_BENCHMARK_INDEX:-regulus-results-mock}"
-export ES_BENCHMARK_INDEX="${ES_BENCHMARK_INDEX:-regulus-results-write}"
+export ES_BENCHMARK_INDEX="${ES_BENCHMARK_INDEX:-regulus-results-mock}"
 export LOOKBACK="${LOOKBACK:-90d}"
 export DEBUG="${DEBUG:-false}"
 
@@ -48,15 +47,36 @@ mkdir -p "$ARTIFACT_DIR"
 mkdir -p "$SHARED_DIR"
 
 # ── Mock Prow Secrets ──────────────────────────────────────────────────────────────
-SECRET_DIR="/tmp/prow-secret-perfscale-prod"
-mkdir -p "$SECRET_DIR"
+OLD_UMASK=$(umask)
+umask 077
+SECRET_DIR=$(mktemp -d /tmp/prow-secret-XXXXXXXX)
+umask "$OLD_UMASK"
+
+ORIG_SECRET_LINK=""
+cleanup() {
+    if [[ -n "$ORIG_SECRET_LINK" ]]; then
+        if [[ $EUID -eq 0 ]]; then
+            ln -sfn "$ORIG_SECRET_LINK" /secret/perfscale-prod
+        else
+            sudo ln -sfn "$ORIG_SECRET_LINK" /secret/perfscale-prod
+        fi
+    elif [[ -L "/secret/perfscale-prod" ]]; then
+        if [[ $EUID -eq 0 ]]; then
+            rm -f /secret/perfscale-prod
+        else
+            sudo rm -f /secret/perfscale-prod
+        fi
+    fi
+    rm -rf "$SECRET_DIR"
+}
+trap cleanup EXIT INT TERM
 
 if [[ -z "${ES_SERVER:-}" ]]; then
     echo "ES connection setup:"
-    read -p "ES Host (e.g., myhost:9200): " ES_HOST
-    read -p "ES Username (empty if no auth): " ES_USERNAME
+    read -rp "ES Host (e.g., myhost:9200): " ES_HOST
+    read -rp "ES Username (empty if no auth): " ES_USERNAME
     if [[ -n "$ES_USERNAME" ]]; then
-        read -sp "ES Password: " ES_PASSWORD
+        read -rsp "ES Password: " ES_PASSWORD
         echo ""
     else
         ES_PASSWORD=""
@@ -72,20 +92,25 @@ if [[ -z "${ES_SERVER:-}" ]]; then
     echo -n "$ES_PASSWORD" > "$SECRET_DIR/password"
 
     if [[ -n "$ES_USERNAME" ]] && [[ -n "$ES_PASSWORD" ]]; then
-        export ES_SERVER="https://${ES_USERNAME}:${ES_PASSWORD}@${ES_HOST}"
+        ENCODED_USER=$(ES_USERNAME="$ES_USERNAME" python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['ES_USERNAME'], safe=''))")
+        ENCODED_PASS=$(ES_PASSWORD="$ES_PASSWORD" python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['ES_PASSWORD'], safe=''))")
+        export ES_SERVER="https://${ENCODED_USER}:${ENCODED_PASS}@${ES_HOST}"
     else
         export ES_SERVER="http://${ES_HOST}"
     fi
 fi
 
 # Ensure /secret/perfscale-prod points to our mock secrets
+if [[ -L "/secret/perfscale-prod" ]]; then
+    ORIG_SECRET_LINK=$(readlink -f /secret/perfscale-prod)
+fi
 if [[ ! -e "/secret/perfscale-prod" ]] || [[ "$(readlink -f /secret/perfscale-prod 2>/dev/null)" != "$(readlink -f "$SECRET_DIR")" ]]; then
     if [[ $EUID -eq 0 ]]; then
         mkdir -p /secret
         ln -sfn "$SECRET_DIR" /secret/perfscale-prod
         echo "Created symlink /secret/perfscale-prod -> $SECRET_DIR"
     else
-        read -p "Create /secret/perfscale-prod symlink with sudo? (y/n): " CREATE_SYMLINK
+        read -rp "Create /secret/perfscale-prod symlink with sudo? (y/n): " CREATE_SYMLINK
         if [[ "$CREATE_SYMLINK" =~ ^[Yy] ]]; then
             sudo mkdir -p /secret
             sudo ln -sfn "$SECRET_DIR" /secret/perfscale-prod
@@ -126,7 +151,7 @@ echo ""
 echo "════════════════════════════════════════════════════════════════════════════════"
 echo ""
 
-read -p "▶️  Run openshift-qe-orion-regulus-commands.sh with this configuration? (y/n): " RUN_TEST
+read -rp "▶️  Run openshift-qe-orion-regulus-commands.sh with this configuration? (y/n): " RUN_TEST
 if [[ ! "$RUN_TEST" =~ ^[Yy] ]]; then
     echo "Cancelled."
     exit 0
@@ -141,9 +166,12 @@ echo ""
 # Get the directory where this script lives (step-registry location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Execute the commands.sh script
-"$SCRIPT_DIR/openshift-qe-orion-regulus-commands.sh"
-EXIT_CODE=$?
+# Execute the commands.sh script (nonzero exit is expected when regressions are found)
+if "$SCRIPT_DIR/openshift-qe-orion-regulus-commands.sh"; then
+    EXIT_CODE=0
+else
+    EXIT_CODE=$?
+fi
 
 echo ""
 echo "════════════════════════════════════════════════════════════════════════════════"
