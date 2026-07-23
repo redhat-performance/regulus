@@ -107,6 +107,26 @@ Mock data has 5 fingerprints (threads=16/32/64/128/256). Expected results: **2 s
 
 **Test expectations live in ONE place:** `scripts/validate-test-results.sh`. Both `make test-full` and `make verify-test` call it. Do not duplicate expectations elsewhere.
 
+## Testing Approaches Compared
+
+Three ways to test the regression analysis pipeline, from narrowest to most realistic:
+
+| | `make test-full` | `make test-prow` | `test-prow-step.sh` |
+|---|---|---|---|
+| **What it tests** | Analyzer directly | `prow-entry.sh` wrapper | Actual `commands.sh` that Prow runs |
+| **Calls** | `analyze-batch.py` | `prow-entry.sh` | `openshift-qe-orion-regulus-commands.sh` |
+| **Data setup** | Creates & pushes mock data | Expects data already in ES | Expects data already in ES |
+| **ES credentials** | `ES_SERVER` make var | `ES_SERVER` make var | Interactive prompt; creates mock `/secret/perfscale-prod` |
+| **Secrets simulation** | None | None | Creates `/tmp/prow-secret-perfscale-prod/` and symlinks to `/secret/perfscale-prod` |
+| **ES index** | `regulus-results-mock` | `regulus-results-mock` | `regulus-results-mock` |
+| **Validates results** | `validate-test-results.sh` | Checks `/tmp/prow-artifacts/` | Checks timestamped `ARTIFACT_DIR` |
+
+**Typical sequence:** run `test-full` first (generates + pushes mock data, validates analyzer), then `test-prow` (reuses same data, validates Prow bridge). Use `test-prow-step.sh` for full end-to-end Prow simulation.
+
+**`test-prow-step.sh` usage:** lives in `ORION/scripts/` but must be copied to the step-registry directory (`release/ci-operator/step-registry/openshift-qe/orion/regulus/`) to run, since it calls `commands.sh` from that location.
+
+**Note:** `test-prow-step.sh` creates `/secret/perfscale-prod` via symlink. This can cause `make es-*` commands in `REPORT/` to fail because `SOURCE_ES_CONFIG` sees `/secret/` and tries to read credentials from it instead of falling through to `lab.config`.
+
 ## Common Pitfalls
 
 - **`pip install orion`** installs the wrong package (epistimio/orion). Use `pip3 install git+https://github.com/cloud-bulldozer/orion.git`.
