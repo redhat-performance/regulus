@@ -53,51 +53,71 @@ REG_ROOT="${REG_ROOT:-$(cd "$(dirname "$0")" && pwd)}"
 echo "REG_ROOT: $REG_ROOT"
 
 # ============================================================================
-# ES Configuration (from lab.config)
+# ES Configuration
+# Priority: 1) ES_URL env  2) /secret/perfscale-prod  3) lab.config
 # ============================================================================
 
-# Source lab.config (single source of truth)
-if [ ! -f "$REG_ROOT/lab.config" ]; then
-    echo "ERROR: $REG_ROOT/lab.config not found"
-    echo "  Run: bash bin/reg-smart-config"
-    exit 1
-fi
+if [ -n "${ES_URL:-}" ]; then
+    # ES_URL already set by caller
+    ES_URL_DISPLAY=$(echo "$ES_URL" | sed -E 's|(https?://)([^:]+):([^@]+)@|\1***:***@|')
 
-source "$REG_ROOT/lab.config"
+elif [ -d "/secret/perfscale-prod" ] && [ -s "/secret/perfscale-prod/host" ]; then
+    # Prow environment: read from mounted secrets
+    ES_USER=$(cat /secret/perfscale-prod/username 2>/dev/null | tr -d '[:space:]')
+    ES_PASSWORD=$(cat /secret/perfscale-prod/password 2>/dev/null | tr -d '[:space:]')
+    ES_HOST=$(cat /secret/perfscale-prod/host 2>/dev/null | tr -d '[:space:]')
 
-# Validate required ES variables
-if [ -z "${ES_PROTOCOL:-}" ] || [ -z "${ES_HOST:-}" ]; then
-    echo "ERROR: lab.config must define ES_PROTOCOL and ES_HOST"
-    echo "  Run: bash bin/reg-smart-config"
-    exit 1
-fi
+    if [ -n "$ES_USER" ] && [ -n "$ES_PASSWORD" ]; then
+        ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" python3 -c "
+import os, urllib.parse
+user = os.environ['ES_USER']
+pwd = os.environ['ES_PASSWORD']
+print('https://' + urllib.parse.quote(urllib.parse.unquote(user), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(pwd), safe='') + '@$ES_HOST')
+")
+    else
+        ES_URL="https://${ES_HOST}"
+    fi
+    ES_URL_DISPLAY=$(echo "$ES_URL" | sed -E 's|(https?://)([^:]+):([^@]+)@|\1***:***@|')
 
-# Build ES_URL with proper URL encoding for special characters in passwords
-if [ -n "${ES_USER:-}" ] && [ -n "${ES_PASSWORD:-}" ]; then
-    ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" python3 -c "
+else
+    # Local/dev: read from lab.config
+    if [ ! -f "$REG_ROOT/lab.config" ]; then
+        echo "ERROR: No ES configuration found."
+        echo "  - No ES_URL environment variable"
+        echo "  - No /secret/perfscale-prod/ directory (Prow secrets)"
+        echo "  - No $REG_ROOT/lab.config file"
+        exit 1
+    fi
+
+    source "$REG_ROOT/lab.config"
+
+    if [ -z "${ES_PROTOCOL:-}" ] || [ -z "${ES_HOST:-}" ]; then
+        echo "ERROR: lab.config must define ES_PROTOCOL and ES_HOST"
+        echo "  Run: bash bin/reg-smart-config"
+        exit 1
+    fi
+
+    if [ -n "${ES_USER:-}" ] && [ -n "${ES_PASSWORD:-}" ]; then
+        ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" python3 -c "
 import os, urllib.parse
 user = os.environ['ES_USER']
 pwd = os.environ['ES_PASSWORD']
 print('${ES_PROTOCOL}://' + urllib.parse.quote(urllib.parse.unquote(user), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(pwd), safe='') + '@${ES_HOST}')
 ")
-else
-    ES_URL="${ES_PROTOCOL}://${ES_HOST}"
-fi
+    else
+        ES_URL="${ES_PROTOCOL}://${ES_HOST}"
+    fi
 
-# Display configuration (sanitize credentials)
-if [ -n "${ES_USER:-}" ]; then
-    ES_URL_DISPLAY="${ES_PROTOCOL}://***:***@${ES_HOST}"
-else
-    ES_URL_DISPLAY="${ES_URL}"
+    if [ -n "${ES_USER:-}" ]; then
+        ES_URL_DISPLAY="${ES_PROTOCOL}://***:***@${ES_HOST}"
+    else
+        ES_URL_DISPLAY="${ES_URL}"
+    fi
 fi
 
 echo "=============================================="
 echo "  ElasticSearch Configuration"
 echo "=============================================="
-echo "ES_PROTOCOL: $ES_PROTOCOL"
-echo "ES_HOST:     $ES_HOST"
-echo "ES_USER:     ${ES_USER:+***}"
-echo "ES_PASSWORD: ${ES_PASSWORD:+***}"
 echo "ES_URL:      $ES_URL_DISPLAY"
 echo "=============================================="
 
