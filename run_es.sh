@@ -68,11 +68,12 @@ elif [ -d "/secret/perfscale-prod" ] && [ -s "/secret/perfscale-prod/host" ]; th
     ES_HOST=$(cat /secret/perfscale-prod/host 2>/dev/null | tr -d '[:space:]')
 
     if [ -n "$ES_USER" ] && [ -n "$ES_PASSWORD" ]; then
-        ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" python3 -c "
+        ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" ES_HOST="$ES_HOST" python3 -c "
 import os, urllib.parse
 user = os.environ['ES_USER']
 pwd = os.environ['ES_PASSWORD']
-print('https://' + urllib.parse.quote(urllib.parse.unquote(user), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(pwd), safe='') + '@$ES_HOST')
+host = os.environ['ES_HOST']
+print('https://' + urllib.parse.quote(urllib.parse.unquote(user), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(pwd), safe='') + '@' + host)
 ")
     else
         ES_URL="https://${ES_HOST}"
@@ -98,11 +99,13 @@ else
     fi
 
     if [ -n "${ES_USER:-}" ] && [ -n "${ES_PASSWORD:-}" ]; then
-        ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" python3 -c "
+        ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" ES_HOST="$ES_HOST" ES_PROTOCOL="$ES_PROTOCOL" python3 -c "
 import os, urllib.parse
 user = os.environ['ES_USER']
 pwd = os.environ['ES_PASSWORD']
-print('${ES_PROTOCOL}://' + urllib.parse.quote(urllib.parse.unquote(user), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(pwd), safe='') + '@${ES_HOST}')
+host = os.environ['ES_HOST']
+proto = os.environ['ES_PROTOCOL']
+print(proto + '://' + urllib.parse.quote(urllib.parse.unquote(user), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(pwd), safe='') + '@' + host)
 ")
     else
         ES_URL="${ES_PROTOCOL}://${ES_HOST}"
