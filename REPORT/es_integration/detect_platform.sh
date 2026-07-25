@@ -37,7 +37,12 @@ elif echo "$RESPONSE" | grep -q '"tagline".*:.*"You Know, for Search"'; then
     PLATFORM="elasticsearch"
     VERSION=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('version', {}).get('number', 'unknown'))" 2>/dev/null)
 else
-    echo "ERROR: Unknown platform" >&2
+    if echo "$RESPONSE" | grep -qi "unauthorized\|security_exception\|403\|401"; then
+        echo "ERROR: Authentication failed — check ES credentials" >&2
+    else
+        echo "ERROR: Unknown platform" >&2
+        echo "Response: $(echo "$RESPONSE" | head -c 200)" >&2
+    fi
     exit 1
 fi
 

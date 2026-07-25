@@ -43,7 +43,7 @@ SOURCE_ES_CONFIG = \
 		ES_PASSWORD=$$(cat /secret/password 2>/dev/null || echo ""); \
 		ES_HOST="$$ES_HOST_RAW"; \
 		if [ -n "$$ES_USER" ] && [ -n "$$ES_PASSWORD" ]; then \
-			ES_URL=$$(ES_USER="$$ES_USER" ES_PASSWORD="$$ES_PASSWORD" python3 -c "import os, urllib.parse; print('https://' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='') + '@$$ES_HOST')"); \
+			ES_URL=$$(ES_USER="$$ES_USER" ES_PASSWORD="$$ES_PASSWORD" ES_HOST="$$ES_HOST" python3 -c "import os, urllib.parse; print('https://' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='') + '@' + os.environ['ES_HOST'])"); \
 			export ES_URL; \
 		else \
 			export ES_URL="https://$${ES_HOST}"; \
@@ -56,7 +56,7 @@ SOURCE_ES_CONFIG = \
 				exit 1; \
 			fi; \
 			if [ -n "$${ES_USER:-}" ] && [ -n "$${ES_PASSWORD:-}" ]; then \
-				ES_URL=$$(ES_USER="$${ES_USER}" ES_PASSWORD="$${ES_PASSWORD}" python3 -c "import os, urllib.parse; print('$${ES_PROTOCOL}://' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='') + '@$${ES_HOST}')"); \
+				ES_URL=$$(ES_USER="$${ES_USER}" ES_PASSWORD="$${ES_PASSWORD}" ES_HOST="$${ES_HOST}" ES_PROTOCOL="$${ES_PROTOCOL}" python3 -c "import os, urllib.parse; print(os.environ['ES_PROTOCOL'] + '://' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='') + '@' + os.environ['ES_HOST'])"); \
 			else \
 				ES_URL="$${ES_PROTOCOL}://$${ES_HOST}"; \
 			fi; \
