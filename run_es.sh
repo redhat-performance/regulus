@@ -63,9 +63,9 @@ if [ -n "${ES_URL:-}" ]; then
 
 elif [ -d "/secret/perfscale-prod" ] && [ -s "/secret/perfscale-prod/host" ]; then
     # Prow environment: read from mounted secrets
-    ES_USER=$(cat /secret/perfscale-prod/username 2>/dev/null | tr -d '[:space:]')
-    ES_PASSWORD=$(cat /secret/perfscale-prod/password 2>/dev/null | tr -d '[:space:]')
-    ES_HOST=$(cat /secret/perfscale-prod/host 2>/dev/null | tr -d '[:space:]')
+    ES_USER=$(cat /secret/perfscale-prod/username 2>/dev/null || echo "")
+    ES_PASSWORD=$(cat /secret/perfscale-prod/password 2>/dev/null || echo "")
+    ES_HOST=$(cat /secret/perfscale-prod/host 2>/dev/null || echo "")
 
     if [ -n "$ES_USER" ] && [ -n "$ES_PASSWORD" ]; then
         ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" ES_HOST="$ES_HOST" python3 -c "
