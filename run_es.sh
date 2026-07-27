@@ -91,6 +91,7 @@ else
     fi
 
     source "$REG_ROOT/lab.config"
+    ES_USER="${ES_USER:-${ES_USERNAME:-}}"
 
     if [ -z "${ES_PROTOCOL:-}" ] || [ -z "${ES_HOST:-}" ]; then
         echo "ERROR: lab.config must define ES_PROTOCOL and ES_HOST"
