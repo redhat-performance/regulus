@@ -30,15 +30,20 @@ if [[ -n "${ES_SERVER:-}" ]]; then
     echo "ES server: (from environment)"
 else
     ES_PASSWORD=$(cat "/secret/perfscale-prod/password" 2>/dev/null || echo "")
-    ES_USERNAME=$(cat "/secret/perfscale-prod/username" 2>/dev/null || echo "")
+    ES_USER=$(cat "/secret/perfscale-prod/username" 2>/dev/null || echo "")
     ES_HOST=$(cat "/secret/perfscale-prod/host" 2>/dev/null || echo "")
 
-    if [[ -z "$ES_USERNAME" ]] || [[ -z "$ES_PASSWORD" ]] || [[ -z "$ES_HOST" ]]; then
+    if [[ -z "$ES_USER" ]] || [[ -z "$ES_PASSWORD" ]] || [[ -z "$ES_HOST" ]]; then
         echo "❌ ERROR: ES_SERVER not set and credentials not found in /secret/perfscale-prod/" >&2
         exit 1
     fi
 
-    ES_SERVER="https://${ES_USERNAME}:${ES_PASSWORD}@${ES_HOST}"
+    ES_SERVER=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" ES_HOST="$ES_HOST" python3 -c "
+import os, urllib.parse
+user = urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='')
+pwd = urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='')
+print('https://' + user + ':' + pwd + '@' + os.environ['ES_HOST'])
+")
     echo "ES host: ${ES_HOST}"
 fi
 echo "ES index: ${ES_BENCHMARK_INDEX:-regulus-results-*}"
