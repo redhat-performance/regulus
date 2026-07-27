@@ -38,7 +38,12 @@ else
         exit 1
     fi
 
-    ES_SERVER="https://${ES_USER}:${ES_PASSWORD}@${ES_HOST}"
+    ES_SERVER=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" ES_HOST="$ES_HOST" python3 -c "
+import os, urllib.parse
+user = urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='')
+pwd = urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='')
+print('https://' + user + ':' + pwd + '@' + os.environ['ES_HOST'])
+")
     echo "ES host: ${ES_HOST}"
 fi
 echo "ES index: ${ES_BENCHMARK_INDEX:-regulus-results-*}"
