@@ -74,8 +74,8 @@ trap cleanup EXIT INT TERM
 if [[ -z "${ES_SERVER:-}" ]]; then
     echo "ES connection setup:"
     read -rp "ES Host (e.g., myhost:9200): " ES_HOST
-    read -rp "ES Username (empty if no auth): " ES_USERNAME
-    if [[ -n "$ES_USERNAME" ]]; then
+    read -rp "ES Username (empty if no auth): " ES_USER
+    if [[ -n "$ES_USER" ]]; then
         read -rsp "ES Password: " ES_PASSWORD
         echo ""
     else
@@ -88,11 +88,11 @@ if [[ -z "${ES_SERVER:-}" ]]; then
     fi
 
     echo -n "$ES_HOST" > "$SECRET_DIR/host"
-    echo -n "$ES_USERNAME" > "$SECRET_DIR/username"
+    echo -n "$ES_USER" > "$SECRET_DIR/username"
     echo -n "$ES_PASSWORD" > "$SECRET_DIR/password"
 
-    if [[ -n "$ES_USERNAME" ]] && [[ -n "$ES_PASSWORD" ]]; then
-        ENCODED_USER=$(ES_USERNAME="$ES_USERNAME" python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['ES_USERNAME'], safe=''))")
+    if [[ -n "$ES_USER" ]] && [[ -n "$ES_PASSWORD" ]]; then
+        ENCODED_USER=$(ES_USER="$ES_USER" python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['ES_USER'], safe=''))")
         ENCODED_PASS=$(ES_PASSWORD="$ES_PASSWORD" python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['ES_PASSWORD'], safe=''))")
         export ES_SERVER="https://${ENCODED_USER}:${ENCODED_PASS}@${ES_HOST}"
     else
