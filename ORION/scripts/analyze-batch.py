@@ -91,9 +91,11 @@ class BatchAnalyzer:
         self.config_dir = os.path.join(self.repo_root, 'generated-configs')
         self.output_dir = os.path.join(self.repo_root, 'generated-orion')
 
-        # Create directories if they don't exist
-        os.makedirs(self.config_dir, exist_ok=True)
-        os.makedirs(self.output_dir, exist_ok=True)
+        import shutil
+        for d in (self.config_dir, self.output_dir):
+            if os.path.exists(d):
+                shutil.rmtree(d)
+            os.makedirs(d)
 
         # Discover fingerprint fields from ES mapping
         discovered = self._discover_fingerprint_fields()
