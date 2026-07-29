@@ -25,6 +25,18 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$REPO_ROOT"
 
+# ── Developer debug overrides (edit here to iterate without Prow approval) ───
+DEBUG_IGNORE=""
+DEBUG_MATCH=""
+
+if [[ -n "${DEBUG_IGNORE}" ]] || [[ -n "${DEBUG_MATCH}" ]]; then
+    echo "⚠️  DEBUG OVERRIDE active — using DEBUG_IGNORE/DEBUG_MATCH instead of Prow env"
+    echo "   DEBUG_IGNORE=\"${DEBUG_IGNORE}\""
+    echo "   DEBUG_MATCH=\"${DEBUG_MATCH}\""
+    IGNORE="${DEBUG_IGNORE}"
+    MATCH="${DEBUG_MATCH}"
+fi
+
 # ── Resolve ES server ────────────────────────────────────────────────────────
 if [[ -n "${ES_SERVER:-}" ]]; then
     echo "ES server: (from environment)"
