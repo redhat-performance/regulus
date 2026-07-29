@@ -3,7 +3,7 @@
 Convert JSON array files to NDJSON bulk index format for OpenSearch.
 
 Usage:
-    ./json-to-bulk.py input.json output.ndjson [--index regulus-results-mock]
+    ./json-to-bulk.py input.json output.ndjson [--index regulus-mock-results]
 """
 
 import json
@@ -11,7 +11,7 @@ import sys
 import argparse
 
 
-def json_to_bulk(input_file, output_file, index_name="regulus-results-mock"):
+def json_to_bulk(input_file, output_file, index_name="regulus-mock-results"):
     """Convert JSON array to NDJSON bulk format."""
 
     # Read JSON array
@@ -34,8 +34,8 @@ def main():
     parser = argparse.ArgumentParser(description='Convert JSON array to NDJSON bulk format')
     parser.add_argument('input', help='Input JSON file')
     parser.add_argument('output', help='Output NDJSON file')
-    parser.add_argument('--index', default='regulus-results-mock',
-                       help='Index name (default: regulus-results-mock)')
+    parser.add_argument('--index', default='regulus-mock-results',
+                       help='Index name (default: regulus-mock-results)')
 
     args = parser.parse_args()
 

@@ -42,7 +42,7 @@ unit-test/
   --batch-id "test-batch-2026-07-08" \
   --index-to-es \
   --es-server "http://localhost:9200" \
-  --es-index "regulus-results-mock"
+  --es-index "regulus-mock-results"
 ```
 
 ### What It Generates
@@ -74,7 +74,7 @@ cd ..
 make analyze \
   BATCH_ID=test-batch-2026-07-08 \
   ES_SERVER=http://localhost:9200 \
-  ES_INDEX=regulus-results-mock
+  ES_INDEX=regulus-mock-results
 
 # Expected output:
 # - Discovers 3 fingerprints
@@ -92,7 +92,7 @@ Convert JSON array to NDJSON bulk format for ES indexing:
 ./json-to-bulk.py \
   --input generated/batch-test-data.json \
   --output bulk-data.ndjson \
-  --index regulus-results-mock
+  --index regulus-mock-results
 ```
 
 ### pull-from-opensearch.py

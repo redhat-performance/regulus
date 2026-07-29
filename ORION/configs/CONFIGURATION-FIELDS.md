@@ -182,10 +182,10 @@ metadata:
 **To fix an existing index**:
 ```bash
 # Delete the index
-curl -X DELETE "http://localhost:9200/regulus-results-mock"
+curl -X DELETE "http://localhost:9200/regulus-mock-results"
 
 # Create with proper mapping
-curl -X PUT "http://localhost:9200/regulus-results-mock" -H 'Content-Type: application/json' -d '{
+curl -X PUT "http://localhost:9200/regulus-mock-results" -H 'Content-Type: application/json' -d '{
   "mappings": {
     "properties": {
       "iteration_id": {

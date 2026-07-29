@@ -68,7 +68,7 @@ cd unit-test
   --batch-id "test-batch-2026-07-06" \
   --index-to-es \
   --es-server http://localhost:9200 \
-  --es-index regulus-results-mock
+  --es-index regulus-mock-results
 ```
 
 ### Verify Data Structure
@@ -93,7 +93,7 @@ Once the data is indexed to Elasticsearch:
 ../scripts/analyze-batch.py \
   --batch-id "test-batch-2026-07-06" \
   --es-server http://localhost:9200 \
-  --es-index regulus-results-mock
+  --es-index regulus-mock-results
 ```
 
 **Expected output:**

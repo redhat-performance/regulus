@@ -159,7 +159,7 @@ Set in your shell:
 ```bash
 export ES_SERVER=http://localhost:9200
 export ORION_DIR=/path/to/orion
-export ES_INDEX=regulus-results-mock
+export ES_INDEX=regulus-mock-results
 
 # Now just use: make index, make test, etc.
 ```
@@ -203,8 +203,8 @@ make clean-all
 make round-trip
 
 # Verify both indices
-curl "http://localhost:9200/regulus-results-mock/_count"
-curl "http://localhost:9200/regulus-results-mock-practice/_count"
+curl "http://localhost:9200/regulus-mock-results/_count"
+curl "http://localhost:9200/regulus-mock-results-practice/_count"
 ```
 
 ### Test Individual Scenarios
