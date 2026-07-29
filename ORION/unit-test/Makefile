@@ -18,7 +18,7 @@
 
 # Configuration
 ES_SERVER ?= http://localhost:9200
-ES_INDEX ?= regulus-results-mock
+ES_INDEX ?= regulus-mock-results
 ORION_DIR ?= ../../orion
 
 # Files and directories
