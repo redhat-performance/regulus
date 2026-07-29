@@ -118,7 +118,7 @@ Three ways to test the regression analysis pipeline, from narrowest to most real
 | **Data setup** | Creates & pushes mock data | Expects data already in ES | Expects data already in ES |
 | **ES credentials** | `ES_SERVER` make var | `ES_SERVER` make var | Interactive prompt; creates mock `/secret/perfscale-prod` |
 | **Secrets simulation** | None | None | Creates `/tmp/prow-secret-perfscale-prod/` and symlinks to `/secret/perfscale-prod` |
-| **ES index** | `regulus-results-mock` | `regulus-results-mock` | `regulus-results-mock` |
+| **ES index** | `regulus-mock-results` | `regulus-mock-results` | `regulus-mock-results` |
 | **Validates results** | `validate-test-results.sh` | Checks `/tmp/prow-artifacts/` | Checks timestamped `ARTIFACT_DIR` |
 
 **Typical sequence:** run `test-full` first (generates + pushes mock data, validates analyzer), then `test-prow` (reuses same data, validates Prow bridge). Use `test-prow-step.sh` for full end-to-end Prow simulation.
@@ -133,7 +133,7 @@ Three ways to test the regression analysis pipeline, from narrowest to most real
 - **Orion metrics without `agg` block**: Both metrics sharing the same documents will break — second metric gets zero data. Always use `agg: {agg_type: avg}`.
 - **Exit code 1 from `make analyze`**: Expected when regressions are detected — this is the success signal for "found problems."
 - **`make setup` noise**: Uses skip-if-installed check and `-q` flag to stay quiet.
-- **ES index for testing**: `regulus-results-mock` (set via `TEST_INDEX`). Production: `regulus-results-*`.
+- **ES index for testing**: `regulus-mock-results` (set via `TEST_INDEX`). Production: `regulus-results-*`.
 
 ## ES Configuration
 
