@@ -152,3 +152,4 @@ Default: `ES_SERVER=http://localhost:9200`, `ES_INDEX=regulus-results-*`
 - `ES_BENCHMARK_INDEX` — index pattern (default: `regulus-results-*`)
 - `MATCH`, `IGNORE`, `LOOKBACK`, `DEBUG` — passed through to analyze-batch.py
 - `ARTIFACT_DIR` — copies configs/output here for Prow artifacts
+- `DEBUG_IGNORE`, `DEBUG_MATCH` — developer overrides hardcoded in the script (empty by default). If either is non-empty, both replace the Prow `IGNORE`/`MATCH` values. Edit these to iterate without Prow approval.
