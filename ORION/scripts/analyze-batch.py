@@ -505,7 +505,7 @@ class BatchAnalyzer:
 
         if not documents:
             print("\n⚠️  No documents found matching criteria!")
-            return {'status': 'error', 'message': 'No matching documents'}
+            return {'status': 'no_results', 'message': 'No matching documents'}
 
         # Step 2: Group by fingerprint
         fingerprint_groups = self.group_by_fingerprint(documents)
@@ -688,7 +688,9 @@ Examples:
         print(f"\n💾 Results saved to: {args.output}")
 
     # Exit code based on results
-    if results.get('regressions', 0) > 0:
+    if results.get('status') == 'no_results':
+        sys.exit(3)  # No data to analyze
+    elif results.get('regressions', 0) > 0:
         sys.exit(1)  # Regressions found
     elif results.get('errors', 0) > 0:
         sys.exit(2)  # Errors occurred
