@@ -111,6 +111,61 @@ make analyze BATCH_ID=test-batch-001 MATCH='threads=128' IGNORE='rcos kernel'
 
 **Edge case:** `MATCH='threads=128' IGNORE='threads'` works fine. MATCH filters the query (only threads=128 docs returned), IGNORE removes threads from grouping (harmless since all docs already have the same value).
 
+### Use Cases
+
+Consider a batch with these tests in ES:
+
+| threads | rcos | kernel | mean (Gbps) |
+|---------|------|--------|-------------|
+| 16 | 9.6 | 5.14.0-503 | 8.5 |
+| 16 | 9.6 | 5.14.0-510 | 8.4 |
+| 32 | 9.6 | 5.14.0-503 | 8.3 |
+| 32 | 9.6 | 5.14.0-510 | 6.4 |
+| 128 | 9.6 | 5.14.0-503 | 7.9 |
+| 128 | 9.6 | 5.14.0-510 | 7.8 |
+
+With no MATCH or IGNORE, each row is a separate fingerprint (unique by threads+kernel). Each has only 1 data point — too few for Orion to detect anything.
+
+**1. Analyze one test from a batch** — a batch has many tests, you only care about one:
+
+```bash
+make analyze BATCH_ID=my-batch MATCH='threads=128'
+
+# If multiple tests share threads=128, narrow further
+make analyze BATCH_ID=my-batch MATCH='threads=128 protocol=tcp topology=internode'
+```
+
+**2. Cross-version comparison** — kernel 5.14.0-510 just rolled out. Without IGNORE, each kernel is a separate fingerprint with only 1 data point. With `IGNORE='kernel'`, Orion groups both kernels together per thread count (3 fingerprints, 2 data points each) and can detect that threads=32 dropped from 8.3 → 6.4:
+
+```bash
+make analyze BATCH_ID=post-upgrade-batch IGNORE='kernel'
+
+# New kernel + new rcos at the same time
+make analyze BATCH_ID=post-upgrade-batch IGNORE='rcos kernel'
+```
+
+**3. Investigate one test across versions** — threads=128 looks suspicious, compare across kernels:
+
+```bash
+# Isolates the 2 threads=128 rows, groups across kernel → 1 fingerprint, 2 data points
+make analyze BATCH_ID=my-batch MATCH='threads=128' IGNORE='kernel'
+```
+
+**4. Debug a specific failure** — Prow flagged a regression on threads=32, drill in:
+
+```bash
+# Returns only the 2 threads=32 rows
+make analyze BATCH_ID=failing-batch MATCH='threads=32'
+```
+
+**5. Broad sweep ignoring hardware differences** — tests ran on different hardware, group them to get more data points:
+
+```bash
+make analyze BATCH_ID=my-batch IGNORE='cpu arch'
+```
+
+**6. No match in batch** — if MATCH doesn't match any test in the batch (e.g., `MATCH='threads=256'` against the table above), the analyzer exits with code 3 ("no results to analyze"). Prow treats this as a non-failure.
+
 ## Testing
 
 ```bash
