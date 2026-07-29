@@ -75,8 +75,41 @@ A fingerprint is flagged if **either** metric triggers a changepoint.
 
 - **Fingerprint** — the set of fields that uniquely identify a test type. Discovered dynamically from ES mapping, not hardcoded. See [FINGERPRINT-DEFINITION.md](FINGERPRINT-DEFINITION.md).
 - **batch_id** — identifies which new tests to analyze (input selector, not part of fingerprint).
-- **MATCH** — filter documents within a batch by field values (e.g., `threads=128`).
-- **IGNORE** — exclude fields from fingerprint for grouping (e.g., `rcos` for cross-version analysis).
+- **MATCH** and **IGNORE** — see [MATCH and IGNORE Filters](#match-and-ignore-filters) below.
+
+## MATCH and IGNORE Filters
+
+MATCH and IGNORE operate at different stages and serve different purposes:
+
+**MATCH** — ES query filter. Narrows which documents are returned from Elasticsearch.
+
+```bash
+# Only analyze tests with threads=128
+make analyze BATCH_ID=test-batch-001 MATCH='threads=128'
+```
+
+This adds `{"match": {"threads": "128"}}` to the ES query. Documents that don't match are excluded entirely.
+
+**IGNORE** — Fingerprint grouping. Removes fields from the fingerprint definition, causing tests that differ only in those fields to be grouped together.
+
+```bash
+# Group across rcos versions (cross-version analysis)
+make analyze BATCH_ID=test-batch-001 IGNORE='rcos'
+
+# Group across both rcos and kernel
+make analyze BATCH_ID=test-batch-001 IGNORE='rcos kernel'
+```
+
+Without IGNORE, tests with different `rcos` values are separate fingerprints analyzed independently. With `IGNORE='rcos'`, they merge into one fingerprint with more historical data points.
+
+**Using both together** — no conflict. MATCH filters at query time, IGNORE adjusts grouping after:
+
+```bash
+# Fetch only threads=128, group across rcos/kernel versions
+make analyze BATCH_ID=test-batch-001 MATCH='threads=128' IGNORE='rcos kernel'
+```
+
+**Edge case:** `MATCH='threads=128' IGNORE='threads'` works fine. MATCH filters the query (only threads=128 docs returned), IGNORE removes threads from grouping (harmless since all docs already have the same value).
 
 ## Testing
 
