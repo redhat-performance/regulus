@@ -201,8 +201,8 @@ Examples:
     parser.add_argument('--es-server', required=True,
                        help='OpenSearch server URL')
 
-    parser.add_argument('--index', default='regulus-results-mock*',
-                       help='Index pattern to search (default: regulus-results-mock*)')
+    parser.add_argument('--index', default='regulus-mock-results*',
+                       help='Index pattern to search (default: regulus-mock-results*)')
 
     parser.add_argument('--query', type=json.loads,
                        help='Query JSON (default: match_all)')

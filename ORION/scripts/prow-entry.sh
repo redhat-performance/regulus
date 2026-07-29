@@ -73,6 +73,7 @@ set -e
 # ── Copy artifacts ────────────────────────────────────────────────────────────
 echo ""
 echo "Copying artifacts to ${ARTIFACT_DIR}..."
+rm -f "${ARTIFACT_DIR}"/orion-config-*.yaml "${ARTIFACT_DIR}"/*.json "${ARTIFACT_DIR}"/*.csv 2>/dev/null || true
 cp generated-configs/*.yaml "${ARTIFACT_DIR}/" 2>/dev/null || true
 cp generated-orion/*.json "${ARTIFACT_DIR}/" 2>/dev/null || true
 cp generated-orion/*.csv "${ARTIFACT_DIR}/" 2>/dev/null || true
