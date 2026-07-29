@@ -35,7 +35,7 @@ export ORION_TAG="${ORION_TAG:-latest}"
 export BATCH_ID="${BATCH_ID}"
 export MATCH="${MATCH:-}"
 export IGNORE="${IGNORE:-}"
-export ES_BENCHMARK_INDEX="${ES_BENCHMARK_INDEX:-regulus-results-mock}"
+export ES_BENCHMARK_INDEX="${ES_BENCHMARK_INDEX:-regulus-mock-results}"
 export LOOKBACK="${LOOKBACK:-90d}"
 export DEBUG="${DEBUG:-false}"
 

@@ -9,7 +9,7 @@
 # Default ES configuration (overridden by .makerc if it exists)
 ES_SERVER ?= http://localhost:9200
 ES_INDEX ?= regulus-results-*
-TEST_INDEX ?= regulus-results-mock
+TEST_INDEX ?= regulus-mock-results
 LOOKBACK ?= 90d
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -68,10 +68,10 @@ help:
 	@echo "  make create-mock"
 	@echo "      Generate mock test data (3 fingerprints: stable, regression, improvement)"
 	@echo ""
-	@echo "  make push-batch [TEST_INDEX=regulus-results-mock]"
+	@echo "  make push-batch [TEST_INDEX=regulus-mock-results]"
 	@echo "      Push generated mock data to Elasticsearch"
 	@echo ""
-	@echo "  make pull-batch BATCH_ID=test-batch-001 [TEST_INDEX=regulus-results-mock]"
+	@echo "  make pull-batch BATCH_ID=test-batch-001 [TEST_INDEX=regulus-mock-results]"
 	@echo "      Pull specific batch from Elasticsearch to local file"
 	@echo ""
 	@echo "  make test-full"

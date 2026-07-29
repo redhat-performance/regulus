@@ -57,8 +57,8 @@ curl -X POST 'http://localhost:9200/_bulk' \
 cd /path/to/orion
 ./run-it --config ./configs/regulus-mock-my-new-test.yaml \
   --hunter-analyze \
-  --benchmark-index=regulus-results-mock* \
-  --metadata-index=regulus-results-mock*
+  --benchmark-index=regulus-mock-results* \
+  --metadata-index=regulus-mock-results*
 ```
 
 ## Template Details
@@ -335,8 +335,8 @@ curl -X POST 'http://localhost:9200/_bulk' \
 cd /path/to/orion
 ./run-it --config ./configs/regulus-mock-connections.yaml \
   --hunter-analyze \
-  --benchmark-index=regulus-results-mock* \
-  --metadata-index=regulus-results-mock*
+  --benchmark-index=regulus-mock-results* \
+  --metadata-index=regulus-mock-results*
 ```
 
 Expected output:

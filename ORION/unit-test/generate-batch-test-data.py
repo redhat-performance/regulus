@@ -349,7 +349,7 @@ def main():
                         help='Index data to Elasticsearch after generation')
     parser.add_argument('--es-server', default='http://localhost:9200',
                         help='Elasticsearch server URL')
-    parser.add_argument('--es-index', default='regulus-results-mock',
+    parser.add_argument('--es-index', default='regulus-mock-results',
                         help='Elasticsearch index name')
 
     args = parser.parse_args()
