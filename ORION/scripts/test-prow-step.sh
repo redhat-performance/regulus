@@ -71,7 +71,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-if [[ -z "${ES_SERVER:-}" ]]; then
+if [[ -z "${ES_URL:-}" ]]; then
     echo "ES connection setup:"
     read -rp "ES Host (e.g., myhost:9200): " ES_HOST
     read -rp "ES Username (empty if no auth): " ES_USER
@@ -94,9 +94,9 @@ if [[ -z "${ES_SERVER:-}" ]]; then
     if [[ -n "$ES_USER" ]] && [[ -n "$ES_PASSWORD" ]]; then
         ENCODED_USER=$(ES_USER="$ES_USER" python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['ES_USER'], safe=''))")
         ENCODED_PASS=$(ES_PASSWORD="$ES_PASSWORD" python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['ES_PASSWORD'], safe=''))")
-        export ES_SERVER="https://${ENCODED_USER}:${ENCODED_PASS}@${ES_HOST}"
+        export ES_URL="https://${ENCODED_USER}:${ENCODED_PASS}@${ES_HOST}"
     else
-        export ES_SERVER="http://${ES_HOST}"
+        export ES_URL="http://${ES_HOST}"
     fi
 fi
 

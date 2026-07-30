@@ -52,8 +52,7 @@ help:
 	@echo "  make report-dashboard-stop             - Stop dashboard instances"
 	@echo "  make report-dashboard-restart          - Restart dashboard"
 	@echo "  make report-flatten                    - Flatten report.json to NDJSON"
-	@echo "  make report-es-upload                  - Upload to ElasticSearch"
-	@echo "  make report-es-full                    - Full ES workflow (summary + upload)"
+	@echo "  make report-es-upload                  - Generate report and upload to ElasticSearch"
 	@echo ""
 	@echo "Batch Management (from REPORT/build_report/):"
 	@echo "  make es-list-batches                   - List all upload batches"
@@ -241,7 +240,4 @@ report-flatten:
 
 report-es-upload:
 	@$(MAKE) -C REPORT es-upload
-
-report-es-full:
-	@$(MAKE) -C REPORT es-full
 

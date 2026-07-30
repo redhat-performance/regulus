@@ -66,7 +66,7 @@ NON_FINGERPRINT_FIELDS = {
     'busy_cpu', 'samples_count', 'sample_count',
     'run_id', 'batch_id', 'iteration_id',
     'regulus_data', 'regulus_git_branch', 'execution_label',
-    'mock_data',
+    'mock_data', 'uploaded_at',
 }
 
 
@@ -639,8 +639,8 @@ Examples:
     parser.add_argument('--ignore',
                         help='Ignore specific fields from fingerprint (format: "field1 field2 field3")')
     parser.add_argument('--es-server',
-                        default=os.environ.get('ES_SERVER', 'http://localhost:9200'),
-                        help='Elasticsearch server URL (default: $ES_SERVER or http://localhost:9200)')
+                        default=os.environ.get('ES_URL', 'http://localhost:9200'),
+                        help='Elasticsearch server URL (default: $ES_URL or http://localhost:9200)')
     parser.add_argument('--es-index',
                         default='regulus-results-*',
                         help='Elasticsearch index pattern (default: regulus-results-*)')
