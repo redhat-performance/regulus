@@ -16,8 +16,8 @@
 #   ES_USER             - OpenSearch username (optional)
 #   ES_PASSWORD         - OpenSearch password (optional)
 
-# Configuration
-ES_URL ?= http://localhost:9200
+# Configuration (backward compat: old .makerc may define ES_SERVER)
+ES_URL ?= $(if $(ES_SERVER),$(ES_SERVER),http://localhost:9200)
 ES_INDEX ?= regulus-mock-results
 ORION_DIR ?= ../../orion
 

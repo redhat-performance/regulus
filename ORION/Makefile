@@ -7,7 +7,8 @@
 -include .makerc
 
 # Default ES configuration (overridden by .makerc if it exists)
-ES_URL ?= http://localhost:9200
+# Backward compat: old .makerc may define ES_SERVER instead of ES_URL
+ES_URL ?= $(if $(ES_SERVER),$(ES_SERVER),http://localhost:9200)
 ES_INDEX ?= regulus-results-*
 TEST_INDEX ?= regulus-mock-results
 LOOKBACK ?= 90d

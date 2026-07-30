@@ -327,8 +327,9 @@ Examples:
                         flattener.batch_id = doc['batch_id']
                         print(f"Reusing existing batch_id: {flattener.batch_id}")
                         break
-        except Exception:
-            pass
+        except (IOError, json.JSONDecodeError) as e:
+            print(f"Warning: Could not read batch_id from {args.output}: {e}")
+            print(f"Generating new batch_id: {flattener.batch_id}")
     loader = ReportLoader()
 
     # Process input
