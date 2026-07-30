@@ -3,7 +3,7 @@
 # Delegates to build_report/Makefile for dashboard and ElasticSearch operations
 
 .PHONY: help summary summary-with-testbed-info dashboard dashboard-stop dashboard-restart dashboard-status \
-        flatten flatten-pretty es-upload es-template es-check es-full \
+        flatten flatten-pretty es-upload es-template es-check \
         es-index-stats es-template-info es-index-mapping \
         es-ilm-policy es-ilm-policy-no-delete es-ilm-info es-ilm-explain es-bootstrap-index \
         es-list-batches es-batch-count es-batch-info es-delete-batch es-show-last-batch es-list-execution-labels \
@@ -94,8 +94,7 @@ help:
 	@echo "  make flatten              - Flatten existing report.json (or run summary)"
 	@echo "  make flatten-pretty       - Create human-readable JSON"
 	@echo "  make es-template          - Apply ES index template"
-	@echo "  make es-upload            - Upload reports.ndjson to ElasticSearch"
-	@echo "  make es-full              - Complete ES workflow (summary → template → upload)"
+	@echo "  make es-upload            - Generate report and upload to ElasticSearch"
 	@echo ""
 	@echo "ElasticSearch Debug & Info:"
 	@echo "  make es-index-stats       - Show ES index statistics"
@@ -254,11 +253,7 @@ es-template: es-check
 	echo "  Platform: $$PLATFORM"; \
 	echo "  Template: $$TEMPLATE_FILE"
 
-es-upload: es-template
-	@if [ ! -f "$(GENERATED_DIR)/reports.ndjson" ]; then \
-		echo "reports.ndjson not found. Running 'make summary' to generate it..."; \
-		$(MAKE) summary; \
-	fi
+es-upload: es-template summary
 	@$(SOURCE_ES_CONFIG); \
 	SAFE_URL=$$(echo "$$ES_URL" | $(SANITIZE_URL)); \
 	ALIAS_EXISTS=$$(curl -s "$${ES_URL}/_cat/aliases/$(ES_WRITE_ALIAS)" 2>/dev/null | grep -c "$(ES_WRITE_ALIAS)" || true); \
@@ -298,15 +293,6 @@ es-upload: es-template
 		--data-binary @$(GENERATED_DIR)/reports.ndjson | \
 		$(PYTHON) $(ES_INTEGRATION_DIR)/debug_upload_errors.py
 
-# Complete ElasticSearch workflow
-es-full: summary es-template es-upload
-	@echo ""
-	@echo "✓ Complete ElasticSearch workflow finished:"
-	@echo "  - Report generated: $(GENERATED_DIR)/report.json"
-	@echo "  - Flattened to: $(GENERATED_DIR)/reports.ndjson"
-	@echo "  - Uploaded to ES write alias: $(ES_WRITE_ALIAS)"
-	@echo ""
-	@echo "NOTE: ISM policy auto-attached via ism_template during es-bootstrap-index"
 
 # =============================================================================
 # ElasticSearch Debug and Info Targets

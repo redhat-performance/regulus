@@ -73,7 +73,7 @@ The test data includes **3 fingerprints** with controlled scenarios:
 cd ..
 make analyze \
   BATCH_ID=test-batch-2026-07-08 \
-  ES_SERVER=http://localhost:9200 \
+  ES_URL=http://localhost:9200 \
   ES_INDEX=regulus-mock-results
 
 # Expected output:

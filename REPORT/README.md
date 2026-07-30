@@ -109,9 +109,8 @@ All report targets can be invoked from two locations:
 |--------|-----------|--------------|-------------|
 | `es-check` | - | ✓ | Verify ES connection |
 | `es-template` | - | ✓ | Apply ES index template |
-| `es-upload` | - | ✓ | Upload reports.ndjson to ES |
-| `report-es-full` | ✓ | - | Complete ES workflow (generate → template → upload) |
-| `es-full` | - | ✓ | Complete ES workflow (generate → template → upload) |
+| `report-es-upload` | ✓ | - | Generate report and upload to ES |
+| `es-upload` | - | ✓ | Generate report and upload to ES |
 | `es-index-stats` | - | ✓ | Show ES index statistics |
 | `es-template-info` | - | ✓ | Show ES template details |
 | `es-index-mapping` | - | ✓ | Show current index mapping |
@@ -164,7 +163,7 @@ make report-summary                    # Creates REPORT/generated/*.{json,ndjson
 make report-dashboard                  # Loads from REPORT/generated/
 
 # 3. Upload to ElasticSearch
-make report-es-full                    # Complete workflow: generate → template → upload
+make report-es-upload                    # Complete workflow: generate → template → upload
 ```
 
 ---
@@ -211,7 +210,7 @@ make report-dashboard
 cd regulus
 
 # Option 1: Complete workflow (recommended)
-make report-es-full
+make report-es-upload
 # Runs: summary → es-template → es-upload
 
 # Option 2: Step by step
@@ -286,7 +285,7 @@ export ES_INDEX='regulus-results'
 **Override example:**
 ```bash
 cd regulus
-make report-es-full ES_INDEX=my-custom-index
+make report-es-upload ES_INDEX=my-custom-index
 ```
 
 ---
@@ -354,7 +353,7 @@ make report-summary                   # Generate all reports
 make report-summary-with-testbed-info # Generate with inventory
 make report-dashboard                 # View in browser
 make report-dashboard-stop            # Stop dashboard
-make report-es-full                   # Complete ES workflow
+make report-es-upload                   # Complete ES workflow
 
 # From REPORT/:
 make summary                          # Generate all reports
@@ -363,7 +362,7 @@ make dashboard                        # View in browser
 make es-check                         # Verify ES connection
 make es-template                      # Apply ES index template
 make es-upload                        # Upload to ES
-make es-full                          # Complete ES workflow
+make es-upload                          # Complete ES workflow
 make es-list-batches                  # List all batches
 make es-delete-batch ES_BATCH_ID=<uuid>  # Delete batch
 
