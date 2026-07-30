@@ -42,7 +42,8 @@ class ESDocumentFlattener:
         self.index_name = index_name
         self.regulus_git_branch = None
         self.execution_label = None
-        self.batch_id = str(uuid.uuid4())  # UUID to group documents from the same upload batch
+        self.batch_id = str(uuid.uuid4())
+        self.uploaded_at = datetime.utcnow().isoformat() + "Z"
 
     def flatten_result(self, result: BenchmarkResult) -> Dict[str, Any]:
         """
@@ -57,6 +58,7 @@ class ESDocumentFlattener:
 
             # Upload batch tracking
             "batch_id": self.batch_id,
+            "uploaded_at": self.uploaded_at,
 
             # Execution context metadata
             "regulus_git_branch": self.regulus_git_branch,
@@ -314,8 +316,19 @@ Examples:
     if not args.output and not args.es_host:
         parser.error("Must specify either --output or --es-host")
 
-    # Initialize
+    # Initialize — reuse batch_id from existing output to avoid ghost batches on re-upload
     flattener = ESDocumentFlattener(index_name=args.es_index)
+    if args.output and Path(args.output).is_file():
+        try:
+            with open(args.output, 'r') as f:
+                for line in f:
+                    doc = json.loads(line)
+                    if 'batch_id' in doc:
+                        flattener.batch_id = doc['batch_id']
+                        print(f"Reusing existing batch_id: {flattener.batch_id}")
+                        break
+        except Exception:
+            pass
     loader = ReportLoader()
 
     # Process input

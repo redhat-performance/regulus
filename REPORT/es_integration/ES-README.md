@@ -17,7 +17,7 @@ cd $REG_ROOT i.e /home/<user>/regulus
 curl -X DELETE "http://localhost:9200/regulus-results"
 
 # Run complete workflow: generate reports + upload to ES
-make -C REPORT es-full ES_HOST=localhost:9200
+make -C REPORT es-upload ES_HOST=localhost:9200
 ```
 
 This will:
@@ -63,7 +63,7 @@ When you want to completely replace the data:
 curl -X DELETE "http://localhost:9200/regulus-results"
 
 # Re-run the complete workflow
-make -C REPORT es-full ES_HOST=localhost:9200
+make -C REPORT es-upload ES_HOST=localhost:9200
 ```
 
 ### Update Existing Data
@@ -221,7 +221,7 @@ New indices are automatically created when rollover conditions are met (e.g., `r
 make report-summary
 
 # Complete ES workflow
-make -C REPORT es-full ES_HOST=localhost:9200
+make -C REPORT es-upload ES_HOST=localhost:9200
 ```
 
 ### From REPORT Directory
@@ -236,7 +236,7 @@ make summary
 make es-check ES_HOST=localhost:9200        # Check ES connection
 make es-template ES_HOST=localhost:9200     # Apply index template
 make es-upload ES_HOST=localhost:9200       # Upload data
-make es-full ES_HOST=localhost:9200         # Complete workflow
+make es-upload ES_HOST=localhost:9200         # Complete workflow
 
 # Index Lifecycle Management (auto-detects ES/OpenSearch)
 make es-ilm-policy ES_HOST=localhost:9200   # Apply ILM/ISM policy
@@ -389,7 +389,7 @@ If you get an error that the index already exists:
 curl -X DELETE "http://localhost:9200/regulus-results"
 
 # Re-run the workflow
-make -C REPORT es-full ES_HOST=localhost:9200
+make -C REPORT es-upload ES_HOST=localhost:9200
 ```
 
 ### Connection Refused
@@ -479,7 +479,7 @@ python3 es_integration/flatten_to_es.py report.json \
 2. **Use document IDs** to allow updates without duplicates
 3. **Check the document count** after upload to verify success
 4. **Apply the index template** before first upload to ensure proper field mappings
-5. **Use the complete workflow** (`es-full`) for simplicity
+5. **Use the complete workflow** (`es-upload`) for simplicity
 
 ## Data Flow
 

@@ -18,7 +18,7 @@ NON_FINGERPRINT_FIELDS = {
     'busy_cpu', 'samples_count', 'sample_count',
     'run_id', 'batch_id', 'iteration_id',
     'regulus_data', 'regulus_git_branch', 'execution_label',
-    'mock_data',
+    'mock_data', 'uploaded_at',
 }
 
 try:

@@ -36,7 +36,7 @@ flowchart TD
 make setup
 
 # Set ES connection (persists to .makerc)
-make set-es ES_SERVER=http://your-es:9200
+make set-es ES_URL=http://your-es:9200
 
 # Analyze latest batch (auto-discover)
 make analyze

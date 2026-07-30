@@ -116,7 +116,7 @@ Three ways to test the regression analysis pipeline, from narrowest to most real
 | **What it tests** | Analyzer directly | `prow-entry.sh` wrapper | Actual `commands.sh` that Prow runs |
 | **Calls** | `analyze-batch.py` | `prow-entry.sh` | `openshift-qe-orion-regulus-commands.sh` |
 | **Data setup** | Creates & pushes mock data | Expects data already in ES | Expects data already in ES |
-| **ES credentials** | `ES_SERVER` make var | `ES_SERVER` make var | Interactive prompt; creates mock `/secret/perfscale-prod` |
+| **ES credentials** | `ES_URL` make var | `ES_URL` make var | Interactive prompt; creates mock `/secret/perfscale-prod` |
 | **Secrets simulation** | None | None | Creates `/tmp/prow-secret-perfscale-prod/` and symlinks to `/secret/perfscale-prod` |
 | **ES index** | `regulus-mock-results` | `regulus-mock-results` | `regulus-mock-results` |
 | **Validates results** | `validate-test-results.sh` | Checks `/tmp/prow-artifacts/` | Checks timestamped `ARTIFACT_DIR` |
@@ -139,15 +139,15 @@ Three ways to test the regression analysis pipeline, from narrowest to most real
 
 Saved in `.makerc` (gitignored). Set with:
 ```bash
-make set-es ES_SERVER=http://your-es:9200
+make set-es ES_URL=http://your-es:9200
 ```
 
-Default: `ES_SERVER=http://localhost:9200`, `ES_INDEX=regulus-results-*`
+Default: `ES_URL=http://localhost:9200`, `ES_INDEX=regulus-results-*`
 
 ## Prow Entry Point Details
 
 `scripts/prow-entry.sh` accepts these env vars:
-- `ES_SERVER` — direct URL (for local testing), OR reads from `/secret/perfscale-prod/{username,password,host}` (Prow)
+- `ES_URL` — direct URL (for local testing), OR reads from `/secret/perfscale-prod/{username,password,host}` (Prow)
 - `BATCH_ID` — batch to analyze (empty = auto-discover latest)
 - `ES_BENCHMARK_INDEX` — index pattern (default: `regulus-results-*`)
 - `MATCH`, `IGNORE`, `LOOKBACK`, `DEBUG` — passed through to analyze-batch.py
