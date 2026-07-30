@@ -11,13 +11,13 @@
 #   make full-cycle     - Complete workflow
 #
 # Environment Variables:
-#   ES_SERVER           - OpenSearch server URL (default: http://localhost:9200)
+#   ES_URL           - OpenSearch server URL (default: http://localhost:9200)
 #   ORION_DIR           - Path to Orion directory (required for testing)
 #   ES_USER             - OpenSearch username (optional)
 #   ES_PASSWORD         - OpenSearch password (optional)
 
-# Configuration
-ES_SERVER ?= http://localhost:9200
+# Configuration (backward compat: old .makerc may define ES_SERVER)
+ES_URL ?= $(if $(ES_SERVER),$(ES_SERVER),http://localhost:9200)
 ES_INDEX ?= regulus-mock-results
 ORION_DIR ?= ../../orion
 
@@ -50,11 +50,11 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"; printf "$(GREEN)Usage:$(NC) make $(YELLOW)<target>$(NC)\n\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2 } /^##@/ { printf "\n$(GREEN)%s$(NC)\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(GREEN)Environment Variables:$(NC)"
-	@echo "  ES_SERVER    = $(ES_SERVER)"
+	@echo "  ES_URL    = $(ES_URL)"
 	@echo "  ES_INDEX     = $(ES_INDEX)"
 	@echo "  ORION_DIR    = $(ORION_DIR)"
 	@echo ""
-	@echo "$(GREEN)Override with:$(NC) make target ES_SERVER=http://your-server:9200"
+	@echo "$(GREEN)Override with:$(NC) make target ES_URL=http://your-server:9200"
 	@echo ""
 
 ##@ Step 1: Generate Mock Data
@@ -112,22 +112,22 @@ convert-all: generate-all-separate ## Convert all separate scenario files to bul
 .PHONY: create-index
 create-index: ## Create index with correct mapping (iteration_id.keyword)
 	@echo "$(GREEN)Creating index with correct mapping...$(NC)"
-	@echo "  Server: $(ES_SERVER)"
+	@echo "  Server: $(ES_URL)"
 	@echo "  Index:  $(ES_INDEX)"
-	@curl -X PUT "$(ES_SERVER)/$(ES_INDEX)" \
+	@curl -X PUT "$(ES_URL)/$(ES_INDEX)" \
 		-H 'Content-Type: application/json' \
 		-d @aws-index-mapping.json \
 		-s | jq -r 'if .acknowledged then "$(GREEN)✓ Index created with correct mapping$(NC)" else "$(RED)✗ Failed to create index$(NC)" end'
 	@echo "$(GREEN)Verifying mapping...$(NC)"
-	@curl -s "$(ES_SERVER)/$(ES_INDEX)/_mapping" | \
+	@curl -s "$(ES_URL)/$(ES_INDEX)/_mapping" | \
 		python3 -c "import sys, json; m=json.load(sys.stdin); print('  iteration_id mapping:', json.dumps(m['$(ES_INDEX)']['mappings']['properties'].get('iteration_id', {}), indent=4))"
 
 .PHONY: index
 index: create-index $(BULK_FILE) ## Index bulk data to OpenSearch
 	@echo "$(GREEN)[3/6] Indexing to OpenSearch...$(NC)"
-	@echo "  Server: $(ES_SERVER)"
+	@echo "  Server: $(ES_URL)"
 	@echo "  Index:  $(ES_INDEX)"
-	@curl -X POST "$(ES_SERVER)/_bulk" \
+	@curl -X POST "$(ES_URL)/_bulk" \
 		-H 'Content-Type: application/x-ndjson' \
 		--data-binary '@$(BULK_FILE)' \
 		-s | jq -r 'if .errors then "ERROR" else "SUCCESS" end' | \
@@ -140,7 +140,7 @@ index-direct: create-index ## Generate and index directly (no local files)
 	@echo "$(GREEN)Generating and indexing directly to OpenSearch...$(NC)"
 	./generate-mock-data.py --scenario all \
 		--index-to-opensearch \
-		--es-server $(ES_SERVER) \
+		--es-server $(ES_URL) \
 		--es-index $(ES_INDEX)
 	@sleep 1
 	@$(MAKE) -s verify-index
@@ -148,14 +148,14 @@ index-direct: create-index ## Generate and index directly (no local files)
 .PHONY: verify-index
 verify-index: ## Verify documents in OpenSearch
 	@echo "$(GREEN)Verifying index...$(NC)"
-	@curl -s "$(ES_SERVER)/$(ES_INDEX)/_count" | jq -r '"  Documents in index: " + (.count | tostring)'
+	@curl -s "$(ES_URL)/$(ES_INDEX)/_count" | jq -r '"  Documents in index: " + (.count | tostring)'
 
 ##@ Step 4: Pull from OpenSearch
 
 .PHONY: pull
 pull: ## Pull data from OpenSearch to local files
 	@echo "$(GREEN)[4/6] Pulling from OpenSearch...$(NC)"
-	./pull-from-opensearch.py --es-server $(ES_SERVER) --index "$(ES_INDEX)*"
+	./pull-from-opensearch.py --es-server $(ES_URL) --index "$(ES_INDEX)*"
 	@echo "$(GREEN)✓ Pulled: $(PULLED_FILE)$(NC)"
 	@jq 'length' $(PULLED_FILE) | xargs -I {} echo "  Documents pulled: {}"
 
@@ -163,7 +163,7 @@ pull: ## Pull data from OpenSearch to local files
 pull-regression: ## Pull only regression test data (nic=mlx5_0)
 	@echo "$(GREEN)Pulling regression test data...$(NC)"
 	./pull-from-opensearch.py \
-		--es-server $(ES_SERVER) \
+		--es-server $(ES_URL) \
 		--index "$(ES_INDEX)*" \
 		--query '{"term": {"nic": "mlx5_0"}}' \
 		--output $(GENERATED_DIR)/pulled-regression
@@ -172,7 +172,7 @@ pull-regression: ## Pull only regression test data (nic=mlx5_0)
 pull-with-auth: ## Pull with authentication (set ES_USER and ES_PASSWORD)
 	@echo "$(GREEN)Pulling with authentication...$(NC)"
 	./pull-from-opensearch.py \
-		--es-server $(ES_SERVER) \
+		--es-server $(ES_URL) \
 		--index "$(ES_INDEX)*" \
 		--es-user $(ES_USER) \
 		--es-password $(ES_PASSWORD)
@@ -183,13 +183,13 @@ pull-with-auth: ## Pull with authentication (set ES_USER and ES_PASSWORD)
 reindex: $(PULLED_FILE) ## Re-index pulled data to practice index
 	@echo "$(GREEN)[5/6] Re-indexing pulled data...$(NC)"
 	./json-to-bulk.py $(PULLED_FILE) $(PULLED_DIR)/bulk-reindex.ndjson --index $(ES_INDEX)-practice
-	@curl -X POST "$(ES_SERVER)/_bulk" \
+	@curl -X POST "$(ES_URL)/_bulk" \
 		-H 'Content-Type: application/x-ndjson' \
 		--data-binary '@$(PULLED_DIR)/bulk-reindex.ndjson' \
 		-s | jq -r 'if .errors then "ERROR" else "SUCCESS" end' | \
 		sed 's/ERROR/$(RED)✗ Errors occurred$(NC)/; s/SUCCESS/$(GREEN)✓ Re-indexed to $(ES_INDEX)-practice$(NC)/'
 	@sleep 1
-	@curl -s "$(ES_SERVER)/$(ES_INDEX)-practice/_count" | jq -r '"  Documents: " + (.count | tostring)'
+	@curl -s "$(ES_URL)/$(ES_INDEX)-practice/_count" | jq -r '"  Documents: " + (.count | tostring)'
 
 ##@ Step 6: Test with Orion
 
@@ -357,7 +357,7 @@ count: ## Count documents in all files
 .PHONY: list-indices
 list-indices: ## List all OpenSearch indices
 	@echo "$(GREEN)OpenSearch Indices:$(NC)"
-	@curl -s "$(ES_SERVER)/_cat/indices?v" | grep -E "(index|regulus)" || echo "No regulus indices found"
+	@curl -s "$(ES_URL)/_cat/indices?v" | grep -E "(index|regulus)" || echo "No regulus indices found"
 
 ##@ Cleanup Operations
 
@@ -370,14 +370,14 @@ clean: ## Clean generated files (keeps templates)
 .PHONY: clean-index
 clean-index: ## Delete OpenSearch index
 	@echo "$(YELLOW)Deleting OpenSearch index: $(ES_INDEX)$(NC)"
-	@curl -X DELETE "$(ES_SERVER)/$(ES_INDEX)" -s | jq -r 'if .acknowledged then "DELETED" else "FAILED" end' | \
+	@curl -X DELETE "$(ES_URL)/$(ES_INDEX)" -s | jq -r 'if .acknowledged then "DELETED" else "FAILED" end' | \
 		sed 's/DELETED/$(GREEN)✓ Deleted$(NC)/; s/FAILED/$(RED)✗ Failed$(NC)/'
 
 .PHONY: clean-all-indices
 clean-all-indices: ## Delete all mock-related indices
 	@echo "$(YELLOW)Deleting all mock-related indices...$(NC)"
-	@curl -X DELETE "$(ES_SERVER)/$(ES_INDEX)" -s > /dev/null 2>&1 || true
-	@curl -X DELETE "$(ES_SERVER)/$(ES_INDEX)-practice" -s > /dev/null 2>&1 || true
+	@curl -X DELETE "$(ES_URL)/$(ES_INDEX)" -s > /dev/null 2>&1 || true
+	@curl -X DELETE "$(ES_URL)/$(ES_INDEX)-practice" -s > /dev/null 2>&1 || true
 	@echo "$(GREEN)✓ Cleaned all mock indices$(NC)"
 
 .PHONY: clean-all
@@ -431,7 +431,7 @@ exercise3: exercise2 pull view-pulled ## Exercise 3: Full cycle with pull
 .PHONY: check-env
 check-env: ## Check environment variables
 	@echo "$(GREEN)Environment Check:$(NC)"
-	@echo "  ES_SERVER:   $(ES_SERVER)"
+	@echo "  ES_URL:   $(ES_URL)"
 	@echo "  ES_INDEX:    $(ES_INDEX)"
 	@echo "  ORION_DIR:   $(ORION_DIR)"
 	@if [ "$(ORION_DIR)" = "/path/to/orion" ]; then \

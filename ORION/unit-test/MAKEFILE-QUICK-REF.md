@@ -140,7 +140,7 @@ Override defaults with environment variables:
 
 ```bash
 # Set OpenSearch server
-make index ES_SERVER=http://your-server:9200
+make index ES_URL=http://your-server:9200
 
 # Set Orion directory
 make test ORION_DIR=/path/to/orion
@@ -157,7 +157,7 @@ make pull-with-auth ES_USER=admin ES_PASSWORD=secret
 Set in your shell:
 
 ```bash
-export ES_SERVER=http://localhost:9200
+export ES_URL=http://localhost:9200
 export ORION_DIR=/path/to/orion
 export ES_INDEX=regulus-mock-results
 
@@ -170,7 +170,7 @@ export ES_INDEX=regulus-mock-results
 
 ```bash
 # Set environment
-export ES_SERVER=http://localhost:9200
+export ES_URL=http://localhost:9200
 export ORION_DIR=/path/to/orion
 
 # Check environment
@@ -260,7 +260,7 @@ make test ES_INDEX=test1
 3. **Check environment**: `make check-env` before testing
 4. **Clean between runs**: `make clean-all` for fresh start
 5. **Use exercises**: Great for learning step-by-step
-6. **Override variables**: Pass ES_SERVER, ORION_DIR as needed
+6. **Override variables**: Pass ES_URL, ORION_DIR as needed
 7. **View before index**: `make view` to inspect data first
 8. **Verify after index**: Automatic with `make index`
 
@@ -339,10 +339,10 @@ make test ES_INDEX=my-test-index
 
 ```bash
 # Development
-make full-cycle ES_SERVER=http://dev-server:9200 ES_INDEX=dev-index
+make full-cycle ES_URL=http://dev-server:9200 ES_INDEX=dev-index
 
 # Staging
-make full-cycle ES_SERVER=http://staging-server:9200 ES_INDEX=staging-index
+make full-cycle ES_URL=http://staging-server:9200 ES_INDEX=staging-index
 ```
 
 ### Parallel Operations

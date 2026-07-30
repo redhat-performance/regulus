@@ -17,7 +17,7 @@ cd $REG_ROOT i.e /home/<user>/regulus
 curl -X DELETE "http://localhost:9200/regulus-results"
 
 # Run complete workflow: generate reports + upload to ES
-make -C REPORT es-full ES_HOST=localhost:9200
+make -C REPORT es-upload ES_URL=http://localhost:9200
 ```
 
 This will:
@@ -46,10 +46,10 @@ This creates:
 
 ```bash
 # Apply index template (first time only)
-make -C REPORT es-template ES_HOST=localhost:9200
+make -C REPORT es-template ES_URL=http://localhost:9200
 
 # Upload data
-make -C REPORT es-upload ES_HOST=localhost:9200
+make -C REPORT es-upload ES_URL=http://localhost:9200
 ```
 
 ## Managing ElasticSearch Data
@@ -63,7 +63,7 @@ When you want to completely replace the data:
 curl -X DELETE "http://localhost:9200/regulus-results"
 
 # Re-run the complete workflow
-make -C REPORT es-full ES_HOST=localhost:9200
+make -C REPORT es-upload ES_URL=http://localhost:9200
 ```
 
 ### Update Existing Data
@@ -75,7 +75,7 @@ To add new documents without deleting old ones:
 make report-summary
 
 # Upload (will add/update documents by ID)
-make -C REPORT es-upload ES_HOST=localhost:9200
+make -C REPORT es-upload ES_URL=http://localhost:9200
 ```
 
 ### Delete Specific Documents
@@ -181,13 +181,13 @@ Automatically manage index rollover and retention with lifecycle policies. Both 
 
 ```bash
 # Apply lifecycle policy (auto-detects ES/OpenSearch)
-make -C REPORT/build_report es-ilm-policy ES_HOST=localhost:9200
+make -C REPORT/build_report es-ilm-policy ES_URL=http://localhost:9200
 
 # View applied policy
-make -C REPORT/build_report es-ilm-info ES_HOST=localhost:9200
+make -C REPORT/build_report es-ilm-info ES_URL=http://localhost:9200
 
 # Check lifecycle status for an index
-make -C REPORT/build_report es-ilm-explain ES_HOST=localhost:9200 ES_INDEX=regulus-results
+make -C REPORT/build_report es-ilm-explain ES_URL=http://localhost:9200 ES_INDEX=regulus-results
 ```
 
 ### Bootstrap Rollover Index
@@ -196,7 +196,7 @@ Before uploading data with lifecycle management:
 
 ```bash
 # Create rollover-enabled index with write alias
-make -C REPORT/build_report es-bootstrap-index ES_HOST=localhost:9200
+make -C REPORT/build_report es-bootstrap-index ES_URL=http://localhost:9200
 ```
 
 This creates:
@@ -221,7 +221,7 @@ New indices are automatically created when rollover conditions are met (e.g., `r
 make report-summary
 
 # Complete ES workflow
-make -C REPORT es-full ES_HOST=localhost:9200
+make -C REPORT es-upload ES_URL=http://localhost:9200
 ```
 
 ### From REPORT Directory
@@ -233,21 +233,21 @@ cd REPORT
 make summary
 
 # ElasticSearch operations
-make es-check ES_HOST=localhost:9200        # Check ES connection
-make es-template ES_HOST=localhost:9200     # Apply index template
-make es-upload ES_HOST=localhost:9200       # Upload data
-make es-full ES_HOST=localhost:9200         # Complete workflow
+make es-check ES_URL=http://localhost:9200        # Check ES connection
+make es-template ES_URL=http://localhost:9200     # Apply index template
+make es-upload ES_URL=http://localhost:9200       # Upload data
+make es-upload ES_URL=http://localhost:9200         # Complete workflow
 
 # Index Lifecycle Management (auto-detects ES/OpenSearch)
-make es-ilm-policy ES_HOST=localhost:9200   # Apply ILM/ISM policy
-make es-ilm-info ES_HOST=localhost:9200     # View policy details
-make es-ilm-explain ES_HOST=localhost:9200  # Check index lifecycle status
-make es-bootstrap-index ES_HOST=localhost:9200  # Create rollover index
+make es-ilm-policy ES_URL=http://localhost:9200   # Apply ILM/ISM policy
+make es-ilm-info ES_URL=http://localhost:9200     # View policy details
+make es-ilm-explain ES_URL=http://localhost:9200  # Check index lifecycle status
+make es-bootstrap-index ES_URL=http://localhost:9200  # Create rollover index
 
 # Debugging
-make es-index-stats ES_HOST=localhost:9200  # Show index statistics
-make es-index-mapping ES_HOST=localhost:9200 # Show index mapping
-make es-template-info ES_HOST=localhost:9200 # Show template details
+make es-index-stats ES_URL=http://localhost:9200  # Show index statistics
+make es-index-mapping ES_URL=http://localhost:9200 # Show index mapping
+make es-template-info ES_URL=http://localhost:9200 # Show template details
 ```
 
 ### From REPORT/build_report Directory
@@ -320,7 +320,7 @@ make es-list-batches
 Set these in your makefile or environment:
 
 ```bash
-ES_HOST=localhost:9200          # ElasticSearch host:port
+ES_URL=http://localhost:9200          # ElasticSearch host:port
 ES_INDEX=regulus-results        # Index name
 ES_USER=elastic                 # Username (if auth enabled)
 ES_PASSWORD=changeme            # Password (if auth enabled)
@@ -331,7 +331,7 @@ ES_PASSWORD=changeme            # Password (if auth enabled)
 ```bash
 # Upload with authentication
 make -C REPORT es-upload \
-  ES_HOST=localhost:9200 \
+  ES_URL=http://localhost:9200 \
   ES_USER=elastic \
   ES_PASSWORD=changeme
 ```
@@ -389,7 +389,7 @@ If you get an error that the index already exists:
 curl -X DELETE "http://localhost:9200/regulus-results"
 
 # Re-run the workflow
-make -C REPORT es-full ES_HOST=localhost:9200
+make -C REPORT es-upload ES_URL=http://localhost:9200
 ```
 
 ### Connection Refused
@@ -430,7 +430,7 @@ Check the bulk upload response for errors:
 
 ```bash
 # The es-upload target will show errors in the output
-make -C REPORT es-upload ES_HOST=localhost:9200
+make -C REPORT es-upload ES_URL=http://localhost:9200
 ```
 
 ## Advanced Usage
@@ -439,7 +439,7 @@ make -C REPORT es-upload ES_HOST=localhost:9200
 
 ```bash
 make -C REPORT es-upload \
-  ES_HOST=localhost:9200 \
+  ES_URL=http://localhost:9200 \
   ES_INDEX=my-custom-index
 ```
 
@@ -479,7 +479,7 @@ python3 es_integration/flatten_to_es.py report.json \
 2. **Use document IDs** to allow updates without duplicates
 3. **Check the document count** after upload to verify success
 4. **Apply the index template** before first upload to ensure proper field mappings
-5. **Use the complete workflow** (`es-full`) for simplicity
+5. **Use the complete workflow** (`es-upload`) for simplicity
 
 ## Data Flow
 
