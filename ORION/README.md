@@ -16,24 +16,17 @@ This means Regulus can evolve its test parameters independently — as long as i
 
 The simplest Orion workflow uses static YAML configs (see [Orion/examples](https://github.com/cloud-bulldozer/orion/tree/main/examples)). Regulus has many evolving test variations, so this tool generates configs dynamically:
 
-```
-Regulus (source)          Elasticsearch              This tool (sink)
-─────────────────    ───────────────────────    ─────────────────────────
-Runs tests           Stores results +           Reads index mapping
-  ↓                  index mapping                ↓
-Pushes results         ↑            ↓           Discovers fingerprint fields
-  with batch_id ──→  Documents   Mapping ──→    Queries batch documents
-                                                  ↓
-                                                Groups by fingerprint
-                                                  ↓
-                                                Generates Orion config
-                                                  per fingerprint
-                                                  ↓
-                                    ←───────── Orion queries historical
-                                                  data for comparison
-                                                  ↓
-                                                Reports regressions
-                                                  (throughput + CPU)
+```mermaid
+flowchart TD
+    A[Regulus runs tests] -->|"① push results\nwith batch_id"| B[(Elasticsearch\nDocuments + Mapping)]
+    B -->|"② read mapping"| C[Discover fingerprint fields]
+    B -->|"③ query batch docs"| D[Group by fingerprint]
+    C --> D
+    D -->|④| E[Generate Orion config\nper fingerprint]
+    E -->|"⑤ query historical data"| B
+    E -->|⑥| F{Changepoint\ndetected?}
+    F -->|yes| G["⚠️ Report regression\n(throughput + CPU)"]
+    F -->|no| H["✅ Stable"]
 ```
 
 ## Quick Start
@@ -90,7 +83,9 @@ make analyze BATCH_ID=test-batch-001 MATCH='threads=128'
 
 This adds `{"match": {"threads": "128"}}` to the ES query. Documents that don't match are excluded entirely.
 
-**IGNORE** — Fingerprint grouping. Removes fields from the fingerprint definition, causing tests that differ only in those fields to be grouped together.
+**IGNORE** — Fingerprint field removal. Removes fields from the fingerprint definition, merging tests that would normally be analyzed separately into one time series.
+
+By default, each unique combination of fingerprint fields (threads, rcos, kernel, etc.) is a separate fingerprint with its own independent analysis. IGNORE drops fields from that identity, so tests that differ only in the ignored fields share the same fingerprint and their samples combine into one longer time series.
 
 ```bash
 # Group across rcos versions (cross-version analysis)
@@ -100,7 +95,7 @@ make analyze BATCH_ID=test-batch-001 IGNORE='rcos'
 make analyze BATCH_ID=test-batch-001 IGNORE='rcos kernel'
 ```
 
-Without IGNORE, tests with different `rcos` values are separate fingerprints analyzed independently. With `IGNORE='rcos'`, they merge into one fingerprint with more historical data points.
+For example, without IGNORE, `threads=16, rcos=9.4` and `threads=16, rcos=9.6` are two separate fingerprints — each analyzed independently with its own history. With `IGNORE='rcos'`, they merge into one fingerprint (`threads=16`), combining their historical samples. This is how you detect regressions across version upgrades — the old and new rcos data form one time series, and Orion looks for a changepoint at the upgrade boundary.
 
 **Using both together** — no conflict. MATCH filters at query time, IGNORE adjusts grouping after:
 

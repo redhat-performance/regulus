@@ -1,104 +1,101 @@
-This is the Regulus workspace, a repo that contains collections of Crucible test configurations, performance-profile config utility, and SRIOV config utility.
+# Regulus
 
-Testing is to be invoked on a Crucible controller ([info](https://docs.google.com/presentation/d/1--L-kxt4QTW78a1Foz6FpKThsvSx-GUZwha4FzwRwsE/edit#slide=id.g158c5ca952e_3_0)). PAO-config and SRIOV-config are to be launched on the bastion host.
+A framework for building and running [Crucible](https://github.com/perftool-incubator/crucible) network performance test suites, with automated reporting and regression detection. Supports OpenShift (pod-based) and remotehost (bare-metal) environments.
 
-# Intro
-The primary goal of Regulus is to assit with building custom Crucible test suites and execute them easily.
+## Components
 
-Let's assume you would like to build a performance test suite for your target/product and run the suite reguarly to monitor performance trend.
+```mermaid
+flowchart TD
+    subgraph Regulus
+        CORE[Regulus Core\nBuild & run test suites]
+        REPORT[REPORT\nGenerate reports\nDashboard & MCP server]
+        ORION[ORION\nRegression detection\nChangepoint analysis]
+    end
 
-The first complexity is the numerous test cases (INTER-NODE vs INTRA-NODE, UDP vs TCP, IPv4 vs. IPv6, block sizes, protocol stack i.e. OVN vs. Hostnetwork vs. SRIOV, performance profile etc.) that you may need - Each test case needs a set of recipe i.e run.sh, mv-params, annotation and resource files. It is easy to make typos when you tune the recipes. Regulus solves this problem by constructing the recipes programatically from templates, and hence eliminates typos.
+    CRUCIBLE[Crucible]
+    OCP[OpenShift Cluster]
+    RH[Remotehost / RHEL]
+    ES[(ElasticSearch)]
 
-The second complexity relates to the constructing and executing custom sets of test case. For example, for weekly, you would like to run set A, and for monthly you would like to run set B. Regulus "jobs" allows you to config two separate jobs.
+    CORE -->|"① run tests via"| CRUCIBLE
+    CRUCIBLE -->|"② execute on"| OCP
+    CRUCIBLE -->|"② execute on"| RH
+    CORE -->|"③ configure"| OCP
+    CORE -->|"③ configure"| RH
+    CRUCIBLE -->|"④ results"| CORE
+    CORE -->|"⑤ upload"| REPORT
+    REPORT -->|"⑥ push to\nregulus-results-*"| ES
+    ES -->|"⑦ query historical\n+ batch data"| ORION
+    ORION -->|"⑧ report\nregressions"| RESULTS["Regression Report\n✅ Stable / ⚠️ Regression"]
+```
 
-With Regulus, the workflow is as follows
-### One time activities (per target/product)
-1. Build your test suite by choosing the existing and/or create new custom test cases.
-2. State your custom test params IF you need to customize them.
-3. State all your test cases in the test suite job list.
-4. Let Regulus automatically construct the final recipes i.e  "make init"
-### Periodic activity
-5. Launch the job i.e "make run"
+- **Regulus core** — Programmatically builds test recipes from templates (eliminating typos), organizes them into jobs, and executes them via Crucible. Supports OpenShift (pod-based) and remotehost (bare-metal) environments. Test groups live in `1_GROUP/`, `2_GROUP/`, `3_GROUP/`, and `DPDK_GROUP/`. `SETUP_GROUP/` contains configuration operations (PAO, SRIOV, etc.).
 
-# Using Regulus Step-by-step
+- **[REPORT](REPORT/)** — Report generation (JSON, HTML, CSV), interactive web dashboard, ElasticSearch integration for trend analysis, and an MCP server for AI-powered queries. See [README-report.md](README-report.md) for details.
 
-## Prerequisite
-1. Your Crucible controller has been setup and is working with your testbed in the standard way.
-2. The passwordless ssh from crucible controller to the bastion host is working. Please verify "ssh kni-username@bastion-host" works.
-3. For Regulus to initialize the testbed, among other things, it needs to learn the first worker node CPU topology. So, passwordless ssh from the bastion to the first worker node should also be setup i.e from the bastion "ssh core@your-workernode-0" works.
+- **[ORION](ORION/)** — Automated regression detection using [Orion](https://github.com/cloud-bulldozer/orion) changepoint analysis. Discovers test fingerprints dynamically from the ES index mapping, generates Orion configs per fingerprint, and reports throughput and CPU regressions. Integrated with Prow CI.
 
+## Quick Start
 
-## Set up Regulus on the crucible controller
+### Prerequisites
+
+1. Your Crucible controller is set up and working with your testbed.
+2. Passwordless SSH from the Crucible controller to the bastion host: `ssh your-user@bastion-host` works.
+3. Passwordless SSH from the bastion to itself: `ssh your-user@bastion-host` works from the bastion.
+4. Passwordless SSH from the bastion to the first worker node: `ssh core@worker-0` works from the bastion. (Needed for `reg-smart-config` to discover CPU topology.)
 
 ### Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/HughNhan/regulus.git
+git clone https://github.com/redhat-performance/regulus.git
 cd regulus
 ```
 
-This creates `~/regulus`.
-
-### Step 2: Configure your lab (Easy Mode)
-
-Regulus provides a **smart configuration tool** that automatically detects most of your lab settings. You only need to provide 3 basic values:
+### Step 2: Configure your lab
 
 ```bash
-# Copy the template
 cp lab.config.template lab.config
-
-# Edit ONLY these 3 required values:
 vi lab.config
 ```
 
-**Minimum required configuration:**
+You only need to set 3 values — `reg-smart-config` (next step) will auto-detect everything else:
+
 ```bash
 export REG_KNI_USER=your-username      # Your username on the bastion host
 export REG_OCPHOST="192.168.x.x"       # Bastion host IP address
 export KUBECONFIG=/path/to/kubeconfig  # Path to your kubeconfig file
 ```
 
-**That's it!** You can leave all the NIC and topology settings blank - the smart config tool will figure them out.
-
-### Step 3: Bootstrap Regulus
+### Step 3: Bootstrap and auto-detect
 
 ```bash
 # Set up environment variables
 source ./bootstrap.sh
-```
 
-### Step 4: Initialize lab and auto-detect configuration
+# Auto-detect NICs, topology, and workers — saves manual lab.config editing
+bash bin/reg-smart-config
 
-```bash
 # Initialize lab infrastructure
 make init-lab
-
-# Auto-detect NICs and network topology
-bash bin/reg-smart-config
 ```
 
-The `reg-smart-config` tool will automatically:
-- ✅ Detect worker nodes (OCP_WORKER_0, OCP_WORKER_1, OCP_WORKER_2)
-- ✅ Identify available NICs and their models (CX6, CX7, E810, etc.)
-- ✅ Find suitable NICs for SRIOV testing (REG_SRIOV_NIC, REG_SRIOV_NIC_MODEL)
-- ✅ Find suitable NICs for MACVLAN testing (REG_MACVLAN_NIC)
-- ✅ Find suitable NICs for DPDK testing (REG_DPDK_NIC)
-- ✅ Determine MTU settings
-- ✅ Identify the OVN-Kubernetes primary interface (to avoid conflicts)
-- ✅ Detect bare-metal hosts if available (BMLHOSTA, BMLHOSTB)
+`reg-smart-config` automatically detects:
+- Worker nodes (OCP_WORKER_0, OCP_WORKER_1, OCP_WORKER_2)
+- Available NICs and their models (CX6, CX7, E810, etc.)
+- Suitable NICs for SRIOV, MACVLAN, and DPDK testing
+- MTU settings
+- OVN-Kubernetes primary interface (to avoid conflicts)
+- Bare-metal hosts if available
 
-**What the smart config looks for:**
+**What it looks for:**
 - NICs that are **UP** (cable connected)
 - NICs that have **no IP address** (not in use)
 - NICs that are **not used by OVN-K** (avoids conflicts)
-- NICs with **recognized models**: XXV710, X710, E810, CX5, CX6, CX7, BF3
+- NICs with **recognized models**: XXV710, X710, E810, CX5, CX6, CX7, BF2, BF3
 
-After running `reg-smart-config`, check your `lab.config` - it should now be populated with all the discovered values.
-
-### Step 5: Verify configuration
+### Step 4: Verify configuration
 
 ```bash
-# Review the auto-detected configuration
 cat lab.config | grep -E "WORKER|SRIOV|MACVLAN|DPDK|NIC_MODEL"
 ```
 
@@ -116,20 +113,15 @@ export REG_SRIOV_MTU=9000
 
 ---
 
-### Alternative: Manual Configuration (Advanced Users)
-
-If you prefer to configure everything manually, or if the smart config doesn't detect your setup correctly, you can manually edit `lab.config`:
-
 <details>
-<summary>Click to expand manual configuration guide</summary>
+<summary>Manual Configuration (Advanced Users)</summary>
+
+If the smart config doesn't detect your setup correctly, you can manually edit `lab.config`:
 
 #### Understanding Your Network Topology
 
-Before manually configuring, you need to understand:
-
 1. **OVN-K Primary Interface**: Which NIC is used by OpenShift's primary network
    ```bash
-   # On a worker node
    oc debug node/worker-0
    chroot /host
    ip addr show | grep -A 5 br-ex
@@ -137,7 +129,6 @@ Before manually configuring, you need to understand:
 
 2. **Available NICs**: List all network interfaces
    ```bash
-   # On a worker node
    oc debug node/worker-0
    chroot /host
    lspci | grep -i ethernet
@@ -146,9 +137,7 @@ Before manually configuring, you need to understand:
 
 3. **NIC Models**: Identify your hardware
    ```bash
-   # Common models
-   # Intel: XXV710, X710, E810
-   # Mellanox/NVIDIA: CX5, CX6, CX7, BF3
+   # Common models: Intel (XXV710, X710, E810), Mellanox/NVIDIA (CX5, CX6, CX7, BF3)
    ethtool -i ens1f0 | grep driver
    ```
 
@@ -160,221 +149,203 @@ export REG_KNI_USER=your-username
 export REG_OCPHOST="192.168.x.x"
 export KUBECONFIG=/path/to/kubeconfig
 
-# Worker nodes (can use IP or FQDN)
+# Worker nodes
 export OCP_WORKER_0=worker-0.example.com
 export OCP_WORKER_1=worker-1.example.com
 export OCP_WORKER_2=worker-2.example.com
 
-# SRIOV Testing NIC
-# - Must NOT be the OVN-K primary interface
-# - Must be UP (cable connected)
-# - Must have no IP address assigned
-export REG_SRIOV_NIC=ens1f0np0          # NIC device name
-export REG_SRIOV_NIC_MODEL=CX6          # Model: CX6, CX7, E810, etc.
-export REG_SRIOV_MTU=9000               # MTU setting
+# SRIOV Testing NIC (must not be OVN-K primary, must be UP, no IP assigned)
+export REG_SRIOV_NIC=ens1f0np0
+export REG_SRIOV_NIC_MODEL=CX6
+export REG_SRIOV_MTU=9000
 
 # MACVLAN Testing NIC (different from SRIOV)
 export REG_MACVLAN_NIC=ens2f0
 
-# DPDK Testing NIC (different from SRIOV and MACVLAN)
-# - Cannot have existing SRIOV VFs
-# - Must be recognized model
+# DPDK Testing NIC (different from SRIOV and MACVLAN, no existing VFs)
 export REG_DPDK_NIC=ens3f0
 
-# Bare-metal hosts (optional, for certain tests)
+# Bare-metal hosts (optional)
 export BMLHOSTA=bare-metal-1.example.com
 export BMLHOSTB=bare-metal-2.example.com
-
-# Other optional settings
-export REG_DP=415                       # Deployment identifier
 ```
-
-#### Rules for NIC Selection
-
-**SRIOV NIC Requirements:**
-- ✅ Different from OVN-K primary interface
-- ✅ Interface is UP (link detected)
-- ✅ No IP address assigned
-- ✅ Supported model (CX6, CX7, E810, etc.)
-
-**MACVLAN NIC Requirements:**
-- ✅ Different from SRIOV NIC
-- ✅ Interface is UP
-- ✅ No IP address assigned
-
-**DPDK NIC Requirements:**
-- ✅ Different from SRIOV and MACVLAN NICs
-- ✅ Interface is UP
-- ✅ No IP address assigned
-- ✅ No existing SRIOV VFs configured
-- ✅ Recognized model
 
 </details>
 
 ---
 
-## Run a pilot test on a fresh Regulus workspace:
-It recommends to run a pilot test to verify your Regulus set up. On the Crucible controller
- 
-1. Add a simple test case to ./jobs.config such as the ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD test. You may want to shorten the test duration to 10 seconds and reduce number of sample to 1 to speed up the pilot test.
-2. Initialize the job
-```
-make init-jobs
-```
-3. Run the job
-```
-make run-jobs
-```
-If everything is OK, the job will run to completion
+## Running Tests
 
-4. See examine result sections
-5. Clean the job
-```
+### Pilot test
+
+Run a pilot test first to verify your setup:
+
+```bash
+# Add a simple test to jobs.config
+vi jobs.config
+
+# Initialize and run
+make init-jobs
+make run-jobs
+
+# Clean up
 make clean-jobs
 ```
 
-## Considerations
-### Time. 
-Most test cases take a few minutes, but an iperf3 drop-hunter run can take several hours to finish its binary search. So you should consider the values for test duration and number of samples set in the "jobs.config" file. For trial runs, pick low values for a quicker completion. For real runs, a longer duration and more samples will produce better average.
+Tip: shorten `DURATION` to 10 seconds and `NUM_SAMPLES` to 1 in `jobs.config` for a quick pilot.
 
+### Testing scenarios
 
-### A few testing scenarios
-1. Run a job of one or more test cases
+**Run a job of one or more test cases:**
+```bash
+vi jobs.config          # Add test cases to JOBS variable
+make init-jobs
+make run-jobs
+make clean-jobs
+```
 
-Add test cases to the JOBS variable your jobs.config.
+**Run all test cases** (can take hours or days):
+```bash
+make init-all
+make run-all
+make clean-all
+```
 
-    ```
-	cd $REG_ROOT
-	vi jobs.config
-	make init-jobs
-	make run-jobs
-	make clean-jobs
-    ```
+**Run a single test case directly:**
+```bash
+cd 1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
+make init
+make run
+make clean
+```
 
-2. To run all test cases under Regulus. Warning it can take multi hours if not day.
-	```
-    cd $REG_ROOT
-    make init-all
-	make run-all
-	make clean-all
-    ```
-3. Run a test case directly at its directory e.g ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD. 
-Sometime you may have a reason to run a test locally at its directory instead of setting up $REG_ROOT/jobs.config and run a job of one test. Regulus supports this usage.
-	```
-    cd $REG_ROOT/1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD
-	make init
-	make run 
-	make clean
-    ```
+### Time considerations
 
-# Examine and Analyze Results
+Most test cases take a few minutes, but an iperf3 drop-hunter run can take several hours for its binary search. Adjust `DURATION` and `NUM_SAMPLES` in `jobs.config` — lower values for trial runs, higher values for production runs with better averages.
 
-## Quick Results Check
+## Examine and Analyze Results
 
-In each test directory (e.g., `./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD`), you'll find:
-- **latest/** - All run artifacts and raw results
-- Individual result files from uperf, iperf3, etc.
+### Quick results check
 
-## Generate Comprehensive Reports
+In each test directory (e.g., `1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/16-POD`), you'll find:
+- **latest/** — All run artifacts and raw results
 
-Regulus includes powerful report generation and analysis tools in the `REPORT/` directory:
+### Generate reports
 
 ```bash
-cd $REG_ROOT
-
-# Generate a comprehensive report (JSON, HTML, CSV)
+# Generate comprehensive report (JSON, HTML, CSV)
 make summary
 
-# View results in an interactive web dashboard
-make report-dashboard
-# Opens at http://localhost:5001
+# View results in interactive web dashboard
+make report-dashboard    # Opens at http://localhost:5001
 
 # Upload to ElasticSearch for trend analysis
 make es-upload
-
-# Query results via command line
-cd REPORT/mcp_server
-./build_and_run.sh search --model OVNK --nic BF3
-./build_and_run.sh stats
 ```
 
-### Report Capabilities
+### Regression detection
 
-The REPORT/ directory provides a complete analysis pipeline:
+```bash
+cd ORION
 
-1. **Automated Report Generation** (`build_report/`)
-   - Discovers all test runs automatically
-   - Extracts metrics from multiple tools (uperf, iperf3, etc.)
-   - Generates JSON, HTML, and CSV reports
-   - Validates data against schemas
+# Analyze latest batch for regressions
+make analyze
 
-2. **Interactive Dashboard** (`dashboard/`)
-   - Load and compare multiple reports side-by-side
-   - Filter by benchmark, model, NIC, topology
-   - Visual performance analysis
-   - Export filtered results
-
-3. **ElasticSearch Integration** (`es_integration/`)
-   - Store results in ElasticSearch/OpenSearch
-   - Track performance trends over time
-   - Compare results across different runs
-   - Advanced querying and aggregations
-
-4. **AI-Powered Queries** (`mcp_server/`)
-   - Query results using natural language (Claude Desktop, Cline, etc.)
-   - Supports any MCP-compatible client
-   - Standalone CLI for direct access (no AI required)
-   - Containerized for easy deployment
-
-**For detailed documentation, see:** [README-report.md](./README-report.md)
-	
-# Configure PAO and SRIOV
-
-Assuming you have pulled this repo on your crucible controller and have invoked "make init-lab" with success, you should config PAO and SRIOV at the appropriate time. See README in SRIOV-config and PAO-config for details
-
-# Customizations
-### ./lab.config
-You describe your lab details in this file.
+# Analyze specific batch
+make analyze BATCH_ID=test-batch-2026-07-08
 ```
+
+See [ORION/README.md](ORION/README.md) for MATCH/IGNORE filters and detailed usage.
+
+**For detailed reporting documentation, see:** [README-report.md](README-report.md)
+
+## Prow CI Integration
+
+In Prow, the entire workflow is automated via two scripts:
+
+- **`run_cpt.sh`** — Main entry point called by the Prow step. Runs `reg-smart-config`, `make init-lab`, initializes jobs, executes tests, and then calls `run_es.sh` to upload results.
+- **`run_es.sh`** — Uploads test results to ElasticSearch. Reads ES credentials from `lab.config` (written by the Prow step from mounted secrets), constructs the ES URL with URL-encoded credentials, and invokes the REPORT upload pipeline.
+
+```mermaid
+flowchart LR
+    A[Prow pod] -->|SSH| B[Bastion]
+    B --> C[run_cpt.sh\nreg-smart-config\ninit-lab\nrun tests]
+    C --> D[run_es.sh\nUpload results to ES]
+    D --> E[(ElasticSearch)]
+    A -->|separate step| F[ORION/prow-entry.sh\nRegression detection]
+    F --> E
+```
+
+## Configure PAO and SRIOV
+
+After `make init-lab` succeeds, configure PAO and SRIOV at the appropriate time. See README files in `PAO-config/` and `SRIOV-config/` for details.
+
+## Customization
+
+### lab.config
+
+Lab-specific settings:
+```bash
 export REG_KNI_USER=myuser
 export REG_OCPHOST="192.168.94.11"
-export OCP_WORKER_0=appworker-0.blueprint-cwl.<>.lab
-export OCP_WORKER_1=appworker-1.blueprint-cwl.<>.lab
-export OCP_WORKER_2=appworker-2.blueprint-cwl.<>.lab
-export BMLHOSTA=
-export BMLHOSTB=
-export REG_DP=415
+export OCP_WORKER_0=appworker-0.blueprint-cwl.example.lab
+export OCP_WORKER_1=appworker-1.blueprint-cwl.example.lab
+export OCP_WORKER_2=appworker-2.blueprint-cwl.example.lab
 export REG_SRIOV_NIC=ens1f0np0
 export REG_SRIOV_MTU=9000
 export REG_SRIOV_NIC_MODEL=CX6
 ```
-### ./jobs.config
-You describe your job details in this file
-```
+
+### jobs.config
+
+Job-specific settings:
+```bash
 export OCP_PROJECT=crucible-myproject
-export NODE_IP=
-export IPSEC_EP=
-export REMOTE_HOST_INTF=
-export JOBS= ./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD 
+export JOBS=./1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD
 export DRY_RUN=false
 export TAG=NOK
 export NUM_SAMPLES=1
-export DURATION=10                                                                    
+export DURATION=10
 ```
-### ./reg_expand.sh 
-You customize a test recepes in its reg_expand.sh file. For example, /home/kni/regulus/1_GROUP/NO-PAO/4IP/INTER-NODE/TCP/2-POD.reg_expand.h
 
-```
+### reg_expand.sh
+
+Customize test recipes in each test directory's `reg_expand.sh` file:
+```bash
 export TPL_SCALE_UP_FACTOR=1
 export TPL_TOPO=internode
 export TPL_INTF=eth0
 ```
-### templates
-The reg_expand.sh files use templates to expand. If you need to add more templates they are found at:
+
+### Templates
+
+Add or modify templates at `$REG_ROOT/templates/`.
+
+## Directory Structure
 
 ```
-cd  $REG_ROOT/regulus/templates
+regulus/
+├── 1_GROUP/, 2_GROUP/, 3_GROUP/  # Test case groups
+├── DPDK_GROUP/                    # DPDK test cases
+├── SETUP_GROUP/                   # Setup/configuration test cases
+├── REPORT/                        # Reporting and analysis pipeline
+├── ORION/                         # Regression detection (Orion integration)
+├── bin/                           # Utilities (reg-smart-config, etc.)
+├── templates/                     # Test recipe templates
+├── common/                        # Shared scripts and functions
+├── tools/                         # Maintenance tools
+├── PAO-config/                    # Performance Addon Operator config
+├── SRIOV-config/                  # SRIOV network config
+├── MACVLAN-config/                # MACVLAN network config
+├── DPDK-config/                   # DPDK network config
+├── ADDONS/                        # Optional add-ons
+├── lab.config                     # Lab-specific settings (user-edited)
+├── jobs.config                    # Job definitions (user-edited)
+├── bootstrap.sh                   # Environment setup
+├── run_cpt.sh                     # Prow CI entry point
+└── run_es.sh                      # ES upload script
 ```
 
+## Author
 
---- done ---
+Hugh Nhan (https://github.com/HughNhan)
