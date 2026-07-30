@@ -108,8 +108,7 @@
 ### Makefile (`REPORT/makefile`)
 Main entry point for all operations:
 - `make es-bootstrap-index`: Create rollover index (detects ISM plugin; works with or without it)
-- `make es-upload`: Upload data to ES (auto-creates index + write alias if not found)
-- `make es-full`: Complete workflow (summary → template → upload)
+- `make es-upload`: Generate report and upload to ES (auto-creates index + write alias if not found)
 - `make es-list-execution-labels`: List execution labels
 - `make es-ilm-explain`: Check ISM policy status
 - `make summary`: Generate reports (unflatten + flatten)

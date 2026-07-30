@@ -14,7 +14,7 @@
 #   ARTIFACT_DIR        - Prow artifact directory
 #
 # ES credentials (one of):
-#   ES_SERVER env var           - use directly (for local testing)
+#   ES_URL env var           - use directly (for local testing)
 #   Mounted secrets at /secret/perfscale-prod/{username,password,host}  (Prow)
 #
 set -o nounset
@@ -38,7 +38,7 @@ if [[ -n "${DEBUG_IGNORE}" ]] || [[ -n "${DEBUG_MATCH}" ]]; then
 fi
 
 # ── Resolve ES server ────────────────────────────────────────────────────────
-if [[ -n "${ES_SERVER:-}" ]]; then
+if [[ -n "${ES_URL:-}" ]]; then
     echo "ES server: (from environment)"
 else
     ES_PASSWORD=$(cat "/secret/perfscale-prod/password" 2>/dev/null || echo "")
@@ -46,11 +46,11 @@ else
     ES_HOST=$(cat "/secret/perfscale-prod/host" 2>/dev/null || echo "")
 
     if [[ -z "$ES_USER" ]] || [[ -z "$ES_PASSWORD" ]] || [[ -z "$ES_HOST" ]]; then
-        echo "❌ ERROR: ES_SERVER not set and credentials not found in /secret/perfscale-prod/" >&2
+        echo "❌ ERROR: ES_URL not set and credentials not found in /secret/perfscale-prod/" >&2
         exit 1
     fi
 
-    ES_SERVER=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" ES_HOST="$ES_HOST" python3 -c "
+    ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" ES_HOST="$ES_HOST" python3 -c "
 import os, urllib.parse
 user = urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='')
 pwd = urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='')
@@ -62,7 +62,7 @@ echo "ES index: ${ES_BENCHMARK_INDEX:-regulus-results-*}"
 
 # ── Build analyze-batch.py command ────────────────────────────────────────────
 CMD=("./scripts/analyze-batch.py")
-CMD+=("--es-server" "${ES_SERVER}")
+CMD+=("--es-server" "${ES_URL}")
 CMD+=("--es-index" "${ES_BENCHMARK_INDEX:-regulus-results-*}")
 CMD+=("--lookback" "${LOOKBACK:-90d}")
 
