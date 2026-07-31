@@ -2,7 +2,7 @@
 
 #if [ -z "$REG_ROOT" ]; then
     export REG_ROOT=$(pwd)
-    export REG_DIR="${PWD#"$HOME"/}" 
+    export REG_DIR="${PWD#"$HOME"/}"
     unset PATH
     # Set the PATH variable to the default value
     export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
