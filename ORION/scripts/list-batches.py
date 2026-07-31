@@ -16,12 +16,14 @@ try:
         print("\n⚠️  No batches found")
         sys.exit(0)
 
-    print("\n{:<40} {:>10} {}".format("Batch ID", "Tests", "Latest Timestamp"))
-    print("="*80)
+    fmt = "{:<38} {:<6} {:<28} {:<28}"
+    print("\n" + fmt.format("Batch ID", "Tests", "Latest Test", "Uploaded"))
+    print("-"*104)
 
     for b in batches:
         timestamp = b["latest"].get("value_as_string", "N/A")
-        print("{:<40} {:>10} {}".format(b["key"], b["count"]["value"], timestamp))
+        uploaded = b.get("upload_time", {}).get("value_as_string", "n/a")
+        print(fmt.format(b["key"], int(b["count"]["value"]), timestamp, uploaded))
 
 except Exception as e:
     print(f"\n❌ Error parsing ES response: {e}")

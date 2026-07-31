@@ -343,20 +343,9 @@ es-index-mapping: es-check
 # Batch Management Targets
 # =============================================================================
 
-es-list-batches: es-check
+es-list-batches:
 	@$(SOURCE_ES_CONFIG); \
-	echo "=========================================="; \
-	echo "  Upload Batches in $(ES_INDEX)"; \
-	echo "=========================================="; \
-	echo ""; \
-	curl -s "$${ES_URL}/$(ES_INDEX)/_search?size=0&pretty" \
-		-H 'Content-Type: application/json' \
-		-d '{"aggs": {"batches": {"terms": {"field": "batch_id.keyword", "size": 100, "order": {"max_ts": "desc"}}, "aggs": {"max_ts": {"max": {"field": "@timestamp"}}, "upload_time": {"max": {"field": "uploaded_at"}}}}}}' | \
-		$(PYTHON) -c 'import sys, json; \
-		data = json.load(sys.stdin); \
-		buckets = data.get("aggregations", {}).get("batches", {}).get("buckets", []); \
-		print("Found {} unique batch(es):\n".format(len(buckets))); \
-		[print("  {:40s} {:>5d} docs   test: {}  uploaded: {}".format(b["key"], b["doc_count"], b.get("max_ts",{}).get("value_as_string","n/a"), b.get("upload_time",{}).get("value_as_string","n/a"))) for b in buckets]'
+	$(MAKE) -C ../ORION list-batches ES_URL="$$ES_URL" ES_INDEX="$(ES_INDEX)"
 
 es-batch-count: es-check
 	@if [ -z "$(ES_BATCH_ID)" ]; then \
