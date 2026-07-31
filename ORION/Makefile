@@ -131,7 +131,7 @@ set-es:
 list-batches:
 	@echo "📋 Listing batches in $(ES_INDEX)..."
 	@curl -s "$(ES_URL)/$(ES_INDEX)/_search" -H 'Content-Type: application/json' \
-		-d '{"size":0,"aggs":{"batches":{"terms":{"field":"batch_id.keyword","size":50,"order":{"latest":"desc"}},"aggs":{"latest":{"max":{"field":"@timestamp"}},"count":{"value_count":{"field":"iteration_id.keyword"}}}}}}' \
+		-d '{"size":0,"aggs":{"batches":{"terms":{"field":"batch_id.keyword","size":50,"order":{"latest":"desc"}},"aggs":{"latest":{"max":{"field":"@timestamp"}},"count":{"value_count":{"field":"iteration_id.keyword"}},"upload_time":{"max":{"field":"uploaded_at"}}}}}}' \
 		| ./scripts/list-batches.py
 
 # Show raw index mapping

@@ -2,8 +2,9 @@
 # Set ES_URL environment variable or update the default below
 ES_URL="${ES_URL:-http://localhost:9200}"
 
+ORION_IMAGE="quay.io/cloud-bulldozer/orion:latest"
+
 # Use --rm to automatically remove container after it exits (prevents container buildup)
-podman run --rm --user=root -v $(pwd):/orion:Z -w /orion orion --es-server="$ES_URL" "$@"
+podman run --rm --user=root -v $(pwd):/orion:Z -w /orion "$ORION_IMAGE" --es-server="$ES_URL" "$@"
 
 # example:  ./run-it --config examples/regulus-dataplane.yaml --hunter-analyze  --benchmark-index=regulus-results-* --metadata-index=regulus-results-* --lookback=15d
-# podman pull quay.io/cloud-bulldozer/orion:latest
