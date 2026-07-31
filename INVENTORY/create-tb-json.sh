@@ -11,7 +11,14 @@ source $DIR/exec-remote-script.sh
 # Default values
 FORCE=0
 
-REMOTE_OUTPUT_FILE="$REG_ROOT/INVENTORY/$GEN_DIR/$TBJSON"
+_sub_path=${REG_ROOT#$HOME/}
+if [[ "$_sub_path" != "$REG_ROOT" ]]; then
+    _kni_home=$(ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR "${REG_KNI_USER}@${REG_OCPHOST}" "pwd")
+    _remote_root="${_kni_home}/${_sub_path}"
+else
+    _remote_root="$REG_ROOT"
+fi
+REMOTE_OUTPUT_FILE="$_remote_root/INVENTORY/$GEN_DIR/$TBJSON"
 OUTPUT_FILE="$REG_ROOT/INVENTORY/$GEN_DIR/$TBJSON"
 
 
