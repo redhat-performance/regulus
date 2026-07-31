@@ -13,7 +13,16 @@ exec-remote-script() {
     local REMOTE_HOST="${REG_OCPHOST}"
     local REMOTE_USER="${REG_KNI_USER}"
     local LOCAL_ROOT="${LOCAL_ROOT:-$REG_ROOT}"
-    local REMOTE_ROOT="${REMOTE_ROOT:-$REG_ROOT}"
+    local _sub_path=${REG_ROOT#$HOME/}
+    local _remote_root
+    if [[ "$_sub_path" != "$REG_ROOT" ]]; then
+        local _kni_home
+        _kni_home=$(ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR "${REMOTE_USER}@${REMOTE_HOST}" "pwd")
+        _remote_root=${_kni_home}/${_sub_path}
+    else
+        _remote_root=$REG_ROOT
+    fi
+    local REMOTE_ROOT="${REMOTE_ROOT:-${_remote_root}}"
 
     # Get the script path or command
     local INPUT="$1"
