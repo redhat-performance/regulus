@@ -2,7 +2,7 @@
 #
 # Install IPsec for local traffic ONLY. i.e mode=Full, and without additional config for External traffic
 #
-
+source ${REG_ROOT}/lab.config
 source ./functions.sh
 
 if [[ "$(wait_mcp_state_ready 0)" == "False" ]]; then

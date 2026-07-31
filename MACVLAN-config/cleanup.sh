@@ -1,5 +1,6 @@
 #!/bin/bash
 
+source ${REG_ROOT}/lab.config
 #set -euo pipefail
 source ./functions.sh
 
