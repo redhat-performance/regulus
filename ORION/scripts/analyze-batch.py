@@ -126,6 +126,7 @@ class BatchAnalyzer:
             print(f"❌ Error: Cannot ignore required fields: {missing_required}")
             sys.exit(1)
 
+
     def _discover_fingerprint_fields(self) -> List[str]:
         """Discover fingerprint fields from ES index mapping.
 
@@ -413,9 +414,12 @@ class BatchAnalyzer:
 
         try:
             # Run Orion (Python 3.6 compatible)
+            env = os.environ.copy()
+            env['ES_URL'] = self.es_server
             result = subprocess.run(
                 cmd,
                 cwd=self.repo_root,
+                env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
@@ -457,6 +461,7 @@ class BatchAnalyzer:
                     'status': 'success',
                     'regression_detected': len(regressed_metrics) > 0,
                     'regressed_metrics': sorted(regressed_metrics),
+                    'historical_samples': len(output_data),
                     'details': output_data,
                     'stdout': result.stdout
                 }
@@ -548,36 +553,44 @@ class BatchAnalyzer:
 
             # Print result
             if analysis_result['status'] == 'success':
+                samples = analysis_result.get('historical_samples', 0)
                 if analysis_result['regression_detected']:
                     metrics = ', '.join(analysis_result.get('regressed_metrics', []))
-                    print(f"   ⚠️  REGRESSION DETECTED ({metrics})")
+                    print(f"   ⚠️  REGRESSION DETECTED ({metrics}) — {samples} historical samples")
                 else:
-                    print(f"   ✅ STABLE (no regression)")
+                    print(f"   ✅ STABLE (no regression) — {samples} historical samples")
             else:
                 print(f"   ❌ ERROR: {analysis_result.get('error', 'Unknown error')}")
-
-            # Note: Config files are kept in generated-configs/ for reference
-            # Orion output files are kept in generated-orion/ for detailed analysis
+                remaining = len(fingerprint_groups) - idx
+                if remaining > 0:
+                    print(f"   Skipping remaining {remaining} fingerprint(s) — same environment, same error.")
+                break
 
         print("\n" + "=" * 80)
         print("📊 Analysis Summary")
         print("=" * 80)
 
-        total = len(results)
+        total_fingerprints = len(fingerprint_groups)
+        analyzed = len(results)
+        skipped = total_fingerprints - analyzed
         regressions = sum(1 for r in results if r['analysis'].get('regression_detected'))
         stable = sum(1 for r in results if r['analysis']['status'] == 'success' and not r['analysis'].get('regression_detected'))
         errors = sum(1 for r in results if r['analysis']['status'] == 'error')
 
-        print(f"Total fingerprints analyzed: {total}")
+        print(f"Total fingerprints: {total_fingerprints}")
+        if skipped > 0:
+            print(f"  ⏭️  Skipped: {skipped}")
         print(f"  ✅ Stable: {stable}")
         print(f"  ⚠️  Regressions: {regressions}")
         print(f"  ❌ Errors: {errors}")
         print("=" * 80)
 
+        status = 'error' if errors > 0 else 'success'
         return {
-            'status': 'success',
+            'status': status,
             'batch_id': self.batch_id,
-            'total_fingerprints': total,
+            'total_fingerprints': total_fingerprints,
+            'skipped': skipped,
             'stable': stable,
             'regressions': regressions,
             'errors': errors,
