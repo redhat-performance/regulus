@@ -5,24 +5,11 @@
 exec-remote-script() {
     source $REG_ROOT/lab.config
 
-    #DEST="$REG_KNI_USER@$REG_OCPHOST"
-    #scp -r $REG_ROOT/INVENTORY       $DEST:$REG_ROOT/  > /dev/null
-    #scp -r $REG_ROOT/REPORT/upload   $DEST:$REG_ROOT/REPORT  > /dev/null
-
     # Configuration - adjust these or set via environment
     local REMOTE_HOST="${REG_OCPHOST}"
     local REMOTE_USER="${REG_KNI_USER}"
     local LOCAL_ROOT="${LOCAL_ROOT:-$REG_ROOT}"
-    local _sub_path=${REG_ROOT#$HOME/}
-    local _remote_root
-    if [[ "$_sub_path" != "$REG_ROOT" ]]; then
-        local _kni_home
-        _kni_home=$(ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR "${REMOTE_USER}@${REMOTE_HOST}" "pwd")
-        _remote_root=${_kni_home}/${_sub_path}
-    else
-        _remote_root=$REG_ROOT
-    fi
-    local REMOTE_ROOT="${REMOTE_ROOT:-${_remote_root}}"
+    local REMOTE_ROOT="${REMOTE_ROOT:-$REG_ROOT}"
 
     # Get the script path or command
     local INPUT="$1"
