@@ -35,11 +35,19 @@ if is_local "$REG_OCPHOST"; then
 else
     SUB_PATH=${REG_ROOT#$HOME/}
     if [[ "$SUB_PATH" != "$REG_ROOT" ]]; then
-        KNI_HOME=$(ssh ${REG_KNI_USER}@${REG_OCPHOST} "pwd")
+        KNI_HOME=$(ssh "${REG_KNI_USER}@${REG_OCPHOST}" "pwd")
+        if [[ -z "$KNI_HOME" ]]; then
+            echo "ERROR: Failed to determine remote home directory for '$REG_KNI_USER' on $REG_OCPHOST" >&2
+            exit 1
+        fi
         REM_REG_ROOT=$KNI_HOME/$SUB_PATH
+        if ! ssh "${REG_KNI_USER}@${REG_OCPHOST}" "test -d $REM_REG_ROOT"; then
+            echo "ERROR: Remote user '$REG_KNI_USER' cannot access $REM_REG_ROOT on $REG_OCPHOST" >&2
+            exit 1
+        fi
     else
         REM_REG_ROOT=$REG_ROOT
-        if ! ssh ${REG_KNI_USER}@${REG_OCPHOST} "test -d $REM_REG_ROOT"; then
+        if ! ssh "${REG_KNI_USER}@${REG_OCPHOST}" "test -d $REM_REG_ROOT"; then
             echo "ERROR: Remote user '$REG_KNI_USER' cannot access $REM_REG_ROOT on $REG_OCPHOST" >&2
             exit 1
         fi
