@@ -5,10 +5,6 @@
 exec-remote-script() {
     source $REG_ROOT/lab.config
 
-    #DEST="$REG_KNI_USER@$REG_OCPHOST"
-    #scp -r $REG_ROOT/INVENTORY       $DEST:$REG_ROOT/  > /dev/null
-    #scp -r $REG_ROOT/REPORT/upload   $DEST:$REG_ROOT/REPORT  > /dev/null
-
     # Configuration - adjust these or set via environment
     local REMOTE_HOST="${REG_OCPHOST}"
     local REMOTE_USER="${REG_KNI_USER}"

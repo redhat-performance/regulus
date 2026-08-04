@@ -34,9 +34,24 @@ if is_local "$REG_OCPHOST"; then
 	#echo run local REM_REG_PATH=$REM_REG_ROOT
 else
     SUB_PATH=${REG_ROOT#$HOME/}
-    KNI_HOME=$(ssh ${REG_KNI_USER}@${REG_OCPHOST} "pwd")
-    REM_REG_ROOT=$KNI_HOME/$SUB_PATH
-    #echo run remte REM_REG_ROOT=$REG_PATH
+    if [[ "$SUB_PATH" != "$REG_ROOT" ]]; then
+        KNI_HOME=$(ssh "${REG_KNI_USER}@${REG_OCPHOST}" "pwd")
+        if [[ -z "$KNI_HOME" ]]; then
+            echo "ERROR: Failed to determine remote home directory for '$REG_KNI_USER' on $REG_OCPHOST" >&2
+            exit 1
+        fi
+        REM_REG_ROOT=$KNI_HOME/$SUB_PATH
+        if ! ssh "${REG_KNI_USER}@${REG_OCPHOST}" "test -d $REM_REG_ROOT"; then
+            echo "ERROR: Remote user '$REG_KNI_USER' cannot access $REM_REG_ROOT on $REG_OCPHOST" >&2
+            exit 1
+        fi
+    else
+        REM_REG_ROOT=$REG_ROOT
+        if ! ssh "${REG_KNI_USER}@${REG_OCPHOST}" "test -d $REM_REG_ROOT"; then
+            echo "ERROR: Remote user '$REG_KNI_USER' cannot access $REM_REG_ROOT on $REG_OCPHOST" >&2
+            exit 1
+        fi
+    fi
 fi
 
 # env to support when running on the bastion vs crucible VM

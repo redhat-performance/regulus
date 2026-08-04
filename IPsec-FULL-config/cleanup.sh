@@ -2,7 +2,7 @@
 #
 # Remove IPsec for local traffic ONLY.
 #
-
+source ${REG_ROOT}/lab.config
 source ./functions.sh
 
 if [[ "$(wait_mcp_state_ready 0)" == "False" ]]; then
