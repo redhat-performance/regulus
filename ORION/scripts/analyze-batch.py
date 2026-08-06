@@ -66,7 +66,8 @@ NON_FINGERPRINT_FIELDS = {
     'busy_cpu', 'samples_count', 'sample_count',
     'run_id', 'batch_id', 'iteration_id',
     'regulus_data', 'regulus_git_branch', 'execution_label',
-    'mock_data', 'uploaded_at',
+    'mock_data', 'uploaded_at', 'offload',
+    'unit',
 }
 
 
@@ -120,7 +121,7 @@ class BatchAnalyzer:
         ]
 
         # Ensure required fields are always included
-        required = {'benchmark', 'unit'}
+        required = {'benchmark'}
         missing_required = required - set(self.fingerprint_fields)
         if missing_required:
             print(f"❌ Error: Cannot ignore required fields: {missing_required}")
