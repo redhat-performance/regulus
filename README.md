@@ -17,11 +17,11 @@ flowchart TD
     RH[Remotehost / RHEL]
     ES[(ElasticSearch)]
 
-    CORE -->|"① run tests via"| CRUCIBLE
-    CRUCIBLE -->|"② execute on"| OCP
-    CRUCIBLE -->|"② execute on"| RH
-    CORE -->|"③ configure"| OCP
-    CORE -->|"③ configure"| RH
+    CORE -->|"② run tests via"| CRUCIBLE
+    CRUCIBLE -->|"③ execute on"| OCP
+    CRUCIBLE -->|"③ execute on"| RH
+    CORE -->|"① configure"| OCP
+    CORE -->|"① configure"| RH
     CRUCIBLE -->|"④ results"| CORE
     CORE -->|"⑤ upload"| REPORT
     REPORT -->|"⑥ push to\nregulus-results-*"| ES
