@@ -21,7 +21,6 @@ All fields below must match exactly for tests to be considered the same type:
 | Field | Description | Example Values |
 |-------|-------------|----------------|
 | `benchmark` | Test tool/benchmark name | `uperf`, `fio`, `netperf` |
-| `unit` | Metric unit of measurement | `Gbps`, `transactions-sec`, `connections-sec`, `ms` |
 
 ### 2. Network Configuration
 
@@ -83,6 +82,8 @@ These fields vary between test executions but do NOT affect the fingerprint:
 | `regulus_data` | Path to test artifacts | Metadata only |
 | `mean`, `min`, `max`, `stddev`, `samples` | Measured metric values | These are the RESULTS we're analyzing |
 | `busy_cpu` | CPU utilization during test | Measured metric, not test configuration |
+| `unit` | Metric unit of measurement (`Gbps`, `transactions-sec`, etc.) | Redundant — determined by `test_type` (stream→Gbps, rr→transactions-sec, crr→connections-sec) |
+| `uploaded_at` | When data was uploaded to ES | Upload timestamp, not test configuration |
 | `mock_data` | Flag for test data | Metadata flag |
 | `offload` | Offload settings | Currently unused |
 
@@ -104,10 +105,10 @@ A fingerprint is flagged as regressed if **either** metric triggers a changepoin
 **Test A:**
 ```yaml
 benchmark: uperf
-unit: Gbps
 model: OVNK
 topology: internode
 protocol: tcp
+ipv: 4
 nic: mlx5_0
 test_type: stream
 threads: 8
@@ -145,10 +146,10 @@ mean: 7.2  # ← Lower performance! Potential regression!
 **Test C:**
 ```yaml
 benchmark: uperf
-unit: Gbps
 model: OVNK
 topology: internode
 protocol: tcp
+ipv: 4
 nic: mlx5_0
 test_type: stream
 threads: 16          # ← DIFFERENT! (was 8)
@@ -282,6 +283,7 @@ The `analyze-batch.py` wrapper tool uses this definition to:
 |------|--------|-----------------------|
 | 2026-07-06 | Initial definition | All 16 fields: benchmark, unit, model, topology, protocol, nic, test_type, threads, wsize, performance_profile, kernel, rcos, arch, cpu, pods_per_worker, scale_out_factor |
 | 2026-07-21 | Dynamic discovery + ipv | Replaced hardcoded field list with dynamic discovery from ES mapping using NON_FINGERPRINT_FIELDS exclusion set. Added `ipv` (IP version 4/6) to Network Configuration. |
+| 2026-08-05 | Move unit to non-fingerprint | `unit` is redundant with `test_type` (stream→Gbps, rr→transactions-sec, crr→connections-sec). Added `unit` and `offload` to NON_FINGERPRINT_FIELDS in all three scripts. Added `uploaded_at` to doc. Added `ipv` to examples. |
 
 ## See Also
 
