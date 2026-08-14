@@ -148,10 +148,27 @@ function add_mc_realloc {
     fi
 }
 
-if [[ ${NIC_MODEL} == CX* ]]; then
-   echo "next, add add_mc_realloc"
-   prompt_continue
-   add_mc_realloc
+# Probe whether the NIC can allocate VFs without pci=realloc.
+WORKER_ARR=(${WORKER_LIST})
+NUM_VFS=$(awk '/numVfs:/{print $2}' templates/${NIC_MODEL}/sriov-node-policy.yaml.template)
+export REGULUS_INTERFACE_PCI=$(exec_over_ssh ${WORKER_ARR[0]} "ethtool -i ${REGULUS_INTERFACE}" | awk '/bus-info:/{print $NF;}')
+echo "Probing VF allocation on ${REGULUS_INTERFACE} (${REGULUS_INTERFACE_PCI}) ..."
+probe_err=$(exec_over_ssh ${WORKER_ARR[0]} \
+    "echo ${NUM_VFS} | sudo tee /sys/bus/pci/devices/${REGULUS_INTERFACE_PCI}/sriov_numvfs 2>&1 >/dev/null && \
+     echo 0 | sudo tee /sys/bus/pci/devices/${REGULUS_INTERFACE_PCI}/sriov_numvfs 2>&1 >/dev/null")
+
+if [[ -z "$REGULUS_INTERFACE_PCI" ]]; then
+    echo "ERROR: could not determine PCI address for ${REGULUS_INTERFACE}"
+    exit 1
+elif [[ "${probe_err,,}" == *"cannot allocate memory"* ]]; then
+    echo "NIC cannot allocate ${NUM_VFS} VFs (insufficient MMIO), adding pci=realloc"
+    prompt_continue
+    add_mc_realloc
+elif [[ -n "$probe_err" ]]; then
+    echo "ERROR: VF probe failed with unexpected error: $probe_err"
+    exit 1
+else
+    echo "NIC can allocate ${NUM_VFS} VFs, pci=realloc not needed"
 fi
 
 
