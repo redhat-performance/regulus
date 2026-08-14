@@ -23,7 +23,20 @@ RUN_CMD() {
 }
 
 assert_sriov_sync() {
-   kubectl get sriovnetworknodestates -n openshift-sriov-network-operator --no-headers 2>/dev/null | awk '$2 != "Succeeded" {print "ERROR: SR-IOV node " $1 " is in state: " $2; exit 1}' || exit 1
+   local count=30
+   while true; do
+       if kubectl get sriovnetworknodestates -n openshift-sriov-network-operator --no-headers 2>/dev/null | awk '$2 != "Succeeded" {exit 1}'; then
+           echo "SR-IOV nodes synced"
+           return 0
+       fi
+       if ((count == 0)); then
+           kubectl get sriovnetworknodestates -n openshift-sriov-network-operator --no-headers 2>/dev/null | awk '$2 != "Succeeded" {print "ERROR: SR-IOV node " $1 " is in state: " $2}'
+           exit 1
+       fi
+       count=$((count-1))
+       printf "."
+       sleep 10
+   done
 }
 get_ocp_channel () {
     local channel=$(oc get clusterversion -o json | jq -r '.items[0].spec.channel' | sed -r -n 's/.*-(.*)/\1/p')
