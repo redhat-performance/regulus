@@ -152,15 +152,25 @@ function add_mc_realloc {
 WORKER_ARR=(${WORKER_LIST})
 NUM_VFS=$(awk '/numVfs:/{print $2}' templates/${NIC_MODEL}/sriov-node-policy.yaml.template)
 export REGULUS_INTERFACE_PCI=$(exec_over_ssh ${WORKER_ARR[0]} "ethtool -i ${REGULUS_INTERFACE}" | awk '/bus-info:/{print $NF;}')
-echo "Probing VF allocation on ${REGULUS_INTERFACE} (${REGULUS_INTERFACE_PCI}) ..."
+if [[ -z "$REGULUS_INTERFACE_PCI" ]]; then
+    echo "ERROR: could not determine PCI address for ${REGULUS_INTERFACE}"
+    exit 1
+fi
+
+total_vfs=$(exec_over_ssh ${WORKER_ARR[0]} \
+    "cat /sys/bus/pci/devices/${REGULUS_INTERFACE_PCI}/sriov_totalvfs 2>/dev/null")
+if [[ -z "$total_vfs" || "$total_vfs" == "0" ]]; then
+    echo "ERROR: SR-IOV is not enabled on ${REGULUS_INTERFACE} (${REGULUS_INTERFACE_PCI})"
+    echo "Enable SR-IOV in the BIOS for this NIC and reboot the worker nodes"
+    exit 1
+fi
+
+echo "Probing VF allocation on ${REGULUS_INTERFACE} (${REGULUS_INTERFACE_PCI}), totalvfs=${total_vfs} ..."
 probe_err=$(exec_over_ssh ${WORKER_ARR[0]} \
     "echo ${NUM_VFS} | sudo tee /sys/bus/pci/devices/${REGULUS_INTERFACE_PCI}/sriov_numvfs 2>&1 >/dev/null && \
      echo 0 | sudo tee /sys/bus/pci/devices/${REGULUS_INTERFACE_PCI}/sriov_numvfs 2>&1 >/dev/null")
 
-if [[ -z "$REGULUS_INTERFACE_PCI" ]]; then
-    echo "ERROR: could not determine PCI address for ${REGULUS_INTERFACE}"
-    exit 1
-elif [[ "${probe_err,,}" == *"cannot allocate memory"* ]]; then
+if [[ "${probe_err,,}" == *"cannot allocate memory"* ]]; then
     echo "NIC cannot allocate ${NUM_VFS} VFs (insufficient MMIO), adding pci=realloc"
     prompt_continue
     add_mc_realloc
