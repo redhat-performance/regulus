@@ -8,21 +8,19 @@ The "API" between Regulus and Orion — ES index content, mapping, fingerprint d
 
 **Source and sink are decoupled through the ES index mapping:**
 - **Source (Regulus)** — pushes test results to ES. When fingerprint fields change (new fields added, fields renamed), Regulus updates the ES index mapping accordingly.
-- **Sink (this tool)** — reads the current ES index mapping and discovers fingerprint fields dynamically. No hardcoded field lists, no coordination needed with the source.
+- **Sink (this tool)** — uses a static template (`configs/template.yaml`) defining all fingerprint fields. At startup, validates the template covers all ES mapping fields — exits with an error if the mapping has fields the template doesn't.
 
-This means Regulus can evolve its test parameters independently — as long as it updates the index mapping, the analysis side adapts automatically.
+This means Regulus can evolve its test parameters — as long as the template is updated to match, the analysis side stays in sync. The startup drift check catches mismatches.
 
 **How Orion and the data source work together:**
-
-The simplest Orion workflow uses static YAML configs (see [Orion/examples](https://github.com/cloud-bulldozer/orion/tree/main/examples)). Regulus has many evolving test variations, so this tool generates configs dynamically:
 
 ```mermaid
 flowchart TD
     A[Regulus runs tests] -->|"① push results\nwith batch_id"| B[(Elasticsearch\nDocuments + Mapping)]
-    B -->|"② read mapping"| C[Discover fingerprint fields]
+    B -->|"② read mapping"| C[Validate template\ncovers all fields]
     B -->|"③ query batch docs"| D[Group by fingerprint]
     C --> D
-    D -->|④| E[Generate Orion config\nper fingerprint]
+    D -->|④| E["Run Orion with template\n+ --input-vars per fingerprint"]
     E -->|"⑤ query historical data"| B
     E -->|⑥| F{Changepoint\ndetected?}
     F -->|yes| G["⚠️ Report regression\n(throughput + CPU)"]
@@ -66,7 +64,7 @@ A fingerprint is flagged if **either** metric triggers a changepoint.
 
 ## Key Concepts
 
-- **Fingerprint** — the set of fields that uniquely identify a test type. Discovered dynamically from ES mapping, not hardcoded. See [FINGERPRINT-DEFINITION.md](FINGERPRINT-DEFINITION.md).
+- **Fingerprint** — the set of fields that uniquely identify a test type. Defined in `configs/template.yaml`, validated against ES mapping at startup. See [FINGERPRINT-DEFINITION.md](FINGERPRINT-DEFINITION.md).
 - **batch_id** — identifies which new tests to analyze (input selector, not part of fingerprint).
 - **MATCH** and **IGNORE** — see [MATCH and IGNORE Filters](#match-and-ignore-filters) below.
 
@@ -207,8 +205,10 @@ ORION/
 │   ├── generate-mock-data.py        # Base mock data generator
 │   └── json-to-bulk.py             # Convert JSON to ES bulk format
 ├── configs/
-│   ├── README.md                 # Config concepts
-│   └── CONFIG-TUTORIAL.md        # Orion config tutorial
+│   ├── template.yaml             # Static Orion config template (fingerprint source of truth)
+│   ├── README.md                 # Config approach documentation
+│   ├── CONFIG-TUTORIAL.md        # Orion config tutorial
+│   └── DESIGN-TEMPLATE.md        # Template design doc
 ├── Makefile                      # All targets (make help)
 ├── CLAUDE.md                     # Project reference for Claude Code sessions
 ├── FINGERPRINT-DEFINITION.md     # Fingerprint field definitions
@@ -218,6 +218,8 @@ ORION/
 ## Documentation
 
 - **[FINGERPRINT-DEFINITION.md](FINGERPRINT-DEFINITION.md)** — Fingerprint fields, tracked metrics, exclusion set
+- **[configs/template.yaml](configs/template.yaml)** — Static Orion config template (fingerprint source of truth)
+- **[configs/README.md](configs/README.md)** — Config approach and adding new fields
 - **[configs/CONFIG-TUTORIAL.md](configs/CONFIG-TUTORIAL.md)** — How Orion configs work
 - **[CLAUDE.md](CLAUDE.md)** — Project reference (architecture, pitfalls, Prow details)
 
