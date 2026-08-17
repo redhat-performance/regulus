@@ -183,11 +183,11 @@ The `batch_id` field has a special purpose that's different from fingerprint fie
 **How it works:**
 1. You submit a batch of tests (Test A, Test B, Test C...)
 2. All tests in the batch share the same `batch_id` (e.g., "2026-07-06-batch-001")
-3. You run Orion with: `--batch-id "2026-07-06-batch-001"`
-4. Orion queries ES for all tests with that batch_id
-5. Orion discovers the unique fingerprints in the batch
-6. For each fingerprint, Orion:
-   - Queries ALL historical data with that fingerprint (ignoring batch_id)
+3. You run the analyzer with: `--batch-id "2026-07-06-batch-001"`
+4. The analyzer queries ES for all tests with that batch_id
+5. The analyzer groups tests by fingerprint (unique combinations of all fingerprint fields)
+6. For each fingerprint, the analyzer runs Orion with the template + `--input-vars`:
+   - Orion queries ALL historical data matching that fingerprint (ignoring batch_id)
    - Includes the new test(s) from the batch
    - Runs changepoint detection
    - Reports regressions
