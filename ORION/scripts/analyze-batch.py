@@ -66,7 +66,7 @@ NON_FINGERPRINT_FIELDS = {
     'busy_cpu', 'samples_count', 'sample_count',
     'run_id', 'batch_id', 'iteration_id',
     'regulus_data', 'regulus_git_branch', 'execution_label',
-    'mock_data', 'uploaded_at', 'offload',
+    'mock_data', 'uploaded_at',
     'unit',
 }
 
@@ -76,7 +76,8 @@ class BatchAnalyzer:
 
     def __init__(self, es_server: str, es_index: str, batch_id: str = None,
                  match: Dict[str, str] = None, ignore: set = None,
-                 lookback: str = "90d", debug: bool = False):
+                 lookback: str = "90d", debug: bool = False,
+                 use_self_detect: bool = False):
         self.es_server = es_server
         self.es_index = es_index
         self.batch_id = batch_id
@@ -84,6 +85,7 @@ class BatchAnalyzer:
         self.ignore = ignore or set()
         self.lookback = lookback
         self.debug = debug
+        self.use_template = not use_self_detect
         self.es_server_display = re.sub(r'https?://[^@]*@', lambda m: m.group(0).split('//')[0] + '//***:***@', es_server)
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.repo_root = os.path.dirname(self.script_dir)
@@ -100,6 +102,23 @@ class BatchAnalyzer:
 
         # Discover fingerprint fields from ES mapping
         discovered = self._discover_fingerprint_fields()
+
+        # Template mode: validate template covers all index fields
+        if self.use_template:
+            self.template_path = os.path.join(self.repo_root, 'configs', 'template.yaml')
+            if not os.path.exists(self.template_path):
+                print(f"❌ FATAL: Template not found: {self.template_path}")
+                sys.exit(1)
+            with open(self.template_path, 'r') as f:
+                template_text = f.read()
+            template_fields = set(re.findall(r'\{\{\s*(\w+)\s*\}\}', template_text))
+            mapping_fields = set(discovered)
+            missing = mapping_fields - template_fields
+            if missing:
+                print(f"⚠️  Template is behind ES index! Missing fields: {missing}")
+                print(f"   Update {self.template_path} to include these fields.")
+                sys.exit(2)
+            print(f"   ✓ Template covers all {len(mapping_fields)} index fields")
 
         # Validate match fields
         invalid_match = set(self.match.keys()) - set(discovered)
@@ -364,7 +383,8 @@ class BatchAnalyzer:
 
         return config_path
 
-    def _build_orion_cmd(self, config_path: str, fp_index: int):
+    def _build_orion_cmd(self, config_path: str, fp_index: int,
+                         fingerprint: Dict[str, Any] = None):
         """Build Orion command for either pip-installed CLI or podman container."""
         output_filename = f'orion-output-fp{fp_index}.json'
         data_filename = f'data-fp{fp_index}.csv'
@@ -383,6 +403,12 @@ class BatchAnalyzer:
                 '--save-output-path', os.path.join(self.output_dir, output_filename),
                 '--save-data-path', os.path.join(self.output_dir, data_filename)
             ]
+            if self.use_template and fingerprint:
+                clean_fp = {k: v for k, v in fingerprint.items() if v != "MISSING"}
+                clean_fp['fp_index'] = fp_index
+                clean_fp['batch_id'] = self.batch_id
+                input_vars = json.dumps(clean_fp, separators=(',', ':'))
+                cmd.extend(['--input-vars', input_vars])
         else:
             run_it_script = os.path.join(self.script_dir, 'run-it')
             container_config_path = config_path.replace(self.repo_root, '/orion')
@@ -398,9 +424,16 @@ class BatchAnalyzer:
                 '--save-output-path', f'{container_output_dir}/{output_filename}',
                 '--save-data-path', f'{container_output_dir}/{data_filename}'
             ]
+            if self.use_template and fingerprint:
+                clean_fp = {k: v for k, v in fingerprint.items() if v != "MISSING"}
+                clean_fp['fp_index'] = fp_index
+                clean_fp['batch_id'] = self.batch_id
+                input_vars = json.dumps(clean_fp, separators=(',', ':'))
+                cmd.extend(['--input-vars', input_vars])
         return cmd, output_filename
 
-    def run_orion_analysis(self, config_path: str, fingerprint_name: str, fp_index: int) -> Dict[str, Any]:
+    def run_orion_analysis(self, config_path: str, fingerprint_name: str, fp_index: int,
+                           fingerprint: Dict[str, Any] = None) -> Dict[str, Any]:
         """Run Orion Hunter analysis with the given config.
 
         Returns:
@@ -408,7 +441,7 @@ class BatchAnalyzer:
         """
         print(f"\n   🏹 Running Orion for: {fingerprint_name}")
 
-        cmd, output_filename = self._build_orion_cmd(config_path, fp_index)
+        cmd, output_filename = self._build_orion_cmd(config_path, fp_index, fingerprint)
 
         if self.debug:
             print(f"      Command: {' '.join(cmd)}")
@@ -440,10 +473,10 @@ class BatchAnalyzer:
 
             # Try exact filename first, then look for Orion-appended variations
             if not os.path.exists(output_file):
-                # Look for files with pattern: orion-output-fpN_fingerprint-*.json
+                # Orion appends _{test-name} to the output filename
                 base_name = output_filename.replace('.json', '')
                 for fname in os.listdir(self.output_dir):
-                    if fname.startswith(base_name + '_fingerprint-') and fname.endswith('.json'):
+                    if fname.startswith(base_name + '_') and fname.endswith('.json'):
                         output_file = os.path.join(self.output_dir, fname)
                         break
 
@@ -525,6 +558,15 @@ class BatchAnalyzer:
             # Extract fingerprint
             _, fingerprint = self.extract_fingerprint(docs[0])
 
+            # Skip fingerprints missing required fields (e.g. corrupt data)
+            required_fields = {'benchmark'}
+            missing_required = {f for f in required_fields
+                                if fingerprint.get(f) == "MISSING"}
+            if missing_required:
+                print(f"─" * 80)
+                print(f"Fingerprint #{idx}: SKIPPED — missing required fields: {missing_required}")
+                continue
+
             # Create full fingerprint display (all active fields)
             full_fp_parts = []
             for field in self.fingerprint_fields:
@@ -536,14 +578,15 @@ class BatchAnalyzer:
             print(f"Fingerprint #{idx}: {full_fp_name}")
             print(f"   Documents in batch: {len(docs)}")
 
-            # Generate config
-            config_path = self.generate_orion_config(
-                fingerprint,
-                f"fingerprint-{idx}"
-            )
-
             # Run Orion
-            analysis_result = self.run_orion_analysis(config_path, full_fp_name, idx)
+            if self.use_template:
+                analysis_result = self.run_orion_analysis(
+                    self.template_path, full_fp_name, idx, fingerprint)
+            else:
+                config_path = self.generate_orion_config(
+                    fingerprint, f"fingerprint-{idx}")
+                analysis_result = self.run_orion_analysis(
+                    config_path, full_fp_name, idx)
 
             results.append({
                 'fingerprint_name': full_fp_name,
@@ -566,6 +609,13 @@ class BatchAnalyzer:
                 if remaining > 0:
                     print(f"   Skipping remaining {remaining} fingerprint(s) — same environment, same error.")
                 break
+
+        # Write per-fingerprint manifest files (MISSING = absent from ES document)
+        for i, r in enumerate(results, 1):
+            manifest = dict(r['fingerprint'])
+            manifest_path = os.path.join(self.output_dir, f'manifest-fp{i}.json')
+            with open(manifest_path, 'w') as f:
+                json.dump(manifest, f, indent=2)
 
         print("\n" + "=" * 80)
         print("📊 Analysis Summary")
@@ -664,6 +714,9 @@ Examples:
     parser.add_argument('--debug',
                         action='store_true',
                         help='Enable debug output')
+    parser.add_argument('--use-self-detect',
+                        action='store_true',
+                        help='Self-detect fingerprint fields and generate per-fingerprint configs instead of using static template (configs/template.yaml)')
     parser.add_argument('--output',
                         help='Save results to JSON file')
 
@@ -690,7 +743,8 @@ Examples:
         match=match_dict,
         ignore=ignore_set,
         lookback=args.lookback,
-        debug=args.debug
+        debug=args.debug,
+        use_self_detect=args.use_self_detect
     )
 
     results = analyzer.analyze()
