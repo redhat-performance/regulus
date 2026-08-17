@@ -2,15 +2,15 @@
 
 ## What This Tool Does
 
-Automated regression detection for Regulus network performance tests. Wraps the [cloud-bulldozer/orion](https://github.com/cloud-bulldozer/orion) changepoint detection tool to handle Regulus's hundreds of dynamic test variations without static configs.
+Automated regression detection for Regulus network performance tests. Wraps the [cloud-bulldozer/orion](https://github.com/cloud-bulldozer/orion) changepoint detection tool to handle Regulus's hundreds of test variations.
 
-**Core workflow:** Query ES by batch_id → discover unique fingerprints → generate Orion configs per fingerprint → run Hunter changepoint detection → report regressions.
+**Core workflow:** Query ES by batch_id → discover unique fingerprints → run Orion with static template (`configs/template.yaml`) + `--input-vars` per fingerprint → Hunter changepoint detection → report regressions.
 
 ## Architecture
 
-### Dynamic Fingerprint Discovery
+### Fingerprint Definition
 
-Fingerprint fields are **not hardcoded**. The tool queries the ES `_mapping` API and subtracts `NON_FINGERPRINT_FIELDS` (metrics, IDs, timestamps, metadata). Any new field added to the ES mapping automatically becomes a fingerprint field.
+Fingerprint fields are defined in the static template (`configs/template.yaml`). Each `{{ field }}` placeholder is a fingerprint field. At startup, the analyzer validates the template covers all ES mapping fields (minus `NON_FINGERPRINT_FIELDS`). A self-detect fallback (`--use-self-detect`) can generate configs without the template.
 
 `NON_FINGERPRINT_FIELDS` is defined in three files — keep them in sync:
 - `scripts/analyze-batch.py`
@@ -63,8 +63,10 @@ unit-test/
   json-to-bulk.py              # Convert JSON to ES bulk format
 
 configs/
-  README.md               # Dynamic config approach documentation
+  template.yaml            # Static Orion config template with fingerprint placeholders
+  README.md               # Config approach documentation
   CONFIG-TUTORIAL.md       # Orion config tutorial
+  DESIGN-TEMPLATE.md       # Template design doc
 
 Makefile                   # All targets (run `make help`)
 FINGERPRINT-DEFINITION.md  # Fingerprint field definitions and tracked metrics
@@ -132,6 +134,10 @@ Three ways to test the regression analysis pipeline, from narrowest to most real
 - **`pip install orion`** installs the wrong package (epistimio/orion). Use `pip3 install git+https://github.com/cloud-bulldozer/orion.git`.
 - **Orion metrics without `agg` block**: Both metrics sharing the same documents will break — second metric gets zero data. Always use `agg: {agg_type: avg}`.
 - **Exit code 1 from `make analyze`**: Expected when regressions are detected — this is the success signal for "found problems."
+- **Exit code 3 from Orion**: No matching data found. Check that metadata values in the config match what's in ES — a wrong type or literal `"MISSING"` value will cause zero matches.
+- **Orion `wildcard` metadata**: Putting `*` in a regular metadata value does NOT create a wildcard query — Orion uses `Q("match")` (exact match) for regular fields. Wildcard queries require the field to be under `metadata.wildcard` in the config. See `matcher.py:139-152`.
+- **Orion appends test name to output filenames**: `--save-output-path foo.json` with test name `fingerprint-1` produces `foo_fingerprint-1.json`. If you change the test name, the output filename changes.
+- **Orion loads env vars into template context**: `load_config` merges all env vars (lowercased) with `--input-vars` before Jinja2 rendering. `--input-vars` values take precedence.
 - **`make setup` noise**: Uses skip-if-installed check and `-q` flag to stay quiet.
 - **ES index for testing**: `regulus-mock-results` (set via `TEST_INDEX`). Production: `regulus-results-*`.
 
