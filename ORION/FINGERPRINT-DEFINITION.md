@@ -10,9 +10,9 @@ A **fingerprint** uniquely identifies a specific type of performance test. For O
 
 **Rule:** If even ONE field differs, it's a completely different test requiring its own baseline.
 
-## Fingerprint Fields (dynamically discovered)
+## Fingerprint Fields
 
-Fingerprint fields are discovered at runtime from the ES index mapping. Any field in the mapping that is NOT in the `NON_FINGERPRINT_FIELDS` exclusion set is automatically a fingerprint field. This means adding a new field to Regulus's ES mapping template makes it a fingerprint field with zero changes to the analysis tools.
+Fingerprint fields are defined in the static template (`configs/template.yaml`). Each `{{ field }}` placeholder in the template's metadata section is a fingerprint field. At startup, the analyzer validates that the template covers all fields in the ES index mapping (minus `NON_FINGERPRINT_FIELDS`). If a mapping field is missing from the template, the analyzer exits with an error.
 
 All fields below must match exactly for tests to be considered the same type:
 
@@ -24,15 +24,14 @@ All fields below must match exactly for tests to be considered the same type:
 
 ### 2. Network Configuration
 
-| Field | Description | Example Values | Critical |
-|-------|-------------|----------------|----------|
-| `model` | Network model/configuration type | `OVNK`, `OVN` | ⭐ YES |
-| `topology` | Network topology configuration | `internode`, `pod-to-pod`, `intranode` | |
-| `protocol` | Network protocol | `tcp`, `udp` | |
-| `nic` | Network interface card type | `mlx5_0`, `mlx5_1`, `X550`, `bond0`, `ens1f0` | |
-| `ipv` | IP version | `4`, `6` | |
-
-**Why `model` is critical:** Different network models (OVNK vs OVN) have fundamentally different architectures and performance characteristics. Comparing them would be meaningless.
+| Field | Description | Example Values |
+|-------|-------------|----------------|
+| `model` | Network model/configuration type | `OVNK`, `MACVLAN`, `SRIOV`, `hostnetwork`, `hardware offload`, `dpf-ovnk` |
+| `topology` | Network topology configuration | `internode`, `pod-to-pod`, `intranode` |
+| `protocol` | Network protocol | `tcp`, `udp` |
+| `nic` | Network interface card type | `mlx5_0`, `mlx5_1`, `X550`, `bond0`, `ens1f0` |
+| `ipv` | IP version | `4`, `6` |
+| `offload` | NIC offload settings | `None`, `enabled` |
 
 ### 3. Test Parameters
 
@@ -41,31 +40,24 @@ All fields below must match exactly for tests to be considered the same type:
 | `test_type` | Type of test workload | `stream`, `rr` (request-response) |
 | `threads` | Number of threads in the test | `1`, `2`, `4`, `8`, `64` |
 | `wsize` | Write size / payload size (bytes) | `64`, `256`, `1024`, `4096`, `32768` |
+| `rsize` | Read size / receive buffer size (bytes) | `64`, `256`, `1024`, `4096`, `32768` |
 | `performance_profile` | Performance profile setting | `None`, `low-latency`, `high-throughput` |
 
 ### 4. System Configuration
 
-| Field | Description | Example Values | Critical |
-|-------|-------------|----------------|----------|
-| `kernel` | Kernel version | `5.14.0-503.11.1.el9_5.x86_64` | |
-| `rcos` | RCOS/OS version (also Orion's version_field) | `9.6.20260615-0` | |
-| `arch` | CPU architecture/model | `Intel(R)_Xeon(R)_Gold_6130_CPU_@_2.10GHz` | ⭐ YES |
-
-**Why `arch` is critical:** Different CPU models have vastly different performance baselines. An Intel Xeon vs AMD EPYC would have completely different expected performance.
+| Field | Description | Example Values |
+|-------|-------------|----------------|
+| `kernel` | Kernel version | `5.14.0-503.11.1.el9_5.x86_64` |
+| `rcos` | RCOS/OS version | `9.6.20260615-0` |
+| `arch` | CPU architecture/model | `Intel(R)_Xeon(R)_Gold_6130_CPU_@_2.10GHz` |
 
 ### 5. Pod/Container Configuration
 
-| Field | Description | Example Values | Critical |
-|-------|-------------|----------------|----------|
-| `cpu` | Number of CPUs allocated per pod | `2`, `4`, `8`, `16`, `50` | ⭐ YES |
-| `pods_per_worker` | Number of pods per worker node | `1`, `2`, `4`, `10` | |
-| `scale_out_factor` | Scale-out factor for distributed tests | `1`, `2`, `4` | |
-
-**Why `cpu` is critical:** CPU allocation directly impacts performance capacity. A test with 2 CPUs vs 8 CPUs has completely different expected performance ranges.
-
-**Why `pods_per_worker` matters:** Pod density affects resource contention and performance. 1 pod per worker vs 10 pods per worker creates different performance environments.
-
-**Why `scale_out_factor` matters:** Distributed scaling impacts coordination overhead and performance characteristics.
+| Field | Description | Example Values |
+|-------|-------------|----------------|
+| `cpu` | Number of CPUs allocated per pod | `2`, `4`, `8`, `16`, `50` |
+| `pods_per_worker` | Number of pods per worker node | `1`, `2`, `4`, `10` |
+| `scale_out_factor` | Scale-out factor for distributed tests | `1`, `2`, `4` |
 
 ## Non-Fingerprint Fields (Excluded)
 
@@ -85,7 +77,6 @@ These fields vary between test executions but do NOT affect the fingerprint:
 | `unit` | Metric unit of measurement (`Gbps`, `transactions-sec`, etc.) | Redundant — determined by `test_type` (stream→Gbps, rr→transactions-sec, crr→connections-sec) |
 | `uploaded_at` | When data was uploaded to ES | Upload timestamp, not test configuration |
 | `mock_data` | Flag for test data | Metadata flag |
-| `offload` | Offload settings | Currently unused |
 
 ## Tracked Metrics
 
@@ -218,11 +209,9 @@ Batch "2026-07-06-001" contains:
 The tool will:
 1. Query ES for tests with batch_id="2026-07-06-001" → finds Test A and Test B
 2. Extract fingerprint A (threads=16) and fingerprint B (threads=32)
-3. Generate temp Orion config for fingerprint A (metadata filters WITHOUT batch_id)
-4. Run Orion to analyze A against ALL historical data matching fingerprint A
-5. Generate temp Orion config for fingerprint B
-6. Run Orion to analyze B against ALL historical data matching fingerprint B
-7. Aggregate and report results
+3. Run Orion with template + `--input-vars` for fingerprint A (metadata filters WITHOUT batch_id)
+4. Run Orion with template + `--input-vars` for fingerprint B
+5. Aggregate and report results
 
 **Note:** Orion doesn't have native `--batch-id` support, so the wrapper tool is needed to:
 - Use batch_id to discover which tests to analyze
@@ -248,8 +237,10 @@ Mixing tests with different configurations would create "apples to oranges" comp
 To add a new fingerprint field:
 
 1. Add the field to the Regulus ES mapping template
-2. Document it in this file
-3. That's it — the analysis tools discover it automatically from the ES mapping
+2. Add `{{ new_field }}` to `configs/template.yaml` (with `{% if is defined %}` guard)
+3. Document it in this file
+
+At startup, `analyze-batch.py` compares the template's `{{ }}` placeholders against the ES mapping and exits with an error if any mapping field is missing from the template.
 
 The tools use a `NON_FINGERPRINT_FIELDS` exclusion set (metrics, IDs, timestamps, metadata). Any field in the mapping NOT in that set is automatically a fingerprint field. The exclusion set is maintained in `analyze-batch.py`, `verify-batch.py`, and `verify-mapping.py`. The Prow CI step clones the Regulus repo and uses `analyze-batch.py` directly via `ORION/scripts/prow-entry.sh`.
 
@@ -259,20 +250,12 @@ The `analyze-batch.py` wrapper tool uses this definition to:
 
 1. **Query ES** for all tests with the specified `batch_id`
 2. **Extract fingerprints** from those tests (group by all discovered fingerprint fields)
-3. **Generate Orion config** for each unique fingerprint:
-   ```yaml
-   metadata:
-     benchmark: uperf
-     unit: Gbps
-     model: OVNK
-     topology: internode
-     # ... all fingerprint fields (discovered from mapping)
-     # NOTE: batch_id is NOT included here
-   ```
-4. **Run Orion** per fingerprint (Orion queries ALL historical data matching those metadata filters)
-5. **Aggregate results** into a unified report
+3. **Run Orion** per fingerprint using the static template (`configs/template.yaml`) with `--input-vars` supplying the fingerprint values
+4. **Aggregate results** into a unified report
 
-**Why batch_id is excluded from Orion configs:**
+Per-fingerprint outputs are written to `generated-orion/` with a manifest file (`manifest-fpN.json`) mapping each output to its full fingerprint fields.
+
+**Why batch_id is excluded from Orion metadata:**
 - Including batch_id in metadata would limit Orion to only that batch
 - We want Orion to query ALL historical data for comparison (1 year, or whatever lookback)
 - batch_id is only used to discover which NEW tests to analyze, not for historical matching
@@ -283,10 +266,13 @@ The `analyze-batch.py` wrapper tool uses this definition to:
 |------|--------|-----------------------|
 | 2026-07-06 | Initial definition | All 16 fields: benchmark, unit, model, topology, protocol, nic, test_type, threads, wsize, performance_profile, kernel, rcos, arch, cpu, pods_per_worker, scale_out_factor |
 | 2026-07-21 | Dynamic discovery + ipv | Replaced hardcoded field list with dynamic discovery from ES mapping using NON_FINGERPRINT_FIELDS exclusion set. Added `ipv` (IP version 4/6) to Network Configuration. |
-| 2026-08-05 | Move unit to non-fingerprint | `unit` is redundant with `test_type` (stream→Gbps, rr→transactions-sec, crr→connections-sec). Added `unit` and `offload` to NON_FINGERPRINT_FIELDS in all three scripts. Added `uploaded_at` to doc. Added `ipv` to examples. |
+| 2026-08-05 | Move unit to non-fingerprint | `unit` is redundant with `test_type` (stream→Gbps, rr→transactions-sec, crr→connections-sec). Added `unit` to NON_FINGERPRINT_FIELDS in all three scripts. Added `uploaded_at` to doc. Added `ipv` to examples. |
+| 2026-08-17 | Restore offload as fingerprint | `offload` was accidentally added to NON_FINGERPRINT_FIELDS in the unit removal commit. Restored to fingerprint table under Network Configuration. |
+| 2026-08-17 | Static template, add rsize | Default to static `configs/template.yaml` with `--input-vars` instead of generating per-fingerprint configs. Added `rsize` to Test Parameters. Added manifest files (`manifest-fpN.json`) to `generated-orion/`. Updated extensibility steps to include template. |
 
 ## See Also
 
 - **CLAUDE.md** - Development session history and design decisions
 - **README.md** - Project overview
-- **analyze-batch.py** - Dynamic fingerprint analysis tool (uses this definition)
+- **analyze-batch.py** - Fingerprint analysis tool (uses this definition)
+- **configs/template.yaml** - Static Orion config template with fingerprint placeholders

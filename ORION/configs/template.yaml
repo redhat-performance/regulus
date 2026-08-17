@@ -1,0 +1,72 @@
+tests:
+  - name: fingerprint-{{ fp_index }}
+    timestamp: '@timestamp'
+    uuid_field: iteration_id
+    metadata:
+{% if benchmark is defined %}
+      benchmark: {{ benchmark }}
+{% endif %}
+{% if model is defined %}
+      model: {{ model }}
+{% endif %}
+{% if topology is defined %}
+      topology: {{ topology }}
+{% endif %}
+{% if protocol is defined %}
+      protocol: {{ protocol }}
+{% endif %}
+{% if nic is defined %}
+      nic: {{ nic }}
+{% endif %}
+{% if ipv is defined %}
+      ipv: '{{ ipv }}'
+{% endif %}
+{% if test_type is defined %}
+      test_type: {{ test_type }}
+{% endif %}
+{% if threads is defined %}
+      threads: {{ threads }}
+{% endif %}
+{% if wsize is defined %}
+      wsize: {{ wsize }}
+{% endif %}
+{% if rsize is defined %}
+      rsize: {{ rsize }}
+{% endif %}
+{% if performance_profile is defined %}
+      performance_profile: {{ performance_profile }}
+{% endif %}
+{% if offload is defined %}
+      offload: {{ offload }}
+{% endif %}
+{% if kernel is defined %}
+      kernel: {{ kernel }}
+{% endif %}
+{% if rcos is defined %}
+      rcos: {{ rcos }}
+{% endif %}
+{% if arch is defined %}
+      arch: {{ arch }}
+{% endif %}
+{% if cpu is defined %}
+      cpu: '{{ cpu }}'
+{% endif %}
+{% if pods_per_worker is defined %}
+      pods_per_worker: '{{ pods_per_worker }}'
+{% endif %}
+{% if scale_out_factor is defined %}
+      scale_out_factor: '{{ scale_out_factor }}'
+{% endif %}
+    metrics:
+      - name: throughput
+        metric_of_interest: mean
+        agg: {agg_type: avg}
+        direction: 0
+        threshold: 5
+        labels: ['[Batch: {{ batch_id }}]']
+      - name: cpu_cost
+        metric_of_interest: busy_cpu
+        agg: {agg_type: avg}
+        direction: 0
+        threshold: 10
+        labels: ['[Batch: {{ batch_id }}]']
