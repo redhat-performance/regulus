@@ -171,7 +171,8 @@ analyze:
 		--es-server "$(ES_URL)" \
 		--es-index "$(ES_INDEX)" \
 		--lookback "$(LOOKBACK)" \
-		$(if $(DEBUG),--debug)
+		$(if $(DEBUG),--debug) \
+		$(if $(SELF_DETECT),--use-self-detect)
 
 # Clean generated files
 .PHONY: clean

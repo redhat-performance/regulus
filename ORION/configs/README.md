@@ -1,13 +1,17 @@
 # Orion Configuration
 
-This directory previously contained static Orion YAML configuration examples.
+## template.yaml
 
-**Static configs are no longer needed.** The batch analyzer dynamically discovers fingerprint fields from the ES index mapping and generates Orion configs on-the-fly.
+The static Orion config template. Fingerprint fields are defined as `{{ field }}` Jinja2 placeholders, each guarded by `{% if field is defined %}` so fields can be excluded via `IGNORE`.
+
+At runtime, `analyze-batch.py` passes fingerprint values via `--input-vars` and Orion renders the template per fingerprint. No per-fingerprint config files are generated.
+
+A self-detect fallback (`--use-self-detect`) generates configs on-the-fly without the template, but is not the primary method.
 
 ## Usage
 
 ```bash
-# Analyze a batch (auto-discovers all fingerprints)
+# Analyze a batch (uses template.yaml)
 make analyze BATCH_ID=test-batch-2026-07-08
 
 # Cross-version analysis (ignore rcos field from fingerprint)
@@ -15,27 +19,27 @@ make analyze BATCH_ID=test-batch-2026-07-08 IGNORE='rcos'
 
 # Filter to specific tests within batch
 make analyze BATCH_ID=test-batch-2026-07-08 MATCH='threads=128'
+
+# Fallback: self-detect mode (generates per-fingerprint configs)
+make analyze BATCH_ID=test-batch-2026-07-08 SELF_DETECT=1
 ```
 
-## How Dynamic Discovery Works
+## Adding a New Fingerprint Field
 
-1. Query ES `_mapping` API for the index
-2. Subtract `NON_FINGERPRINT_FIELDS` exclusion set (metrics, IDs, timestamps, metadata)
-3. Remaining fields = fingerprint fields
-4. Generate Orion YAML configs per unique fingerprint combination
-5. Run Orion analysis for each
+1. Add the field to the Regulus ES mapping template
+2. Add `{{ new_field }}` to `template.yaml` (with `{% if is defined %}` guard)
+3. Document it in [FINGERPRINT-DEFINITION.md](../FINGERPRINT-DEFINITION.md)
 
-Adding a new field to Regulus's ES mapping template automatically makes it a fingerprint field — zero changes to the analysis tools.
+The startup drift check validates that the template covers all ES mapping fields. If a field exists in the mapping but not in the template, the analyzer exits with an error.
 
-## Configuration Concepts
+## Orion Config Structure
 
-### Orion Config Structure
-
-Every generated Orion config has:
+The template defines:
+- `name`: `fingerprint-{{ fp_index }}`
 - `timestamp`: `@timestamp`
 - `uuid_field`: `iteration_id`
-- `metadata`: All fingerprint field values for this test
-- `metrics`: Two tracked metrics (throughput and cpu_cost)
+- `metadata`: All fingerprint field placeholders
+- `metrics`: Two tracked metrics (throughput and cpu_cost) with batch label
 
 ### Tracked Metrics
 
@@ -46,6 +50,7 @@ Every generated Orion config has:
 
 ## See Also
 
+- **[DESIGN-TEMPLATE.md](DESIGN-TEMPLATE.md)** - Design doc for the template approach
 - **[FINGERPRINT-DEFINITION.md](../FINGERPRINT-DEFINITION.md)** - Fingerprint field definitions
-- **[analyze-batch.py](../scripts/analyze-batch.py)** - Dynamic batch analysis tool
+- **[analyze-batch.py](../scripts/analyze-batch.py)** - Batch analysis tool
 - **[Makefile](../Makefile)** - All available targets
