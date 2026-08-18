@@ -1,3 +1,6 @@
-requests
+# Python dependencies for ORION/ analysis scripts.
+# Installed by the Prow CI step (openshift-qe-orion-regulus) via:
+#   pip install -r requirements.txt
+# Orion CLI is installed separately by the Prow step to allow version control via ORION_TAG.
+requests>=2.25.0
 pyyaml
-orion @ git+https://github.com/cloud-bulldozer/orion.git

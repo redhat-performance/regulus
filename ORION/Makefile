@@ -103,6 +103,7 @@ setup:
 	else \
 		echo "📦 Installing Python dependencies..."; \
 		pip3 install -q -r requirements.txt; \
+		pip3 install -q orion@git+https://github.com/cloud-bulldozer/orion.git; \
 		echo "✅ Setup complete"; \
 	fi
 
