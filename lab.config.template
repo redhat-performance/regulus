@@ -61,9 +61,6 @@ export REM_DPDK_CONFIG="false"
 #
 # ES_URL is built automatically from the components below by run_es.sh
 # and the REPORT/makefile. You do NOT need to set ES_URL directly.
-#
-# For production/Prow: credentials come from /secret; these fields are not needed.
-#
 
 # Protocol: "http" or "https"
 export ES_PROTOCOL=""

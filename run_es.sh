@@ -54,38 +54,17 @@ echo "REG_ROOT: $REG_ROOT"
 
 # ============================================================================
 # ES Configuration
-# Priority: 1) ES_URL env  2) /secret/perfscale-prod  3) lab.config
+# Priority: 1) ES_URL env  2) lab.config
 # ============================================================================
 
 if [ -n "${ES_URL:-}" ]; then
     # ES_URL already set by caller
     ES_URL_DISPLAY=$(echo "$ES_URL" | sed -E 's|(https?://)([^:]+):([^@]+)@|\1***:***@|')
 
-elif [ -d "/secret/perfscale-prod" ] && [ -s "/secret/perfscale-prod/host" ]; then
-    # Prow environment: read from mounted secrets
-    ES_HOST=$(cat /secret/perfscale-prod/host) || { echo "ERROR: Cannot read /secret/perfscale-prod/host"; exit 1; }
-    ES_USER=$(cat /secret/perfscale-prod/username 2>/dev/null || echo "")
-    ES_PASSWORD=$(cat /secret/perfscale-prod/password 2>/dev/null || echo "")
-
-    if [ -n "$ES_USER" ] && [ -n "$ES_PASSWORD" ]; then
-        ES_URL=$(ES_USER="$ES_USER" ES_PASSWORD="$ES_PASSWORD" ES_HOST="$ES_HOST" python3 -c "
-import os, urllib.parse
-user = os.environ['ES_USER']
-pwd = os.environ['ES_PASSWORD']
-host = os.environ['ES_HOST']
-print('https://' + urllib.parse.quote(urllib.parse.unquote(user), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(pwd), safe='') + '@' + host)
-")
-    else
-        ES_URL="https://${ES_HOST}"
-    fi
-    ES_URL_DISPLAY=$(echo "$ES_URL" | sed -E 's|(https?://)([^:]+):([^@]+)@|\1***:***@|')
-
 else
-    # Local/dev: read from lab.config
     if [ ! -f "$REG_ROOT/lab.config" ]; then
         echo "ERROR: No ES configuration found."
         echo "  - No ES_URL environment variable"
-        echo "  - No /secret/perfscale-prod/ directory (Prow secrets)"
         echo "  - No $REG_ROOT/lab.config file"
         exit 1
     fi
