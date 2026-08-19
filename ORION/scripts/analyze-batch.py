@@ -84,6 +84,7 @@ class BatchAnalyzer:
         self.match = match or {}
         self.ignore = ignore or set()
         self.lookback = lookback
+        self.lookback_is_count = lookback.isdigit()
         self.debug = debug
         self.use_template = not use_self_detect
         self.es_server_display = re.sub(r'https?://[^@]*@', lambda m: m.group(0).split('//')[0] + '//***:***@', es_server)
@@ -398,7 +399,7 @@ class BatchAnalyzer:
                 '--hunter-analyze',
                 '--benchmark-index', self.es_index,
                 '--metadata-index', self.es_index,
-                '--lookback', self.lookback,
+                '--lookback-size' if self.lookback_is_count else '--lookback', self.lookback,
                 '--output-format', 'json',
                 '--save-output-path', os.path.join(self.output_dir, output_filename),
                 '--save-data-path', os.path.join(self.output_dir, data_filename)
@@ -419,7 +420,7 @@ class BatchAnalyzer:
                 '--hunter-analyze',
                 '--benchmark-index', self.es_index,
                 '--metadata-index', self.es_index,
-                '--lookback', self.lookback,
+                '--lookback-size' if self.lookback_is_count else '--lookback', self.lookback,
                 '--output-format', 'json',
                 '--save-output-path', f'{container_output_dir}/{output_filename}',
                 '--save-data-path', f'{container_output_dir}/{data_filename}'
@@ -536,7 +537,8 @@ class BatchAnalyzer:
             print(f"Ignored fields: {self.ignore}")
             print(f"Active fingerprint fields: {len(self.fingerprint_fields)}")
 
-        print(f"Lookback: {self.lookback}")
+        lookback_type = "samples" if self.lookback_is_count else "duration"
+        print(f"Lookback: {self.lookback} ({lookback_type})")
         print("=" * 80)
 
         # Step 1: Query tests
