@@ -32,22 +32,12 @@ ES_WRITE_ALIAS ?= regulus-results-write
 # Usage: echo $$(echo "$$ES_URL" | $(SANITIZE_URL))
 SANITIZE_URL = sed -E 's|(https?://)([^:]+):([^@]+)@|\1***:***@|'
 
-# Helper to determine ES_URL with priority: env > /secret > lab.config
+# Helper to determine ES_URL with priority: env > lab.config
 # Usage: @$(SOURCE_ES_CONFIG); your_command_using_$$ES_URL
 # Note: This exports ES_URL for use in subprocesses
 SOURCE_ES_CONFIG = \
 	if [ -n "$${ES_URL:-}" ]; then \
 		export ES_URL; \
-	elif [ -d "/secret" ] && ES_HOST_RAW=$$(cat /secret/host 2>/dev/null | tr -d '[:space:]') && [ -n "$$ES_HOST_RAW" ]; then \
-		ES_USER=$$(cat /secret/username 2>/dev/null || echo ""); \
-		ES_PASSWORD=$$(cat /secret/password 2>/dev/null || echo ""); \
-		ES_HOST="$$ES_HOST_RAW"; \
-		if [ -n "$$ES_USER" ] && [ -n "$$ES_PASSWORD" ]; then \
-			ES_URL=$$(ES_USER="$$ES_USER" ES_PASSWORD="$$ES_PASSWORD" ES_HOST="$$ES_HOST" python3 -c "import os, urllib.parse; print('https://' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_USER']), safe='') + ':' + urllib.parse.quote(urllib.parse.unquote(os.environ['ES_PASSWORD']), safe='') + '@' + os.environ['ES_HOST'])"); \
-			export ES_URL; \
-		else \
-			export ES_URL="https://$${ES_HOST}"; \
-		fi; \
 	elif [ -f "$(REG_ROOT)/lab.config" ]; then \
 		. $(REG_ROOT)/lab.config; \
 		if [ -z "$${ES_URL:-}" ]; then \
@@ -65,7 +55,6 @@ SOURCE_ES_CONFIG = \
 	else \
 		echo "ERROR: No ES configuration found."; \
 		echo "  - No ES_URL environment variable"; \
-		echo "  - No /secret/ directory (Kubernetes secrets)"; \
 		echo "  - No $(REG_ROOT)/lab.config file"; \
 		exit 1; \
 	fi
