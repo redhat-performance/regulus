@@ -425,13 +425,17 @@ class ReportLoader:
 
     def _resolve_test_type(self, benchmark: str, unique_params: dict, common_params: dict) -> Optional[str]:
         """Resolve test_type: uperf has explicit test-type param; for iperf, synthesize from max-loss-pct."""
-        test_type = unique_params.get('test-type') or common_params.get('test-type')
-        if test_type:
+        test_type = unique_params.get('test-type')
+        if test_type is None:
+            test_type = common_params.get('test-type')
+        if test_type is not None:
             return test_type
 
         if benchmark in ('iperf', 'iperf3'):
-            max_loss_pct = unique_params.get('max-loss-pct') or common_params.get('max-loss-pct')
-            if max_loss_pct:
+            max_loss_pct = unique_params.get('max-loss-pct')
+            if max_loss_pct is None:
+                max_loss_pct = common_params.get('max-loss-pct')
+            if max_loss_pct is not None:
                 return f"loss-pct-{max_loss_pct}"
             return 'stream'
 
