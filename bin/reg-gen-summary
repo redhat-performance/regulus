@@ -245,7 +245,7 @@ function get_sut_ifname {
 function extract_sut_from_tags {
     local tags_line="$1"
     local sut_val=""
-    sut_val=$(echo "$tags_line" | grep -oP '(?<=sut=)\S+' || true)
+    sut_val=$(printf '%s\n' "$tags_line" | grep -oP '(?:^|[,\s])sut[:=]\K[^,\s]+' || true)
     echo "$sut_val"
 }
 
