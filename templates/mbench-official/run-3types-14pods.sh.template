@@ -102,6 +102,9 @@ fi
 
 TPL_IPV=${TPL_IPV:-4}
 tags+=",ipv:$TPL_IPV"
+if [ -n "$sut_node" ]; then
+    tags+=",sut:$sut_node"
+fi
 
  ARGS="--mv-params iperf-mv-params.json,uperf-mv-params.json\
  --bench-ids iperf:21-26,uperf:1-20,uperf:27-32\

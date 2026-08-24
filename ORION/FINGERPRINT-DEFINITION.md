@@ -20,7 +20,7 @@ All fields below must match exactly for tests to be considered the same type:
 
 | Field | Description | Example Values |
 |-------|-------------|----------------|
-| `benchmark` | Test tool/benchmark name | `uperf`, `fio`, `netperf` |
+| `benchmark` | Test tool/benchmark name | `uperf`, `iperf`, `multibench`, `trafficgen` |
 
 ### 2. Network Configuration
 
@@ -217,6 +217,25 @@ The tool will:
 - Use batch_id to discover which tests to analyze
 - Use fingerprint (without batch_id) to match historical baselines
 
+## Absent Fields (MISSING)
+
+Not all benchmarks use all fingerprint fields. For example, `multibench` (composite score from simultaneous iperf+uperf) has no meaningful `threads`, `protocol`, `test_type`, or `wsize` — these fields are absent from its ES documents.
+
+**How absent fields propagate:**
+
+| Stage | Field present | Field absent |
+|-------|--------------|--------------|
+| ES document | `threads: 64` | field not in document |
+| `analyze-batch.py` fingerprint | `threads=64` | `threads=MISSING` |
+| Manifest file (`manifest-fpN.json`) | `"threads": "64"` | `"threads": "MISSING"` |
+| Orion config metadata | included | excluded (stripped) |
+| Dashboard | shows value | empty cell |
+
+**Key rules:**
+
+- A document with `threads=MISSING` and a document with `threads=64` are **different fingerprints** — they will never be grouped together.
+- `MISSING` is an internal placeholder used by `analyze-batch.py` for consistent hashing. It is stripped before passing to Orion, so Orion never sees the field.
+
 ## Design Philosophy
 
 ### Why All Fields Matter
@@ -269,6 +288,7 @@ Per-fingerprint outputs are written to `generated-orion/` with a manifest file (
 | 2026-08-05 | Move unit to non-fingerprint | `unit` is redundant with `test_type` (stream→Gbps, rr→transactions-sec, crr→connections-sec). Added `unit` to NON_FINGERPRINT_FIELDS in all three scripts. Added `uploaded_at` to doc. Added `ipv` to examples. |
 | 2026-08-17 | Restore offload as fingerprint | `offload` was accidentally added to NON_FINGERPRINT_FIELDS in the unit removal commit. Restored to fingerprint table under Network Configuration. |
 | 2026-08-17 | Static template, add rsize | Default to static `configs/template.yaml` with `--input-vars` instead of generating per-fingerprint configs. Added `rsize` to Test Parameters. Added manifest files (`manifest-fpN.json`) to `generated-orion/`. Updated extensibility steps to include template. |
+| 2026-08-24 | Absent fields (MISSING) semantics | Documented how absent fingerprint fields propagate through the pipeline. Fixed tag extraction to omit absent tags instead of storing string "None". Added multibench mock fingerprint. Pinned ORION_TAG to v1.1.9. |
 
 ## See Also
 
