@@ -5,7 +5,6 @@ Handles applying rules to extract data from file content.
 Updated to support multiple iterations per file with multiple results per iteration.
 """
 
-import math
 import re
 from typing import Dict, Any, List
 import time
@@ -250,15 +249,11 @@ class RegexDataExtractor:
             
             try:
                 stddev = float(match.group(6))
-                if not math.isfinite(stddev):
-                    stddev = 0.0
             except ValueError:
                 stddev = 0.0
 
             try:
                 stddevpct = float(match.group(7))
-                if not math.isfinite(stddevpct):
-                    stddevpct = 0.0
             except ValueError:
                 stddevpct = 0.0
             # parse CPU
@@ -309,15 +304,11 @@ class RegexDataExtractor:
             
             try:
                 stddev = float(match.group(6))
-                if not math.isfinite(stddev):
-                    stddev = 0.0
             except ValueError:
                 stddev = 0.0
 
             try:
                 stddevpct = float(match.group(7))
-                if not math.isfinite(stddevpct):
-                    stddevpct = 0.0
             except ValueError:
                 stddevpct = 0.0
             # parse CPU
@@ -365,15 +356,11 @@ class RegexDataExtractor:
 
             try:
                 stddev = float(match.group(6))
-                if not math.isfinite(stddev):
-                    stddev = 0.0
             except ValueError:
                 stddev = 0.0
 
             try:
                 stddevpct = float(match.group(7))
-                if not math.isfinite(stddevpct):
-                    stddevpct = 0.0
             except ValueError:
                 stddevpct = 0.0
 
