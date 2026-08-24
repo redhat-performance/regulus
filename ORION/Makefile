@@ -106,13 +106,15 @@ help:
 setup: ## Install orion + python dependencies (requires Python 3.11+)
 	@PIP=pip3.11; \
 	if ! command -v $$PIP >/dev/null 2>&1; then PIP=pip3; fi; \
-	if python3 -c "import requests, yaml; import shutil; shutil.which('orion') or exit(1)" 2>/dev/null; then \
-		echo "✅ Dependencies already installed"; \
+	INSTALLED=$$(pip3 show orion 2>/dev/null | grep -oP '^Version:\s*\K.*' || echo "none"); \
+	EXPECTED=$$(echo "$(ORION_TAG)" | sed 's/^v//'); \
+	if python3 -c "import requests, yaml" 2>/dev/null && [ "$$INSTALLED" = "$$EXPECTED" ]; then \
+		echo "✅ Dependencies already installed (orion $$INSTALLED)"; \
 	else \
 		echo "📦 Installing Python dependencies (using $$PIP)..."; \
 		$$PIP install -q -r requirements.txt; \
 		$$PIP install -q orion@git+https://github.com/cloud-bulldozer/orion.git@$(ORION_TAG); \
-		echo "✅ Setup complete"; \
+		echo "✅ Setup complete (orion $(ORION_TAG))"; \
 	fi
 
 # ════════════════════════════════════════════════════════════════════════════════
