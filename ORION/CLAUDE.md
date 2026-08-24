@@ -58,7 +58,7 @@ scripts/
   run-it                  # Podman wrapper for Orion container
 
 unit-test/
-  generate-batch-test-data.py  # Generate 5-fingerprint mock test data
+  generate-batch-test-data.py  # Generate 6-fingerprint mock test data
   generate-mock-data.py        # Base mock data generator class
   json-to-bulk.py              # Convert JSON to ES bulk format
 
@@ -97,7 +97,7 @@ make setup             # Install Python deps (skip-if-installed)
 
 ## Test Expectations
 
-Mock data has 5 fingerprints (threads=16/32/64/128/256). Expected results: **2 stable, 3 regressions**.
+Mock data has 6 fingerprints (threads=16/32/64/128/256 + multibench composite). Expected results: **2 stable, 4 regressions**.
 
 | Fingerprint | Threads | Expected | Why |
 |-------------|---------|----------|-----|
@@ -106,6 +106,7 @@ Mock data has 5 fingerprints (threads=16/32/64/128/256). Expected results: **2 s
 | C | 64 | CHANGEPOINT | Throughput +20% (flagged because direction=0) |
 | D | 128 | STABLE | Different rcos from historical → no baseline match |
 | E | 256 | REGRESSION | busy_cpu doubled (50% vs ~25%), throughput stable |
+| F | multibench | REGRESSION | Composite score -25% (no test_type/protocol/threads/wsize) |
 
 **Test expectations live in ONE place:** `scripts/validate-test-results.sh`. Both `make test-full` and `make verify-test` call it. Do not duplicate expectations elsewhere.
 

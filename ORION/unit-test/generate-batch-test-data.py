@@ -317,11 +317,81 @@ def generate_batch_with_multiple_fingerprints(
     print(f"     Mean: {doc_e_new['mean']:.2f} Gbps (stable)")
     print(f"     busy_cpu: {doc_e_new['busy_cpu']}% (doubled from ~25%)")
 
+    # =========================================================================
+    # Fingerprint F: multibench (composite score), REGRESSION in new batch
+    # =========================================================================
+    print("\n📊 Fingerprint F (multibench) - Composite Score REGRESSION")
+    print(f"  Historical: {num_historical_per_fingerprint} samples (composite ~207)")
+    print(f"  New batch: 1 sample (25% drop!)")
+    print(f"  Fields test_type, protocol, threads, wsize = MISSING")
+
+    # Multibench config: MISSING fields for test_type, protocol, threads, wsize
+    mbench_config = {
+        'benchmark': 'multibench',
+        'topology': 'internode',
+        'nic': 'mlx5_0',
+        'ipv': '4',
+        'model': 'OVNK',
+        'test_type': 'MISSING',
+        'protocol': 'MISSING',
+        'threads': 'MISSING',
+        'wsize': 'MISSING',
+        'performance_profile': 'None',
+        'kernel': '5.14.0-503.11.1.el9_5.x86_64',
+        'rcos': '9.6.20260615-0',
+        'arch': 'Intel(R)_Xeon(R)_Gold_6130_CPU_@_2.10GHz',
+        'cpu': '4',
+        'pods_per_worker': '1',
+        'scale_out_factor': '1',
+    }
+
+    # Historical data for Fingerprint F (stable composite ~207)
+    gen_f_historical = RegulusMockDataGenerator(
+        base_timestamp=base_timestamp - timedelta(days=30),
+        batch_id=f"historical-f-{uuid.uuid4()}"
+    )
+
+    docs_f_hist = gen_f_historical.generate_stable_baseline(
+        metric_type='composite',
+        num_samples=num_historical_per_fingerprint,
+        test_config=mbench_config
+    )
+    # Set busy_cpu to realistic multibench levels (~46%)
+    for doc in docs_f_hist:
+        doc['busy_cpu'] = round(random.gauss(46.0, 3.0), 2)
+    all_documents.extend(docs_f_hist)
+    print(f"  ✓ Generated {len(docs_f_hist)} historical documents")
+
+    # New batch data for Fingerprint F (REGRESSION - 25% drop)
+    gen_f_new = RegulusMockDataGenerator(
+        base_timestamp=datetime.utcnow(),
+        batch_id=batch_id
+    )
+
+    baseline_f = gen_f_new.baselines['composite']
+    regressed_value_f = baseline_f['mean'] * 0.75  # 25% drop
+
+    doc_f_new = gen_f_new._generate_base_document(
+        metric_type='composite',
+        timestamp=datetime.utcnow(),
+        test_config=mbench_config
+    )
+    doc_f_new['mean'] = regressed_value_f
+    doc_f_new['min'] = regressed_value_f * 0.95
+    doc_f_new['max'] = regressed_value_f * 1.05
+    doc_f_new['stddev'] = baseline_f['stddev']
+    doc_f_new['sample_count'] = 150
+    doc_f_new['busy_cpu'] = 48.5
+
+    all_documents.append(doc_f_new)
+    print(f"  ✓ Generated 1 NEW batch document (REGRESSED)")
+    print(f"     Mean: {doc_f_new['mean']:.2f} composite (25% drop from ~{baseline_f['mean']:.2f})")
+
     # Summary
     print("\n" + "=" * 80)
     print(f"Total documents generated: {len(all_documents)}")
-    print(f"  - Historical data: {num_historical_per_fingerprint * 5} documents (5 fingerprints × {num_historical_per_fingerprint})")
-    print(f"  - New batch '{batch_id}': 5 documents")
+    print(f"  - Historical data: {num_historical_per_fingerprint * 6} documents (6 fingerprints × {num_historical_per_fingerprint})")
+    print(f"  - New batch '{batch_id}': 6 documents")
     print(f"\nExpected analyze-batch.py results:")
     print(f"  ✓ Fingerprint A (threads=16): STABLE")
     print(f"  ⚠️  Fingerprint B (threads=32): REGRESSION (throughput -25%)")
@@ -330,6 +400,7 @@ def generate_batch_with_multiple_fingerprints(
     print(f"     - WITH rcos field: STABLE (no historical match, treated as new)")
     print(f"     - WITHOUT rcos field: REGRESSION (30% drop detected)")
     print(f"  ⚠️  Fingerprint E (threads=256): REGRESSION (busy_cpu doubled)")
+    print(f"  ⚠️  Fingerprint F (multibench): REGRESSION (composite -25%)")
     print("=" * 80)
 
     return all_documents
