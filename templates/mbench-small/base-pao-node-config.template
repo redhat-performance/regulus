@@ -21,7 +21,6 @@ tags=datapath:mbench
 worker1=worker-1  # Tester 1
 worker2=worker-2  # Tester 2
 worker3=worker-0  # system-under-test
-sut_node=$worker3
 
 # PAO requires runtimeClass and irq + cpu_quota annotation
 annotation_opt=",annotations:server-${worker1_servers}:$pwd/annotations.json,annotations:client-${worker1_clients}:$pwd/annotations.json"

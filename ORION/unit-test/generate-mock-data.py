@@ -29,7 +29,6 @@ class RegulusMockDataGenerator:
             'transactions': {'mean': 15000, 'stddev': 500, 'unit': 'transactions-sec', 'benchmark': 'uperf'},
             'connections': {'mean': 50000, 'stddev': 2000, 'unit': 'connections-sec', 'benchmark': 'uperf'},
             'latency': {'mean': 0.45, 'stddev': 0.05, 'unit': 'ms', 'benchmark': 'uperf'},
-            'composite': {'mean': 207.0, 'stddev': 10.0, 'unit': 'composite', 'benchmark': 'multibench'},
         }
 
     def _generate_base_document(self, metric_type, timestamp, test_config=None):
@@ -76,9 +75,6 @@ class RegulusMockDataGenerator:
                 if key in test_config and key not in ('@timestamp', 'batch_id', 'run_id',
                                                        'iteration_id', 'unit', 'mock_data'):
                     doc[key] = test_config[key]
-
-        # Remove fields with "MISSING" value (e.g. multibench lacks test_type, threads, etc.)
-        doc = {k: v for k, v in doc.items() if v != 'MISSING'}
 
         return doc
 

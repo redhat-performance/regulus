@@ -17,7 +17,6 @@ tags=datapath:mbench
 # 2-worker configuration
 worker0=worker-0  # Worker 0
 worker1=worker-1  # Worker 1
-sut_node=""        # 2-worker balanced: no designated SUT
 
 # PAO requires runtimeClass and irq + cpu_quota annotation
 annotation_opt=",annotations:server-${worker0_servers}:$pwd/annotations.json,annotations:client-${worker0_clients}:$pwd/annotations.json"
