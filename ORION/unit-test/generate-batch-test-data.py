@@ -392,15 +392,7 @@ def generate_batch_with_multiple_fingerprints(
     print(f"Total documents generated: {len(all_documents)}")
     print(f"  - Historical data: {num_historical_per_fingerprint * 6} documents (6 fingerprints × {num_historical_per_fingerprint})")
     print(f"  - New batch '{batch_id}': 6 documents")
-    print(f"\nExpected analyze-batch.py results:")
-    print(f"  ✓ Fingerprint A (threads=16): STABLE")
-    print(f"  ⚠️  Fingerprint B (threads=32): REGRESSION (throughput -25%)")
-    print(f"  ⚠️  Fingerprint C (threads=64): CHANGEPOINT (throughput +20%)")
-    print(f"  🔍 Fingerprint D (threads=128): Depends on rcos handling")
-    print(f"     - WITH rcos field: STABLE (no historical match, treated as new)")
-    print(f"     - WITHOUT rcos field: REGRESSION (30% drop detected)")
-    print(f"  ⚠️  Fingerprint E (threads=256): REGRESSION (busy_cpu doubled)")
-    print(f"  ⚠️  Fingerprint F (multibench): REGRESSION (composite -25%)")
+    print("\nSee scripts/validate-test-results.sh for expected analyzer outcomes.")
     print("=" * 80)
 
     return all_documents

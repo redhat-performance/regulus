@@ -97,16 +97,7 @@ make setup             # Install Python deps (skip-if-installed)
 
 ## Test Expectations
 
-Mock data has 6 fingerprints (threads=16/32/64/128/256 + multibench composite). Expected results: **2 stable, 4 regressions**.
-
-| Fingerprint | Threads | Expected | Why |
-|-------------|---------|----------|-----|
-| A | 16 | STABLE | Normal throughput and CPU |
-| B | 32 | REGRESSION | Throughput -25% |
-| C | 64 | CHANGEPOINT | Throughput +20% (flagged because direction=0) |
-| D | 128 | STABLE | Different rcos from historical → no baseline match |
-| E | 256 | REGRESSION | busy_cpu doubled (50% vs ~25%), throughput stable |
-| F | multibench | REGRESSION | Composite score -25% (no test_type/protocol/threads/wsize) |
+Mock data has 6 fingerprints (threads=16/32/64/128/256 + multibench composite).
 
 **Test expectations live in ONE place:** `scripts/validate-test-results.sh`. Both `make test-full` and `make verify-test` call it. Do not duplicate expectations elsewhere.
 

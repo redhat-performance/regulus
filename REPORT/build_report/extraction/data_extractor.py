@@ -5,6 +5,7 @@ Handles applying rules to extract data from file content.
 Updated to support multiple iterations per file with multiple results per iteration.
 """
 
+import math
 import re
 from typing import Dict, Any, List
 import time
@@ -247,14 +248,17 @@ class RegexDataExtractor:
                 except ValueError:
                     pass
             
-            # Parse stddev (might be NaN)
             try:
                 stddev = float(match.group(6))
+                if not math.isfinite(stddev):
+                    stddev = 0.0
             except ValueError:
                 stddev = 0.0
-            
+
             try:
                 stddevpct = float(match.group(7))
+                if not math.isfinite(stddevpct):
+                    stddevpct = 0.0
             except ValueError:
                 stddevpct = 0.0
             # parse CPU
@@ -281,10 +285,10 @@ class RegexDataExtractor:
             if cpu_value is not None:
                 result['busyCPU'] = cpu_value
 
-            return result  
-    
+            return result
+
         return {'raw': 'No result found', 'type': 'unknown'}
-    
+
     def _extract_iperf_result(self, line: str) -> Dict[str, Any]:
         """Extract iperf result format from a single line (same as uperf format)."""
         # Pattern: result: (iperf::rx-Gbps) samples: X mean: M min: N max: O stddev: P stddevpct: Q
@@ -303,14 +307,17 @@ class RegexDataExtractor:
                 except ValueError:
                     pass
             
-            # Parse stddev (might be NaN)
             try:
                 stddev = float(match.group(6))
+                if not math.isfinite(stddev):
+                    stddev = 0.0
             except ValueError:
                 stddev = 0.0
-            
+
             try:
                 stddevpct = float(match.group(7))
+                if not math.isfinite(stddevpct):
+                    stddevpct = 0.0
             except ValueError:
                 stddevpct = 0.0
             # parse CPU
@@ -336,7 +343,7 @@ class RegexDataExtractor:
             if cpu_value is not None:
                 result['busyCPU'] = cpu_value
 
-            return result  
+            return result
         
         return {'raw': 'No result found', 'type': 'unknown'}
     
@@ -358,11 +365,15 @@ class RegexDataExtractor:
 
             try:
                 stddev = float(match.group(6))
+                if not math.isfinite(stddev):
+                    stddev = 0.0
             except ValueError:
                 stddev = 0.0
 
             try:
                 stddevpct = float(match.group(7))
+                if not math.isfinite(stddevpct):
+                    stddevpct = 0.0
             except ValueError:
                 stddevpct = 0.0
 
