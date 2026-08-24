@@ -16,6 +16,7 @@ Usage:
     python3 flatten_to_es.py report.json --es-host localhost:9200 --es-index benchmark-results
 """
 
+import math
 import sys
 import json
 import argparse
@@ -114,12 +115,15 @@ class ESDocumentFlattener:
         }
 
         def sanitize_value(key, value):
-            """Convert non-numeric strings to None for numeric fields"""
-            if key in numeric_fields and isinstance(value, str):
-                try:
-                    return float(value) if '.' in value else int(value)
-                except (ValueError, TypeError):
+            """Sanitize numeric fields: convert numeric strings, drop non-finite floats"""
+            if key in numeric_fields:
+                if isinstance(value, float) and not math.isfinite(value):
                     return None
+                if isinstance(value, str):
+                    try:
+                        return float(value) if '.' in value else int(value)
+                    except (ValueError, TypeError):
+                        return None
             return value
 
         sanitized_doc = {k: sanitize_value(k, v) for k, v in doc.items()}
