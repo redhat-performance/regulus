@@ -61,19 +61,28 @@ class RegexDataExtractor:
     
     def _extract_benchmark(self, content: str, rules: BenchmarkRuleSet) -> str:
         """Extract benchmark type from content."""
+        val = None
+
         # Try rules first
         for rule in rules.rules:
             if rule.field_name == "benchmark":
                 match = re.search(rule.pattern, content, re.IGNORECASE | re.MULTILINE)
                 if match:
-                    return match.group(1).strip()
-        
+                    val = match.group(1).strip()
+                    break
+
         # Fallback to direct search
-        match = re.search(r'benchmark:\s*(\w+)', content, re.IGNORECASE | re.MULTILINE)
-        if match:
-            return match.group(1).strip()
-        
-        return "unknown"
+        if not val:
+            match = re.search(r'benchmark:\s*([\w,]+)', content, re.IGNORECASE | re.MULTILINE)
+            if match:
+                val = match.group(1).strip()
+
+        if not val:
+            return "unknown"
+
+        if ',' in val:
+            return 'multibench'
+        return val
     
     def _extract_run_id(self, content: str) -> str:
         """Extract run-id from content."""
@@ -197,6 +206,10 @@ class RegexDataExtractor:
                     result = self._extract_iperf_result(line)
                     if result.get('type') != 'unknown':
                         results.append(result)
+                elif '(mbench::' in line:
+                    result = self._extract_mbench_result(line)
+                    if result.get('type') != 'unknown':
+                        results.append(result)
                 elif '(trafficgen::' in line:
                     result = self._extract_trafficgen_result(line)
                     if result.get('type') != 'unknown':
@@ -234,12 +247,11 @@ class RegexDataExtractor:
                 except ValueError:
                     pass
             
-            # Parse stddev (might be NaN)
             try:
                 stddev = float(match.group(6))
             except ValueError:
                 stddev = 0.0
-            
+
             try:
                 stddevpct = float(match.group(7))
             except ValueError:
@@ -268,10 +280,10 @@ class RegexDataExtractor:
             if cpu_value is not None:
                 result['busyCPU'] = cpu_value
 
-            return result  
-    
+            return result
+
         return {'raw': 'No result found', 'type': 'unknown'}
-    
+
     def _extract_iperf_result(self, line: str) -> Dict[str, Any]:
         """Extract iperf result format from a single line (same as uperf format)."""
         # Pattern: result: (iperf::rx-Gbps) samples: X mean: M min: N max: O stddev: P stddevpct: Q
@@ -290,12 +302,11 @@ class RegexDataExtractor:
                 except ValueError:
                     pass
             
-            # Parse stddev (might be NaN)
             try:
                 stddev = float(match.group(6))
             except ValueError:
                 stddev = 0.0
-            
+
             try:
                 stddevpct = float(match.group(7))
             except ValueError:
@@ -323,10 +334,63 @@ class RegexDataExtractor:
             if cpu_value is not None:
                 result['busyCPU'] = cpu_value
 
-            return result  
+            return result
         
         return {'raw': 'No result found', 'type': 'unknown'}
     
+    def _extract_mbench_result(self, line: str) -> Dict[str, Any]:
+        """Extract mbench result format from a single line (same structure as uperf/iperf)."""
+        pattern = r'result:\s*\(mbench::([^)]+)\)\s*samples:\s*([\d.\s]+?)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)\s*stddev:\s*([0-9.NaN]+)\s*stddevpct:\s*([0-9.NaN]+)(?:\s*CPU:\s*([0-9.]+))?'
+
+        match = re.search(pattern, line, re.IGNORECASE)
+        if match:
+            metric_type = match.group(1).strip()
+            samples_str = match.group(2).strip()
+
+            sample_values = []
+            for val in samples_str.split():
+                try:
+                    sample_values.append(float(val))
+                except ValueError:
+                    pass
+
+            try:
+                stddev = float(match.group(6))
+            except ValueError:
+                stddev = 0.0
+
+            try:
+                stddevpct = float(match.group(7))
+            except ValueError:
+                stddevpct = 0.0
+
+            cpu_value = None
+            if match.group(8):
+                try:
+                    cpu_value = float(match.group(8))
+                except (ValueError, TypeError):
+                    pass
+
+            result = {
+                'type': metric_type,
+                'sample_values': sample_values,
+                'sample_count': len(sample_values),
+                'mean': float(match.group(3)),
+                'min': float(match.group(4)),
+                'max': float(match.group(5)),
+                'stddev': stddev,
+                'stddevpct': stddevpct,
+                'range': float(match.group(5)) - float(match.group(4)),
+                'unit': 'composite'
+            }
+
+            if cpu_value is not None:
+                result['busyCPU'] = cpu_value
+
+            return result
+
+        return {'raw': 'No result found', 'type': 'unknown'}
+
     def _extract_trafficgen_result(self, line: str) -> Dict[str, Any]:
         """Extract trafficgen result format from a single line."""
         pattern = r'result:\s*\(([^)]+)\)\s*samples:\s*([0-9.]+)\s*mean:\s*([0-9.]+)\s*min:\s*([0-9.]+)\s*max:\s*([0-9.]+)'
@@ -372,30 +436,19 @@ class RegexDataExtractor:
             results=results
         )
 
-    def _extract_key_tags(self, tags_str: str) -> Dict[str, str]:
-        """Extract key tags: model, nic, arch, perf, offload, kernel, rcos, topo, cpu, etc."""
-        # Initialize all expected tags to "None"
-        key_tags = {
-            'model': 'None',
-            'nic': 'None',
-            'arch': 'None',
-            'perf': 'None',
-            'offload': 'None',
-            'kernel': 'None',
-            'rcos': 'None',
-            'pods-per-worker': 'None',
-            'scale_out_factor': 'None',
-            'topo': 'None',
-            'cpu': 'None',
-            'ipv': 'None'
-        }
+    KNOWN_TAGS = {
+        'model', 'nic', 'arch', 'perf', 'offload', 'kernel', 'rcos',
+        'pods-per-worker', 'scale_out_factor', 'topo', 'cpu', 'ipv'
+    }
 
-        # Parse tags string and update values if present
+    def _extract_key_tags(self, tags_str: str) -> Dict[str, str]:
+        """Extract key tags from tags line. Only includes tags actually present."""
+        key_tags = {}
+
         for tag in tags_str.split():
             if '=' in tag:
                 key, value = tag.split('=', 1)
-                # Update tag value if it's one of our expected tags
-                if key in key_tags:
+                if key in self.KNOWN_TAGS:
                     key_tags[key] = value
 
         return key_tags

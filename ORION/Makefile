@@ -12,6 +12,7 @@ ES_URL ?= $(if $(ES_SERVER),$(ES_SERVER),http://localhost:9200)
 ES_INDEX ?= regulus-results-*
 TEST_INDEX ?= regulus-mock-results
 LOOKBACK ?= 90d
+ORION_TAG ?= v1.1.9
 
 # ════════════════════════════════════════════════════════════════════════════════
 # HELP
@@ -23,6 +24,10 @@ help:
 	@echo "════════════════════════════════════════════════════════════════════════════════"
 	@echo ""
 	@echo "═══ PRODUCTION TARGETS (work with both production and test data) ═══"
+	@echo ""
+	@echo "Setup:"
+	@echo "  make setup"
+	@echo "      Install orion + python dependencies (requires Python 3.11+)"
 	@echo ""
 	@echo "Configuration:"
 	@echo "  make set-es ES_URL=http://your-es:9200"
@@ -86,10 +91,11 @@ help:
 	@echo ""
 	@echo "════════════════════════════════════════════════════════════════════════════════"
 	@echo "Current Configuration:"
-	@echo "  ES_URL  = $(ES_URL)"
+	@echo "  ES_URL     = $(ES_URL)"
 	@echo "  ES_INDEX   = $(ES_INDEX)"
 	@echo "  TEST_INDEX = $(TEST_INDEX)"
 	@echo "  LOOKBACK   = $(LOOKBACK)"
+	@echo "  ORION_TAG  = $(ORION_TAG)"
 	@echo "════════════════════════════════════════════════════════════════════════════════"
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -97,14 +103,18 @@ help:
 # ════════════════════════════════════════════════════════════════════════════════
 
 .PHONY: setup
-setup:
-	@if python3 -c "import requests, yaml; import shutil; shutil.which('orion') or exit(1)" 2>/dev/null; then \
-		echo "✅ Dependencies already installed"; \
+setup: ## Install orion + python dependencies (requires Python 3.11+)
+	@PIP=pip3.11; \
+	if ! command -v $$PIP >/dev/null 2>&1; then PIP=pip3; fi; \
+	INSTALLED=$$(pip3 show orion 2>/dev/null | grep -oP '^Version:\s*\K.*' || echo "none"); \
+	EXPECTED=$$(echo "$(ORION_TAG)" | sed 's/^v//'); \
+	if python3 -c "import requests, yaml" 2>/dev/null && [ "$$INSTALLED" = "$$EXPECTED" ]; then \
+		echo "✅ Dependencies already installed (orion $$INSTALLED)"; \
 	else \
-		echo "📦 Installing Python dependencies..."; \
-		pip3 install -q -r requirements.txt; \
-		pip3 install -q orion@git+https://github.com/cloud-bulldozer/orion.git; \
-		echo "✅ Setup complete"; \
+		echo "📦 Installing Python dependencies (using $$PIP)..."; \
+		$$PIP install -q -r requirements.txt; \
+		$$PIP install -q orion@git+https://github.com/cloud-bulldozer/orion.git@$(ORION_TAG); \
+		echo "✅ Setup complete (orion $(ORION_TAG))"; \
 	fi
 
 # ════════════════════════════════════════════════════════════════════════════════
