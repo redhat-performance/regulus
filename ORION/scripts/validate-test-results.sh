@@ -19,9 +19,8 @@ REGRESSIONS=$(grep -c "⚠️  REGRESSION DETECTED" "$RESULTS_FILE" 2>/dev/null 
 ERRORS=$(grep "❌ ERROR" "$RESULTS_FILE" 2>/dev/null | grep -v "Errors: 0" | wc -l)
 
 # Expected values for mock test (with rcos included in fingerprint)
-# 6 fingerprints: A(stable), B(regression), C(improvement), D(rcos-new=stable), E(cpu-regression), F(multibench-regression)
 EXPECTED_STABLE=2
-EXPECTED_REGRESSIONS=4
+EXPECTED_REGRESSIONS=3
 EXPECTED_ERRORS=0
 
 echo "Expected: $EXPECTED_STABLE stable, $EXPECTED_REGRESSIONS regression, $EXPECTED_ERRORS errors"
@@ -39,7 +38,6 @@ if [ "$STABLE" -eq "$EXPECTED_STABLE" ] && [ "$REGRESSIONS" -eq "$EXPECTED_REGRE
     echo "  ⚠️  Fingerprint 3 (threads=64):   CHANGEPOINT (throughput +20%)"
     echo "  ✅ Fingerprint 4 (threads=128):  STABLE (rcos mismatch, no baseline)"
     echo "  ⚠️  Fingerprint 5 (threads=256):  REGRESSION (busy_cpu doubled)"
-    echo "  ⚠️  Fingerprint 6 (multibench):   REGRESSION (composite -25%)"
     echo ""
     exit 0
 else

@@ -308,13 +308,9 @@ class ReportLoader:
 
                 # Process each result in the iteration
                 # (there can be multiple results per iteration)
-                is_mbench = benchmark == 'multibench'
                 for result in results_list:
                     # Skip if not a dictionary
                     if not isinstance(result, dict):
-                        continue
-                    # mbench: only emit the composite result
-                    if is_mbench and result.get('type') != 'composite':
                         continue
                     # Get datapath model
                     datapath_model = key_tags.get('model')

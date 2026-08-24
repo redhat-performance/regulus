@@ -172,7 +172,7 @@ make test-prow
 make verify-test
 ```
 
-Mock data includes 6 fingerprints covering: stable, throughput regression, throughput improvement, rcos mismatch, CPU-only regression, and multibench composite score regression.
+Mock data includes 5 fingerprints covering: stable, throughput regression, throughput improvement, rcos mismatch, and CPU-only regression.
 
 ## Installation
 
@@ -201,7 +201,7 @@ ORION/
 │   ├── list-batches.py           # List batch IDs in ES
 │   └── run-it                    # Podman wrapper for Orion container
 ├── unit-test/
-│   ├── generate-batch-test-data.py  # Generate mock test data (6 fingerprints)
+│   ├── generate-batch-test-data.py  # Generate mock test data (5 fingerprints)
 │   ├── generate-mock-data.py        # Base mock data generator
 │   └── json-to-bulk.py             # Convert JSON to ES bulk format
 ├── configs/
