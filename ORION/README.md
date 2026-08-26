@@ -23,7 +23,9 @@ flowchart TD
     D -->|④| E["Run Orion with template\n+ --input-vars per fingerprint"]
     E -->|"⑤ query historical data"| B
     E -->|⑥| F{Changepoint\ndetected?}
-    F -->|yes| G["⚠️ Report regression\n(throughput + CPU)"]
+    F -->|yes| G["Classify by direction"]
+    G --> G1["⚠️ Regressed"]
+    G --> G2["📈 Improved"]
     F -->|no| H["✅ Stable"]
 ```
 
@@ -32,9 +34,6 @@ flowchart TD
 ```bash
 # Install dependencies
 make setup
-
-# Set ES connection (persists to .makerc)
-make set-es ES_URL=http://your-es:9200
 
 # Analyze latest batch (auto-discover)
 make analyze
@@ -47,20 +46,23 @@ make analyze BATCH_ID=test-batch-2026-07-08 IGNORE='rcos'
 
 # Filter to specific tests within batch
 make analyze BATCH_ID=test-batch-2026-07-08 MATCH='threads=128'
+
+# Use pip-installed orion CLI instead of podman (warns if outdated)
+make analyze USE_LOCAL=1
 ```
 
 Run `make help` for all available targets.
 
 ## Tracked Metrics
 
-Both metrics use `direction: 0` (flag changes in either direction):
+Both metrics use `direction: 0` in the Orion config (detect changes in either direction). The analyzer then classifies each changepoint as regression or improvement based on metric semantics:
 
-| Metric | ES Field | Threshold | Detects |
-|--------|----------|-----------|---------|
-| `throughput` | `mean` | 5% | Throughput changes |
-| `cpu_cost` | `busy_cpu` | 10% | CPU usage changes |
+| Metric | ES Field | Threshold | Direction | Regression | Improvement |
+|--------|----------|-----------|-----------|------------|-------------|
+| `throughput` | `mean` | 5% | higher is better | decrease | increase |
+| `cpu_cost` | `busy_cpu` | 10% | lower is better | increase | decrease |
 
-A fingerprint is flagged if **either** metric triggers a changepoint.
+A fingerprint verdict is one of: **REGRESSED** (any metric regressed), **IMPROVED** (metrics improved, none regressed), or **STABLE** (no changepoints).
 
 ## Key Concepts
 
@@ -173,6 +175,36 @@ make verify-test
 ```
 
 Mock data includes 6 fingerprints covering: stable, throughput regression, throughput improvement, rcos mismatch, CPU-only regression, and multibench composite score regression.
+
+## Orion Runtime
+
+The analyzer supports two Orion runtimes:
+
+| Runtime | Method | Version | When to use |
+|---------|--------|---------|-------------|
+| **Podman container** (default) | `scripts/run-it` wrapper | Always pulls `quay.io/cloud-bulldozer/orion:latest` | CI/Prow, default for local |
+| **Local CLI** | pip-installed `orion` | Whatever is installed | Development, faster (~3-4s vs 6-10s per fingerprint) |
+
+At startup, the analyzer prints which runtime is active and its version. When using the local CLI (`USE_LOCAL=1`), it queries the GitHub API for the latest Orion release and warns if the local version is behind:
+
+```
+Orion runtime: local CLI (orion 1.1.8)
+   ⚠️  WARNING: local orion orion 1.1.8 is behind latest release v1.2.1
+   Run 'make setup' to update, or use podman (default) which always pulls latest
+```
+
+## ES Configuration
+
+`lab.config` (in the Regulus repo root) is the single source of truth for ES credentials, shared between ORION and REPORT Makefiles. Set these variables in `lab.config`:
+
+```bash
+ES_PROTOCOL=https
+ES_HOST=es-host:9200
+ES_USER=your-user
+ES_PASSWORD=your-password
+```
+
+The Makefile sources `lab.config` automatically and constructs the internal ES connection URL. No manual URL construction needed.
 
 ## Installation
 
