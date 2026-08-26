@@ -46,6 +46,9 @@ Usage:
 
     # Combine MATCH and IGNORE
     ./analyze-batch.py --batch-id "test-batch-2026-07-08" --match "threads=128" --ignore "kernel rcos"
+
+    # Use local CLI instead of podman (warns if version is behind latest release)
+    make analyze USE_LOCAL=1
 """
 
 import argparse
@@ -77,7 +80,8 @@ class BatchAnalyzer:
     def __init__(self, es_server: str, es_index: str, batch_id: str = None,
                  match: Dict[str, str] = None, ignore: set = None,
                  lookback: str = "90d", debug: bool = False,
-                 use_self_detect: bool = False):
+                 use_self_detect: bool = False,
+                 use_local_cli: bool = False):
         self.es_server = es_server
         self.es_index = es_index
         self.batch_id = batch_id
@@ -87,7 +91,18 @@ class BatchAnalyzer:
         self.lookback_is_count = lookback.isdigit()
         self.debug = debug
         self.use_template = not use_self_detect
-        self.es_server_display = re.sub(r'https?://[^@]*@', lambda m: m.group(0).split('//')[0] + '//***:***@', es_server)
+        self.use_local_cli = use_local_cli
+        from urllib.parse import urlparse, urlunparse
+        parsed = urlparse(es_server)
+        if parsed.username or parsed.password:
+            sanitized = parsed._replace(
+                netloc=f"***:***@{parsed.hostname}" +
+                       (f":{parsed.port}" if parsed.port else ""),
+                path="", params="", query="", fragment="")
+            self.es_server_display = urlunparse(sanitized)
+        else:
+            self.es_server_display = f"{parsed.scheme}://{parsed.hostname}" + \
+                (f":{parsed.port}" if parsed.port else "")
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.repo_root = os.path.dirname(self.script_dir)
 
@@ -391,27 +406,11 @@ class BatchAnalyzer:
         data_filename = f'data-fp{fp_index}.csv'
 
         import shutil
-        if shutil.which('orion'):
-            cmd = [
-                'orion',
-                '--es-server', self.es_server,
-                '--config', config_path,
-                '--hunter-analyze',
-                '--benchmark-index', self.es_index,
-                '--metadata-index', self.es_index,
-                '--lookback-size' if self.lookback_is_count else '--lookback', self.lookback,
-                '--output-format', 'json',
-                '--save-output-path', os.path.join(self.output_dir, output_filename),
-                '--save-data-path', os.path.join(self.output_dir, data_filename)
-            ]
-            if self.use_template and fingerprint:
-                clean_fp = {k: v for k, v in fingerprint.items() if v != "MISSING"}
-                clean_fp['fp_index'] = fp_index
-                clean_fp['batch_id'] = self.batch_id
-                input_vars = json.dumps(clean_fp, separators=(',', ':'))
-                cmd.extend(['--input-vars', input_vars])
-        else:
-            run_it_script = os.path.join(self.script_dir, 'run-it')
+        run_it_script = os.path.join(self.script_dir, 'run-it')
+        use_container = (not self.use_local_cli
+                         and os.path.isfile(run_it_script)
+                         and shutil.which('podman'))
+        if use_container:
             container_config_path = config_path.replace(self.repo_root, '/orion')
             container_output_dir = self.output_dir.replace(self.repo_root, '/orion')
             cmd = [
@@ -431,6 +430,27 @@ class BatchAnalyzer:
                 clean_fp['batch_id'] = self.batch_id
                 input_vars = json.dumps(clean_fp, separators=(',', ':'))
                 cmd.extend(['--input-vars', input_vars])
+        elif shutil.which('orion'):
+            cmd = [
+                'orion',
+                '--es-server', self.es_server,
+                '--config', config_path,
+                '--hunter-analyze',
+                '--benchmark-index', self.es_index,
+                '--metadata-index', self.es_index,
+                '--lookback-size' if self.lookback_is_count else '--lookback', self.lookback,
+                '--output-format', 'json',
+                '--save-output-path', os.path.join(self.output_dir, output_filename),
+                '--save-data-path', os.path.join(self.output_dir, data_filename)
+            ]
+            if self.use_template and fingerprint:
+                clean_fp = {k: v for k, v in fingerprint.items() if v != "MISSING"}
+                clean_fp['fp_index'] = fp_index
+                clean_fp['batch_id'] = self.batch_id
+                input_vars = json.dumps(clean_fp, separators=(',', ':'))
+                cmd.extend(['--input-vars', input_vars])
+        else:
+            raise RuntimeError("No Orion runtime found: need podman + run-it script, or pip-installed orion CLI")
         return cmd, output_filename
 
     def run_orion_analysis(self, config_path: str, fingerprint_name: str, fp_index: int,
@@ -445,7 +465,8 @@ class BatchAnalyzer:
         cmd, output_filename = self._build_orion_cmd(config_path, fp_index, fingerprint)
 
         if self.debug:
-            print(f"      Command: {' '.join(cmd)}")
+            sanitized_cmd = [self.es_server_display if arg == self.es_server else arg for arg in cmd]
+            print(f"      Command: {' '.join(sanitized_cmd)}")
 
         try:
             # Run Orion (Python 3.6 compatible)
@@ -462,9 +483,9 @@ class BatchAnalyzer:
             )
 
             if self.debug:
-                print(f"      STDOUT: {result.stdout}")
+                print(f"      STDOUT: {result.stdout.replace(self.es_server, self.es_server_display)}")
                 if result.stderr:
-                    print(f"      STDERR: {result.stderr}")
+                    print(f"      STDERR: {result.stderr.replace(self.es_server, self.es_server_display)}")
 
             # Parse output
             # Check if output file exists in generated-orion directory
@@ -485,17 +506,29 @@ class BatchAnalyzer:
                 # Output file exists, parse it regardless of return code
                 with open(output_file, 'r') as f:
                     output_data = json.load(f)
-                # Check which metrics have changepoints
-                regressed_metrics = set()
+                # direction: 1 = higher is better, -1 = lower is better
+                metric_directions = {'throughput_avg': 1, 'cpu_cost_avg': -1}
+                regressed_metrics = {}
+                improved_metrics = {}
                 for doc in output_data:
                     if doc.get('is_changepoint', False):
                         for mkey, mval in doc.get('metrics', {}).items():
-                            if mval.get('percentage_change', 0) != 0:
-                                regressed_metrics.add(mkey)
+                            pct = mval.get('percentage_change', 0)
+                            if pct == 0:
+                                continue
+                            direction = metric_directions.get(mkey, 0)
+                            is_improvement = (direction == 1 and pct > 0) or (direction == -1 and pct < 0)
+                            if is_improvement:
+                                improved_metrics[mkey] = pct
+                            else:
+                                regressed_metrics[mkey] = pct
                 return {
                     'status': 'success',
                     'regression_detected': len(regressed_metrics) > 0,
-                    'regressed_metrics': sorted(regressed_metrics),
+                    'improvement_detected': len(improved_metrics) > 0,
+                    'regressed_metrics': sorted(regressed_metrics.keys()),
+                    'improved_metrics': sorted(improved_metrics.keys()),
+                    'metric_changes': {**regressed_metrics, **improved_metrics},
                     'historical_samples': len(output_data),
                     'details': output_data,
                     'stdout': result.stdout
@@ -519,11 +552,75 @@ class BatchAnalyzer:
                 'error': str(e)
             }
 
+    @staticmethod
+    def _get_latest_orion_version():
+        """Query GitHub API for the latest Orion release tag."""
+        import urllib.request
+        try:
+            req = urllib.request.Request(
+                'https://api.github.com/repos/cloud-bulldozer/orion/releases/latest',
+                headers={'Accept': 'application/vnd.github.v3+json'})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+                return data.get('tag_name', '').lstrip('v')
+        except Exception:
+            return None
+
+    @staticmethod
+    def _parse_version(ver_str: str):
+        """Extract numeric version tuple from a version string like 'orion 1.2.1' or '1.2.1.post1.dev1'."""
+        m = re.search(r'(\d+(?:\.\d+)+)', ver_str)
+        if m:
+            return tuple(int(x) for x in m.group(1).split('.'))
+        return None
+
+    def _check_orion_runtime(self):
+        """One-time check: report which Orion runtime will be used and its version."""
+        import shutil
+        run_it_script = os.path.join(self.script_dir, 'run-it')
+        use_container = (not self.use_local_cli
+                         and os.path.isfile(run_it_script)
+                         and shutil.which('podman'))
+        if use_container:
+            try:
+                result = subprocess.run(
+                    [run_it_script, '--version'],
+                    cwd=self.repo_root,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    universal_newlines=True, timeout=30,
+                    env={**os.environ, 'ES_URL': 'http://localhost:9200'})
+                ver = (result.stdout.strip() or result.stderr.strip()).split('\n')[0]
+                print(f"Orion runtime: podman container ({ver})")
+            except Exception:
+                print("Orion runtime: podman container (version unknown)")
+        elif shutil.which('orion'):
+            try:
+                result = subprocess.run(
+                    ['orion', '--version'],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    universal_newlines=True, timeout=10)
+                ver = (result.stdout.strip() or result.stderr.strip()).split('\n')[0]
+                print(f"Orion runtime: local CLI ({ver})")
+            except Exception:
+                ver = ''
+                print("Orion runtime: local CLI (version unknown)")
+            local_ver = self._parse_version(ver)
+            latest = self._get_latest_orion_version()
+            latest_ver = self._parse_version(latest) if latest else None
+            if local_ver and latest_ver and local_ver < latest_ver:
+                print(f"   ⚠️  WARNING: local orion {ver} is behind latest release v{latest}")
+                print(f"   Run 'make setup' to update, or use podman (default) which always pulls latest")
+        else:
+            raise RuntimeError(
+                "No Orion runtime found: need podman + run-it script, or pip-installed orion CLI")
+
     def analyze(self) -> Dict[str, Any]:
         """Main analysis workflow with auto-discovery support."""
         print("=" * 80)
         print("🔬 Orion Regulus Batch Analyzer")
         print("=" * 80)
+
+        self._check_orion_runtime()
 
         # Auto-discover latest batch if not specified
         if not self.batch_id:
@@ -600,11 +697,15 @@ class BatchAnalyzer:
             # Print result
             if analysis_result['status'] == 'success':
                 samples = analysis_result.get('historical_samples', 0)
-                if analysis_result['regression_detected']:
-                    metrics = ', '.join(analysis_result.get('regressed_metrics', []))
-                    print(f"   ⚠️  REGRESSION DETECTED ({metrics}) — {samples} historical samples")
+                changes = analysis_result.get('metric_changes', {})
+                if analysis_result.get('regression_detected'):
+                    verdicts = [f"{m} {changes.get(m, 0):+.1f}%" for m in analysis_result.get('regressed_metrics', [])]
+                    print(f"   ⚠️  REGRESSED ({', '.join(verdicts)}) — {samples} samples")
+                elif analysis_result.get('improvement_detected'):
+                    verdicts = [f"{m} {changes.get(m, 0):+.1f}%" for m in analysis_result.get('improved_metrics', [])]
+                    print(f"   📈 IMPROVED ({', '.join(verdicts)}) — {samples} samples")
                 else:
-                    print(f"   ✅ STABLE (no regression) — {samples} historical samples")
+                    print(f"   ✅ STABLE — {samples} samples")
             else:
                 print(f"   ❌ ERROR: {analysis_result.get('error', 'Unknown error')}")
                 remaining = len(fingerprint_groups) - idx
@@ -627,13 +728,15 @@ class BatchAnalyzer:
         analyzed = len(results)
         skipped = total_fingerprints - analyzed
         regressions = sum(1 for r in results if r['analysis'].get('regression_detected'))
-        stable = sum(1 for r in results if r['analysis']['status'] == 'success' and not r['analysis'].get('regression_detected'))
+        improvements = sum(1 for r in results if r['analysis'].get('improvement_detected') and not r['analysis'].get('regression_detected'))
+        stable = sum(1 for r in results if r['analysis']['status'] == 'success' and not r['analysis'].get('regression_detected') and not r['analysis'].get('improvement_detected'))
         errors = sum(1 for r in results if r['analysis']['status'] == 'error')
 
         print(f"Total fingerprints: {total_fingerprints}")
         if skipped > 0:
             print(f"  ⏭️  Skipped: {skipped}")
         print(f"  ✅ Stable: {stable}")
+        print(f"  📈 Improved: {improvements}")
         print(f"  ⚠️  Regressions: {regressions}")
         print(f"  ❌ Errors: {errors}")
         print("=" * 80)
@@ -645,6 +748,7 @@ class BatchAnalyzer:
             'total_fingerprints': total_fingerprints,
             'skipped': skipped,
             'stable': stable,
+            'improvements': improvements,
             'regressions': regressions,
             'errors': errors,
             'results': results
@@ -719,6 +823,9 @@ Examples:
     parser.add_argument('--use-self-detect',
                         action='store_true',
                         help='Self-detect fingerprint fields and generate per-fingerprint configs instead of using static template (configs/template.yaml)')
+    parser.add_argument('--use-local-cli',
+                        action='store_true',
+                        help='Use pip-installed orion CLI instead of podman container (default: podman)')
     parser.add_argument('--output',
                         help='Save results to JSON file')
 
@@ -746,7 +853,8 @@ Examples:
         ignore=ignore_set,
         lookback=args.lookback,
         debug=args.debug,
-        use_self_detect=args.use_self_detect
+        use_self_detect=args.use_self_detect,
+        use_local_cli=args.use_local_cli
     )
 
     results = analyzer.analyze()
