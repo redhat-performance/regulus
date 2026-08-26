@@ -14,9 +14,9 @@ echo "════════════════════════�
 echo ""
 
 # Count results — match the output format from analyze-batch.py
-STABLE=$(grep -c "✅ STABLE" "$RESULTS_FILE" 2>/dev/null || echo 0)
-IMPROVED=$(grep -c "📈 IMPROVED" "$RESULTS_FILE" 2>/dev/null || echo 0)
-REGRESSIONS=$(grep -c "⚠️  REGRESSED" "$RESULTS_FILE" 2>/dev/null || echo 0)
+STABLE=$(grep -c "✅ STABLE" "$RESULTS_FILE" 2>/dev/null || true)
+IMPROVED=$(grep -c "📈 IMPROVED" "$RESULTS_FILE" 2>/dev/null || true)
+REGRESSIONS=$(grep -c "⚠️  REGRESSED" "$RESULTS_FILE" 2>/dev/null || true)
 ERRORS=$(grep "❌ ERROR" "$RESULTS_FILE" 2>/dev/null | grep -v "Errors: 0" | wc -l)
 
 # Expected values for mock test (with rcos included in fingerprint)
