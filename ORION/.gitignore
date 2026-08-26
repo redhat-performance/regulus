@@ -3,8 +3,6 @@ output/
 generated-configs/
 generated-orion/
 
-# Local configuration
-.makerc
 *.csv
 *.json
 !unit-test/templates/*.json
