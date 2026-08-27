@@ -59,8 +59,12 @@ def get_datapath_model(json_path):
 
     endpoints = data.get("endpoints", [])
     for ep in endpoints:
-        if ep.get("type") == "k8s" and ep.get("hostNetwork") == 1:
-            return "hostNetwork"
+        if ep.get("type") != "kube":
+            continue
+        for cfg in ep.get("config", []):
+            settings = cfg.get("settings", {})
+            if settings.get("hostNetwork") in (True, 1):
+                return "hostNetwork"
 
     return detect_model_iter()
 
