@@ -23,7 +23,7 @@ class BenchmarkResult:
     protocol: Optional[str] = None
 
     # Key tags
-    model: Optional[str] = None  # Datapath model: OVNK, DPU, MACVLAN, SRIOV
+    model: Optional[str] = None  # Datapath model: OVNK, DPU, MACVLAN, SRIOV, HWOL, hostNetwork
     nic: Optional[str] = None    # NIC vendor: e810, e910, cx5, cx7, etc.
     arch: Optional[str] = None   # CPU architecture: emerald_rapid, sapphire_rapids, etc.
     perf: Optional[str] = None
@@ -206,7 +206,7 @@ class ReportLoader:
         # Map lab_info keys to datapath models
         # Note: Each NIC model may map to multiple datapath model variants
         nic_mappings = {
-            'REG_OVN_NIC_MODEL': ['OVNK', 'OVN'],
+            'REG_OVN_NIC_MODEL': ['OVNK', 'OVN', 'hostNetwork'],
             'REG_SRIOV_NIC_MODEL': ['SRIOV', 'SR-IOV'],
             'REG_DPDK_NIC_MODEL': ['DPU', 'DPDK'],
             'REG_MACVLAN_NIC_MODEL': ['MACVLAN'],
