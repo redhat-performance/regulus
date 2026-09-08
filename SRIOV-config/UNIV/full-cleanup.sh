@@ -1,7 +1,7 @@
 #!/bin/bash
 # allow no confirm mode
 # do not unlabel nodes and remove MCP if PAO exist
-# do not remove Operator
+# remove Operator for full cleanup
 
 #set -euo pipefail
 source ../setting.env
@@ -34,7 +34,7 @@ if oc get SriovNetworkNodePolicy regulus-sriov-node-policy -n openshift-sriov-ne
 
 else
     echo "No SriovNetworkNodePolicy to remove"
-    exit 0
+    #exit 0
 fi
 
 ### We are on delete path. Always resume and wait before mucking the node label, and deleting mcp.
@@ -79,22 +79,29 @@ else
     oc label --overwrite mcp master machineconfiguration.openshift.io/role-
 fi
 
-echo "You don't want to remove SRIOV Operator (esp. web console installed)"
-exit
-
-echo "Continue if you want to remove the SRIOV Operator ..."
+echo "Continue to remove the SRIOV Operator ..."
 prompt_continue
 
-if oc get sriovoperatorconfig -n openshift-sriov-network-operator &>/dev/null; then 
+if oc get sriovoperatorconfig default -n openshift-sriov-network-operator &>/dev/null; then
     echo "Remove SRIOV Operator config ..."
-    oc delete sriovoperatorconfig openshift-sriov-network-operator -n openshift-sriov-network-operator
-    rm ${MANIFEST_DIR}/sriov-operator-config.yaml
+    oc delete sriovoperatorconfig default -n openshift-sriov-network-operator
 fi
+rm -f -- "${MANIFEST_DIR}/sriov-operator-config.yaml"
 
 if oc get Subscription sriov-network-operator-subscription -n openshift-sriov-network-operator &>/dev/null; then
     echo "Remove  SRIOV Operator ..."
     oc delete Subscription sriov-network-operator-subscription -n openshift-sriov-network-operator
-    rm ${MANIFEST_DIR}/sub-sriov.yaml
+fi
+rm -f -- "${MANIFEST_DIR}/sub-sriov.yaml"
+
+if oc get operatorgroup sriov-network-operators -n openshift-sriov-network-operator &>/dev/null; then
+    echo "Remove SRIOV OperatorGroup ..."
+    oc delete operatorgroup sriov-network-operators -n openshift-sriov-network-operator
+fi
+
+if oc get namespace openshift-sriov-network-operator &>/dev/null; then
+    echo "Remove SRIOV namespace ..."
+    oc delete namespace openshift-sriov-network-operator
 fi
 
 #done

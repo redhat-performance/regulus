@@ -57,7 +57,7 @@ function install_sriov_operator {
         #// Installing SR-IOV Network Operator done
         echo "Installing SRIOV Operator ..."
         envsubst '$OCP_CHANNEL' < templates/sub-sriov.yaml.template > ${MANIFEST_DIR}/sub-sriov.yaml
-        oc create -f ${MANIFEST_DIR}/sub-sriov.yaml
+        oc apply -f ${MANIFEST_DIR}/sub-sriov.yaml
         echo "install SRIOV Operator: done"
         wait_pod_in_namespace openshift-sriov-network-operator
         # give it a little delay. W/o delay we could encounter error on the next command.
@@ -72,7 +72,7 @@ function install_sriov_operator {
         oc apply -f ${MANIFEST_DIR}/sriov-operator-config.yaml
 	else
         echo $LINENO "Installing SRIOV Operator Config ..."
-        oc create -f ${MANIFEST_DIR}/sriov-operator-config.yaml
+        oc apply -f ${MANIFEST_DIR}/sriov-operator-config.yaml
     fi
     wait_mcp
     echo $LINENO "install SRIOV Operator: done"
@@ -90,7 +90,7 @@ function configure_mcp {
         echo "create mcp for ${MCP}  ..."
         mkdir -p ${MANIFEST_DIR}
         envsubst < templates/mcp-regulus-vf.yaml.template > ${MANIFEST_DIR}/mcp-regulus-vf.yaml
-        oc create -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
+        oc apply -f ${MANIFEST_DIR}/mcp-regulus-vf.yaml
         echo "create mcp for ${MCP} done"
     fi
     mcp_counter_add $MCP  "reg-SRIOV"
@@ -115,7 +115,7 @@ prompt_continue
 # step 3 - label nodes that needs SRIOV
 
 function add_label {
-    if [ "$MCP}" != "master" ]; then
+    if [ "${MCP}" != "master" ]; then
         for NODE in $WORKER_LIST; do
             echo label $NODE with $MCP
             oc label --overwrite node ${NODE} node-role.kubernetes.io/${MCP}=""
@@ -143,7 +143,7 @@ function add_mc_realloc {
     else
         echo "create mc mc-realloc.yaml ..."
         envsubst < templates/mc-realloc.yaml.template > ${MANIFEST_DIR}/mc-realloc.yaml
-        oc create -f ${MANIFEST_DIR}/mc-realloc.yaml
+        oc apply -f ${MANIFEST_DIR}/mc-realloc.yaml
         echo "create mc-realloc.yaml: done"
     fi
 }
@@ -216,7 +216,7 @@ function config_SriovNetworkNodePolicy {
         echo "SriovNetworkNodePolicy exists. Skip creation"
     else
         echo $LINENO "create SriovNetworkNodePolicy ..."
-        oc create -f ${MANIFEST_DIR}/sriov-node-policy.yaml
+        oc apply -f ${MANIFEST_DIR}/sriov-node-policy.yaml
         echo "create SriovNetworkNodePolicy: done"
         if [ $PAUSE == false ]; then
            # MCP may not go to UPDATING after apply SriovNetworkNodePolicy
@@ -241,7 +241,7 @@ function create_network {
     else
         echo "create network-attachment-definition/ ..."
         oc new-project ${MCP}  &> /dev/null
-        oc create -f ${MANIFEST_DIR}/net-attach-def.yaml
+        oc apply -f ${MANIFEST_DIR}/net-attach-def.yaml
         echo "create NAD /net-attach-def.yaml  done"
     fi
 }
