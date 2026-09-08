@@ -114,7 +114,7 @@ function create_network {
         echo "create network-attachment-definition/ ..."
         # we always recreate NAD in a test for the tester NS. Here we create one for the MCP as a test.
         oc new-project ${MCP}  &> /dev/null
-        oc apply -f ${MANIFEST_DIR}/net-attach-def.yaml
+        oc create -f ${MANIFEST_DIR}/net-attach-def.yaml
         echo "create NAD /net-attach-def.yaml  done"
     fi
 }
