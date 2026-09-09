@@ -1,6 +1,12 @@
 #
 # per job/run config
 #
+# IMPORTANT: This file is parsed by the Makefile's 'include ./jobs.config' directive,
+# NOT executed as a bash script. It follows GNU Make syntax, not shell syntax.
+# - Do NOT use quotes around values (Make will treat them as literal characters)
+# - To override with shell syntax (with quotes), export from the shell before make:
+#   export NUM_THREADS="1,2,3" && make init
+#
 
 # Project. Default is crucible-rickshaw
 export OCP_PROJECT=crucible-myproject
@@ -21,3 +27,7 @@ export NUM_SAMPLES=1
 
 # The duration in seconds to run each test iteration. Default is 120
 export DURATION=120
+
+# Thread counts to test. Format: comma-separated values, no quotes (e.g., 1 or 1,2,4,8)
+# Use ?= to allow shell override: export NUM_THREADS="1,2,3" && make init
+export NUM_THREADS ?= 1,2,4,8
