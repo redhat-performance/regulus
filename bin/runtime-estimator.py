@@ -226,7 +226,7 @@ def read_jobs_config(root):
 
     def val(name, default):
         """Extract a shell export variable from jobs.config."""
-        m = re.search(r"^\s*export\s+%s=(\S+)" % name, txt, re.M)
+        m = re.search(r"^\s*export\s+%s\s*\?*=\s*(\S+)" % name, txt, re.M)
         return m.group(1).strip().strip('"') if m else default
 
     # NUM_SAMPLES: Number of measurement replicates per iteration
