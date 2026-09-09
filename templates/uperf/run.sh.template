@@ -15,7 +15,6 @@ source ${REG_ROOT}/INVENTORY/tb-get.sh
 PS4='Line ${LINENO} (${FUNCNAME[0]}) $(printf "+%.0s" $(seq 1 $BASH_SUBSHELL)): '
 
 DURATION=${DURATION:-0}
-NUM_THREADS=${NUM_THREADS:-}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 TPL_QOS=${TPL_QOS:-burstable}
 TPL_NUMCPUS=${TPL_NUMCPUS:-0}
@@ -301,16 +300,6 @@ if [ "$DURATION" != 0 ]; then
 	for file in $FILES; do
        	sed -i 's/\({ "arg": "duration", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
    	done
-fi
-
-if [ -n "$NUM_THREADS" ]; then
-	# Use the env-defined NUM_THREADS
-	FILES=$(ls *mv*.json)
-	for file in $FILES; do
-		jq -S --arg nt "$NUM_THREADS" \
-			'(."global-options"[].params[] | select(.arg == "nthreads")).vals = ($nt | split(","))' \
-			"$file" > "$file.tmp" && mv -f "$file.tmp" "$file"
-	done
 fi
 
 for num_pods in $scale_up_factor; do

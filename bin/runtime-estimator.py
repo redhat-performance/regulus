@@ -212,7 +212,6 @@ def read_jobs_config(root):
     jobs.config defines:
       - NUM_SAMPLES: How many times each iteration is measured (replicates for variance)
       - DURATION: Seconds per sample during actual measurement
-      - NUM_THREADS: Thread counts to test (comma-separated, overrides nthreads in templates)
       - DRY_RUN: Whether this is a dry run (affects time estimates)
       - JOBS: List of job directories to run as separate crucible runs
 
@@ -220,7 +219,7 @@ def read_jobs_config(root):
         root: Path to regulus repo (directory containing jobs.config)
 
     Returns:
-        Tuple of (num_samples, duration, num_threads, dry_run_flag, jobs_list)
+        Tuple of (num_samples, duration, dry_run_flag, jobs_list)
     """
     txt = open(os.path.join(root, "jobs.config")).read()
 
@@ -238,11 +237,6 @@ def read_jobs_config(root):
     # If not specified, defaults to 0 (shouldn't happen in practice)
     duration = int(val("DURATION", "0"))
 
-    # NUM_THREADS: Thread counts to test (comma-separated, no quotes)
-    # Format: "1" or "1,2,4,8". If set, overrides nthreads in mv-params.json
-    # Empty string means use what's in the template
-    num_threads = val("NUM_THREADS", "")
-
     # DRY_RUN: Flag to indicate a dry run (fast path, no real execution)
     # Estimates here assume real execution; dry runs are much faster
     dry = val("DRY_RUN", "false").lower()
@@ -259,7 +253,7 @@ def read_jobs_config(root):
             line = line.strip().rstrip("\\").strip().strip('"')
             if line.startswith("./") or line.startswith("/"):
                 jobs.append(line)
-    return num_samples, duration, num_threads, dry, jobs
+    return num_samples, duration, dry, jobs
 
 
 def find_template_mvparams(root, job):
@@ -367,14 +361,12 @@ def find_mvparams(root, job):
     return g[0] if g else None
 
 
-def count_iters(mvpath, num_threads=""):
+def count_iters(mvpath):
     """
     Count the total number of iterations from mv-params.json.
 
     An "iteration" is one complete run of the benchmark with a specific parameter
     combination. The total iteration count is the cross-product of all parameter values.
-
-    If NUM_THREADS is set, it overrides the nthreads parameter count from the file.
 
     The file can define parameters in two ways:
     1. global-options: Parameters that apply to all sets, multiplied across all sets
@@ -394,18 +386,11 @@ def count_iters(mvpath, num_threads=""):
 
     Args:
         mvpath: Path to mv-params.json
-        num_threads: NUM_THREADS from jobs.config (comma-separated values, overrides nthreads)
 
     Returns:
         Total number of iterations (distinct parameter combinations).
     """
     d = json.load(open(mvpath))
-
-    # Parse NUM_THREADS to get the override count
-    # Format: "1" or "1,2,4,8" (comma-separated, no quotes)
-    num_threads_count = None
-    if num_threads:
-        num_threads_count = len(num_threads.split(","))
 
     # First, compute the multiplier from each global-option group
     # Global options apply to *all* sets, so we multiply their dimensions together
@@ -415,11 +400,7 @@ def count_iters(mvpath, num_threads=""):
         # For each param in the global-option, multiply by its value count
         # If a param has no values or is omitted, it contributes factor of 1
         for p in g.get("params", []):
-            # Check if this is the nthreads parameter and NUM_THREADS is set
-            if p.get("arg") == "nthreads" and num_threads_count is not None:
-                m *= num_threads_count
-            else:
-                m *= max(1, len(p.get("vals", []) or [1]))
+            m *= max(1, len(p.get("vals", []) or [1]))
         gmult[g.get("name")] = m
 
     # Check if there are named parameter sets
@@ -438,11 +419,7 @@ def count_iters(mvpath, num_threads=""):
         sm = 1
         # Multiply dimensions of params *within* this set
         for p in s.get("params", []):
-            # Check if this is the nthreads parameter and NUM_THREADS is set
-            if p.get("arg") == "nthreads" and num_threads_count is not None:
-                sm *= num_threads_count
-            else:
-                sm *= max(1, len(p.get("vals", []) or [1]))
+            sm *= max(1, len(p.get("vals", []) or [1]))
         # Include the global-option multiplier for this set (lookup by "include" field)
         # If a set doesn't reference a global-option, the multiplier defaults to 1
         total += sm * gmult.get(s.get("include"), 1)
@@ -478,7 +455,7 @@ def estimate_jobs(root, config):
         config: Config object with calibrated constants
     """
     # ---- READ CONFIGURATION ----
-    num_samples, duration, num_threads, dry, jobs = read_jobs_config(root)
+    num_samples, duration, dry, jobs = read_jobs_config(root)
 
     # Calculate the per-sample time: overhead + actual measurement duration
     # This is what each iteration × sample takes (excludes job fixed cost)
@@ -486,10 +463,7 @@ def estimate_jobs(root, config):
 
     # Print configuration header
     print(f"Regulus root : {root}")
-    if num_threads:
-        print(f"NUM_SAMPLES={num_samples}  DURATION={duration}s  NUM_THREADS={num_threads}  DRY_RUN={dry}")
-    else:
-        print(f"NUM_SAMPLES={num_samples}  DURATION={duration}s  DRY_RUN={dry}")
+    print(f"NUM_SAMPLES={num_samples}  DURATION={duration}s  DRY_RUN={dry}")
     print(
         f"per-sample   = {per_sample:.1f}s (overhead {config.per_sample_overhead} + duration {duration})"
     )
@@ -509,7 +483,6 @@ def estimate_jobs(root, config):
     grand = config.fixed_run  # Start with one-time run cost
     bench_total = 0.0  # Total for benchmark jobs only
     setup_total = 0.0  # Total for setup jobs only
-    total_iters = 0  # Total iterations across all benchmark jobs
     n_bench = n_setup = missing = 0
 
     # ---- PROCESS EACH JOB ----
@@ -537,8 +510,7 @@ def estimate_jobs(root, config):
 
         # ---- BENCHMARK JOB CALCULATION ----
         # Count iterations: number of distinct parameter combinations
-        # Pass NUM_THREADS to override nthreads parameter if set
-        iters = count_iters(mv, num_threads)
+        iters = count_iters(mv)
 
         # Calculate execution time: iterations × samples × per-sample time
         # This is the pure measurement time (does NOT include per-job overhead)
@@ -551,7 +523,6 @@ def estimate_jobs(root, config):
         # Accumulate totals (grand total already includes FIXED_RUN at the start)
         grand += tot
         bench_total += tot
-        total_iters += iters
         n_bench += 1
 
         # Print row: job number, iterations, samples per iteration, exec time, fixed cost, total
@@ -561,7 +532,7 @@ def estimate_jobs(root, config):
 
     # ---- PRINT SUMMARY ----
     print("-" * len(hdr))
-    print(f"benchmark jobs : {n_bench:2d}  {total_iters:6d} iterations  {fmt(bench_total)}")
+    print(f"benchmark jobs : {n_bench:2d}  {fmt(bench_total)}")
     print(f"setup jobs     : {n_setup:2d}  {fmt(setup_total)}")
     print(f"GRAND TOTAL    : {fmt(grand)}  ({grand:.0f}s)")
 

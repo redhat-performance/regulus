@@ -6,7 +6,6 @@ source ${REG_ROOT}/templates/common/functions
 
 NUM_SAMPLES=${NUM_SAMPLES:-1}
 DURATION=${DURATION:-0}
-NUM_THREADS=${NUM_THREADS:-}
 OCP_PROJECT=${OCP_PROJECT:-crucible-rickshaw}
 
 num_samples=$NUM_SAMPLES
@@ -96,21 +95,11 @@ fi
 
 
 if [ "$DURATION" != 0 ]; then
-	# Use the env-defined duration
+	# Use the env-defined duration 
 	FILES=$(ls *mv*.json)
 	for file in $FILES; do
 		sed -i 's/\({ "arg": "duration", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
 		sed -i 's/\({ "arg": "time", "vals": \["\)[0-9]*\("\] }\)/\1'"$DURATION"'\2/g' $file
-	done
-fi
-
-if [ -n "$NUM_THREADS" ]; then
-	# Use the env-defined NUM_THREADS
-	FILES=$(ls *mv*.json)
-	for file in $FILES; do
-		jq -S --arg nt "$NUM_THREADS" \
-			'(."global-options"[].params[] | select(.arg == "nthreads")).vals = ($nt | split(","))' \
-			"$file" > "$file.tmp" && mv -f "$file.tmp" "$file"
 	done
 fi
 
