@@ -225,9 +225,24 @@ def read_jobs_config(root):
     txt = open(os.path.join(root, "jobs.config")).read()
 
     def val(name, default):
-        """Extract a shell export variable from jobs.config."""
-        m = re.search(r"^\s*export\s+%s\s*\?*=\s*(\S+)" % name, txt, re.M)
-        return m.group(1).strip().strip('"') if m else default
+        """Extract a shell export variable from jobs.config, honoring the
+        environment the way GNU make does.
+
+        Accepts a single optional '?' before '=' (i.e. '=' or '?='); '??='
+        and other malformed operators do not match. For a conditional '?='
+        assignment an exported environment variable takes precedence over the
+        file value (make's ?= is "assign only if not already set"); a plain
+        '=' assignment keeps the file value.
+        """
+        m = re.search(r"^\s*export\s+%s\s*(\?)?=\s*(\S+)" % name, txt, re.M)
+        conditional = bool(m and m.group(1))
+        file_val = m.group(2).strip().strip('"') if m else None
+        env_val = os.environ.get(name)
+        if conditional and env_val is not None:
+            return env_val
+        if file_val is not None:
+            return file_val
+        return env_val if env_val is not None else default
 
     # NUM_SAMPLES: Number of measurement replicates per iteration
     # If not specified, defaults to 1 (single measurement, no variance statistics)
