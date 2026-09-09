@@ -58,9 +58,11 @@ usage() {
 while [ $# -gt 0 ]; do
     case "$1" in
         -s|--survey|--diagnose) DIAGNOSE_ONLY=true; shift;;
-        -p|--pool)      POOLS+=("$2"); shift 2;;
+        -p|--pool)      [ $# -ge 2 ] || die "$1 requires a pool name"; POOLS+=("$2"); shift 2;;
         -a|--apply)     APPLY=true; shift;;
-        -t|--timeout)   TIMEOUT="$2"; shift 2;;
+        -t|--timeout)   [ $# -ge 2 ] || die "$1 requires seconds"
+                        case "$2" in ''|*[!0-9]*) die "--timeout must be an integer";; esac
+                        TIMEOUT="$2"; shift 2;;
         -k|--keep-orphan) KEEP_ORPHAN=true; shift;;
         -h|--help)      usage 0;;
         *) die "unknown option: $1 (see --help)";;
@@ -124,7 +126,7 @@ classify_pool() {
     local pool="$1" up upd deg
     up=$(pool_cond "$pool" Updated); upd=$(pool_cond "$pool" Updating); deg=$(pool_cond "$pool" Degraded)
     if [ "$deg" = "True" ]; then
-        if pool_degrade_msg "$pool" | grep -q "missing MachineConfig"; then CLASS=DEGRADED_MISSING_MC
+        if [ -n "$(pool_missing_mcs "$pool")" ]; then CLASS=DEGRADED_MISSING_MC
         else CLASS=DEGRADED_OTHER; fi
     elif [ "$upd" = "True" ]; then CLASS=UPDATING
     elif [ "$up" = "True" ]; then CLASS=HEALTHY
@@ -287,12 +289,11 @@ for POOL in "${AUTO_FIXABLE[@]}"; do
 
     if [ "${#RECREATED[@]}" -gt 0 ] && ! $KEEP_ORPHAN; then
         for mc in "${RECREATED[@]}"; do
-            still=""
-            for n in $(pool_nodes "$POOL"); do
-                for field in currentConfig desiredConfig; do
-                    [ "$(node_anno "$n" "$field")" = "$mc" ] && still="$n/$field"
-                done
-            done
+            still=$(oc get nodes -o json | jq -r --arg mc "$mc" '
+                .items[]
+                | select((.metadata.annotations["machineconfiguration.openshift.io/currentConfig"] == $mc)
+                      or (.metadata.annotations["machineconfiguration.openshift.io/desiredConfig"] == $mc))
+                | .metadata.name' | head -1)
             if [ -n "$still" ]; then
                 echo "  Keep orphan '$mc' (still referenced by $still)."
             else
