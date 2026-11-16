@@ -62,11 +62,22 @@ EOF
     fi
 }
 
-# We are on the true bastion, Set it up so that it can ssh to itself.
+# We are on the true bastion. Ensure the self-login key has a Crucible-safe
+# comment even when a legacy root@hostname entry still lets the probe succeed.
+if [ -s ~/.ssh/id_rsa.pub ]; then
+    echo "Ensuring Crucible-safe self-SSH key entry..."
+    bash ./bin/ensure-self-ssh-key.sh \
+        ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys \
+        run-cpt-tag || { echo "self-SSH key setup failed"; exit 1; }
+elif ! ssh -o ConnectTimeout=5 -o BatchMode=yes $REG_KNI_USER@$REG_OCPHOST "pwd" 2>/dev/null; then
+    echo "SSH key authentication failed and ~/.ssh/id_rsa.pub does not exist."
+    echo "Please generate an SSH key: ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa"
+    exit 1
+fi
+
 if ! ssh -o ConnectTimeout=5 -o BatchMode=yes $REG_KNI_USER@$REG_OCPHOST "pwd" 2>/dev/null; then
-    echo "SSH key authentication failed, setting up..."
-    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-    chmod 600 ~/.ssh/authorized_keys
+    echo "SSH key authentication to the bastion failed after self-SSH setup."
+    exit 1
 fi
 
 #### Now do the Regulus work.
