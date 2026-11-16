@@ -203,17 +203,20 @@ echo IN: f_verify_lab_config  >&2
         fi
     fi
 
-    # Ensure the bastion can SSH to itself (fresh clusters lack this).
-    # Only attempt the fix if self-login actually fails.
+    # Always ensure the tagged entry. A legacy root@hostname entry may make
+    # the self-login probe succeed even though Crucible will remove that entry.
+    if ! do_ssh $DEST "test -s ~/.ssh/id_rsa.pub" >/dev/null 2>&1; then
+        echo "ERROR: Bastion cannot be prepared for self-SSH: ~/.ssh/id_rsa.pub does not exist." >&2
+        echo "Please generate an SSH key on the bastion: ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa" >&2
+        exit 1
+    fi
+    if ! do_ssh $DEST "cd $reg_dir && bash bin/ensure-self-ssh-key.sh ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys 'run-cpt-tag'"; then
+        echo "ERROR: Failed to install the Crucible-safe self-SSH key entry." >&2
+        exit 1
+    fi
     if ! do_ssh $DEST "ssh -o BatchMode=yes -o ConnectTimeout=5 $SSH_OPTS localhost true" >/dev/null 2>&1; then
-        if do_ssh $DEST "test -f ~/.ssh/id_rsa.pub" >/dev/null 2>&1; then
-            echo "Bastion cannot SSH to itself. Setting up self-login..." >&2
-            do_ssh $DEST "cd $reg_dir && bash bin/ensure-self-ssh-key.sh ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys 'run-cpt-tag'"
-        else
-            echo "ERROR: Bastion cannot SSH to itself and ~/.ssh/id_rsa.pub does not exist." >&2
-            echo "Please generate an SSH key on the bastion: ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa" >&2
-            exit 1
-        fi
+        echo "ERROR: Bastion still cannot SSH to itself after key setup." >&2
+        exit 1
     fi
 
     # The bastion also needs init-lab (for CLUSTER_TYPE) before we can init SRIOV/UNIV/
