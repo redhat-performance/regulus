@@ -208,7 +208,7 @@ echo IN: f_verify_lab_config  >&2
     if ! do_ssh $DEST "ssh -o BatchMode=yes -o ConnectTimeout=5 $SSH_OPTS localhost true" >/dev/null 2>&1; then
         if do_ssh $DEST "test -f ~/.ssh/id_rsa.pub" >/dev/null 2>&1; then
             echo "Bastion cannot SSH to itself. Setting up self-login..." >&2
-            do_ssh $DEST "cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+            do_ssh $DEST "cd $reg_dir && bash bin/ensure-self-ssh-key.sh ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys 'run-cpt-tag'"
         else
             echo "ERROR: Bastion cannot SSH to itself and ~/.ssh/id_rsa.pub does not exist." >&2
             echo "Please generate an SSH key on the bastion: ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa" >&2
